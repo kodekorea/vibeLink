@@ -8,15 +8,9 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: '#0b0b0b' },
-        headerTintColor: '#fff',
-        headerShadowVisible: false,
-      }}
-    >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="terminal" options={{ title: 'MTB Hub' }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(tabs)" />
     </Stack>
   );
 }
