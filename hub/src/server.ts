@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as http from 'http';
 import * as net from 'net';
+import * as os from 'os';
 import * as path from 'path';
 import { WebSocketServer, WebSocket } from 'ws';
 import { AuthStore } from './auth';
@@ -26,6 +27,19 @@ function remoteIp(req: http.IncomingMessage): string {
 }
 function isLoopback(ip: string): boolean {
   return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+}
+// 같은 와이파이에서 폰이 직접 붙을 수 있는 사설 LAN IPv4. WSL 가상 어댑터는 뒤로 밀림.
+function lanIp(): string | null {
+  const addrs: string[] = [];
+  const ifaces = os.networkInterfaces();
+  for (const name of Object.keys(ifaces)) {
+    for (const ni of ifaces[name] ?? []) {
+      const fam = (ni as { family: string | number }).family;
+      if ((fam === 'IPv4' || fam === 4) && !ni.internal) addrs.push(ni.address);
+    }
+  }
+  const pick = (re: RegExp) => addrs.find(a => re.test(a));
+  return pick(/^192\.168\./) || pick(/^10\./) || pick(/^172\.(1[6-9]|2\d|3[01])\./) || addrs[0] || null;
 }
 function bearer(req: http.IncomingMessage): string {
   const h = String(req.headers['authorization'] ?? '');
@@ -66,11 +80,19 @@ export class HubServer {
     for (const ws of this.clients) if (ws.readyState === WebSocket.OPEN) ws.send(data);
   };
 
+  private _port = 0;
   listen(port: number): Promise<void> {
+    this._port = port;
     return new Promise((resolve, reject) => {
       this.httpServer.once('error', reject);
       this.httpServer.listen(port, () => { this.httpServer.removeListener('error', reject); resolve(); });
     });
+  }
+
+  // 같은 와이파이용 직접 접속 URL (cloudflared 없이, 안정적). 없으면 null.
+  lanUrl(): string | null {
+    const ip = lanIp();
+    return ip ? `http://${ip}:${this._port}` : null;
   }
 
   private onMessage(ws: WebSocket, raw: string): void {
@@ -101,11 +123,18 @@ export class HubServer {
       return this.sendFile(res, path.join(this.pwaDir, staticMap[pathOnly]), mime);
     }
 
-    // QR
+    // QR (cloudflared 터널)
     if (meth === 'GET' && pathOnly === '/qr') {
       const u = this.tunnel.url;
       if (!u) { res.writeHead(503); res.end('tunnel not ready'); return; }
       const buf = await this.tunnel.qrPng(u);
+      res.writeHead(200, { 'Content-Type': 'image/png' }); res.end(buf); return;
+    }
+    // QR (같은 와이파이 LAN 직접 접속 — cloudflared 불필요, 안정적)
+    if (meth === 'GET' && pathOnly === '/qrlan') {
+      const lu = this.lanUrl();
+      if (!lu) { res.writeHead(503); res.end('no lan ip'); return; }
+      const buf = await this.tunnel.qrPng(lu);
       res.writeHead(200, { 'Content-Type': 'image/png' }); res.end(buf); return;
     }
     if (meth === 'GET' && pathOnly === '/qr.html') {
@@ -261,11 +290,30 @@ export class HubServer {
     res.end(JSON.stringify(body));
   }
   private qrPage(url: string): string {
+    const lan = this.lanUrl();
+    const lanBlock = lan
+      ? `<img src="/qrlan" alt="LAN QR"><p>${lan}</p>`
+      : `<p>LAN IP를 찾지 못했어요</p>`;
+    const tunBlock = url
+      ? `<img src="/qr" alt="Tunnel QR"><p>${url}</p>`
+      : `<p>터널 준비 중...</p>`;
     return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>MTB Hub 접속</title>
-<style>body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#111;color:#eee}img{width:240px;height:240px;border:16px solid #fff;border-radius:8px}p{font-size:13px;color:#aaa;word-break:break-all;max-width:280px;text-align:center}</style>
-</head><body><h2 style="margin-bottom:24px">휴대폰으로 찍어 접속</h2>
-${url ? '<img src="/qr" alt="QR">' : '<p>터널 준비 중...</p>'}
-<p style="margin-top:16px">${url}</p><p>접속 후 암호 입력 → 페어링</p></body></html>`;
+<style>body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;margin:0;padding:24px 0;background:#111;color:#eee}
+img{width:220px;height:220px;border:14px solid #fff;border-radius:8px}
+h3{margin:6px 0}.tag{font-size:12px;color:#7aa2ff;margin-bottom:8px}
+p{font-size:13px;color:#aaa;word-break:break-all;max-width:280px;text-align:center}
+hr{width:80%;border:none;border-top:1px solid #333;margin:28px 0}</style>
+</head><body>
+<h2 style="margin:0 0 18px">MTB Hub 앱으로 스캔</h2>
+<h3>같은 와이파이 (추천 · 안정)</h3>
+<div class="tag">cloudflared 불필요</div>
+${lanBlock}
+<hr>
+<h3>외부 접속 (cloudflared)</h3>
+<div class="tag">집 밖에서 · URL이 매번 바뀜</div>
+${tunBlock}
+<p style="margin-top:20px">스캔 후 암호 입력 → 페어링</p>
+</body></html>`;
   }
 }

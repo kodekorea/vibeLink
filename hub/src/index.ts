@@ -37,6 +37,8 @@ async function main(): Promise<void> {
   server = new HubServer(store, tunnel, projects, sessions, pwaDir);
   await server.listen(port);
   log(`서버 시작: http://127.0.0.1:${port}`);
+  const lan = server.lanUrl();
+  if (lan) { log(`같은 와이파이(추천): ${lan}`); log(`QR 페이지: http://127.0.0.1:${port}/qr.html`); }
 
   const name = process.env.MTB_TUNNEL_NAME;
   const url = process.env.MTB_TUNNEL_URL;
