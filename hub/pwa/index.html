@@ -7,35 +7,43 @@
 <link rel="manifest" href="/manifest.json">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
 <style>
-  :root{color-scheme:dark}*{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:#0b0b0b;color:#ddd;font-family:sans-serif;overflow:hidden}
+  :root{color-scheme:dark;--bg:#0a0a0d;--panel:#15151c;--panel2:#1c1c25;--line:#2a2a36;--accent:#3b82f6;--txt:#e6e7eb;--mut:#9aa0ac}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:-apple-system,system-ui,"Segoe UI",sans-serif;overflow:hidden}
   #app{display:flex;flex-direction:column;height:100vh;height:100dvh}
-  #pair{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;height:100%}
-  #pair input{font-size:18px;padding:10px;width:220px;text-align:center}
-  .btn,#pairBtn{font-size:16px;padding:10px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px}
+  #pair{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;height:100%;padding:24px}
+  #pair h2{font-size:26px;font-weight:700;letter-spacing:-.5px;margin:0}
+  #pair input{font-size:18px;padding:14px;width:240px;max-width:80vw;text-align:center;background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:12px}
+  .btn,#pairBtn{font-size:16px;font-weight:600;padding:13px 22px;background:var(--accent);color:#fff;border:none;border-radius:12px;box-shadow:0 2px 10px rgba(59,130,246,.35)}
+  .btn:active,#pairBtn:active{filter:brightness(.92)}
   #main{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
-  #bar{display:flex;gap:6px;padding:6px;padding-top:calc(6px + env(safe-area-inset-top));overflow-x:auto;background:#151515;align-items:center;flex:0 0 auto}
-  .chip{padding:6px 12px;background:#222;border-radius:16px;white-space:nowrap;font-size:13px;max-width:150px;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto}
-  .chip.active{background:#2563eb}
-  #plus{padding:6px 12px;background:#333;border-radius:16px;font-size:18px}
-  #term{flex:1 1 auto;min-height:0;position:relative}
+  #bar{display:flex;gap:7px;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top));overflow-x:auto;background:var(--panel);align-items:center;flex:0 0 auto;border-bottom:1px solid var(--line)}
+  .chip{padding:7px 14px;background:var(--panel2);color:var(--mut);border-radius:999px;white-space:nowrap;font-size:13px;font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto;border:1px solid var(--line)}
+  .chip.active{background:var(--accent);color:#fff;border-color:transparent}
+  #plus{padding:7px 14px;background:var(--panel2);color:var(--txt);border-radius:999px;font-size:18px;border:1px solid var(--line);flex:0 0 auto}
+  #term{flex:1 1 auto;min-height:0;position:relative;padding:2px 4px}
   #term .xterm-viewport{overflow-y:auto !important;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
-  #toBottom{position:absolute;right:12px;bottom:12px;z-index:5;display:none;width:42px;height:42px;border-radius:21px;background:#2563eb;color:#fff;border:none;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  #toBottom{position:absolute;right:14px;bottom:14px;z-index:5;display:none;width:44px;height:44px;border-radius:22px;background:var(--accent);color:#fff;border:none;font-size:20px;box-shadow:0 3px 12px rgba(0,0,0,.55)}
   #toBottom.show{display:block}
-  #keybar{display:flex;gap:6px;padding:6px;background:#101010;overflow-x:auto;flex:0 0 auto}
-  .key{flex:0 0 auto;min-width:46px;padding:9px 10px;background:#262626;color:#eee;border:1px solid #333;border-radius:6px;font-size:15px;text-align:center;user-select:none;-webkit-user-select:none}
-  .key:active{background:#2563eb}
-  #snippets{display:none;gap:6px;padding:6px;background:#0d0d0d;overflow-x:auto;flex:0 0 auto;border-top:1px solid #1a1a1a}
+  #keybar{display:flex;gap:7px;padding:8px 10px;background:var(--panel);overflow-x:auto;flex:0 0 auto;border-top:1px solid var(--line)}
+  .key{flex:0 0 auto;min-width:46px;padding:11px 12px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:10px;font-size:15px;font-weight:500;text-align:center;user-select:none;-webkit-user-select:none}
+  .key:active{background:var(--accent);border-color:transparent;color:#fff}
+  #snippets{display:none;gap:7px;padding:8px 10px;background:var(--bg);overflow-x:auto;flex:0 0 auto;border-top:1px solid var(--line)}
   #snippets.show{display:flex}
-  .snip{flex:0 0 auto;padding:8px 12px;background:#1e293b;color:#cbd5e1;border-radius:14px;font-size:14px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
-  .snip.add{background:#333;color:#fff}
-  #inputbar{display:flex;gap:6px;padding:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom));background:#151515;flex:0 0 auto}
-  #inputbar input{flex:1;font-size:16px;padding:8px;background:#000;color:#eee;border:1px solid #333;border-radius:6px}
-  #snipToggle{flex:0 0 auto;padding:8px 11px;background:#262626;color:#eee;border:1px solid #333;border-radius:6px;font-size:16px}
-  #modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:10}
+  .snip{flex:0 0 auto;padding:9px 14px;background:#1d2942;color:#bcd0f5;border-radius:999px;font-size:14px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;border:1px solid #28395c}
+  .snip.add{background:var(--panel2);color:var(--txt);border-color:var(--line)}
+  #inputbar{display:flex;gap:8px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:var(--panel);flex:0 0 auto;align-items:flex-end;border-top:1px solid var(--line)}
+  #inputbar input{flex:1;font-size:16px;padding:14px 14px;min-height:50px;background:#05050a;color:var(--txt);border:1px solid var(--line);border-radius:12px}
+  #inputbar input:focus{outline:none;border-color:var(--accent)}
+  #snipToggle{flex:0 0 auto;width:50px;min-height:50px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:12px;font-size:18px}
+  #send{flex:0 0 auto;width:54px;min-height:50px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:20px;box-shadow:0 2px 10px rgba(59,130,246,.35)}
+  #send:active{filter:brightness(.92)}
+  #modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:10;backdrop-filter:blur(2px)}
   #modal.show{display:flex}
-  #sheet{background:#1a1a1a;width:90%;max-width:420px;max-height:80%;overflow:auto;border-radius:10px;padding:14px}
-  .row{padding:10px;border-bottom:1px solid #2a2a2a;cursor:pointer}
+  #sheet{background:var(--panel);width:92%;max-width:420px;max-height:80%;overflow:auto;border-radius:16px;padding:18px;border:1px solid var(--line)}
+  #sheet h3{margin:0 0 12px;font-size:17px}
+  .row{padding:13px 10px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:8px}
+  .row:active{background:var(--panel2)}
   .hidden{display:none !important}
 </style>
 </head>
@@ -66,7 +74,8 @@
     <div id="snippets"></div>
     <div id="inputbar">
       <button id="snipToggle" title="자주 쓰는 명령">★</button>
-      <input id="line" placeholder="명령 입력 후 Enter" autocomplete="off" autocapitalize="off">
+      <input id="line" placeholder="명령 입력" autocomplete="off" autocapitalize="off">
+      <button id="send" title="전송">▶</button>
     </div>
   </div>
 </div>
@@ -122,9 +131,8 @@ function setupTerm(){
     window.visualViewport.addEventListener('resize', applyViewport);
     window.visualViewport.addEventListener('scroll', applyViewport);
   }
-  $('#line').addEventListener('keydown', e => {
-    if (e.key === 'Enter') { sendWs({ type:'input', sessionId: active, data: $('#line').value + '\r' }); $('#line').value=''; }
-  });
+  $('#line').addEventListener('keydown', e => { if (e.key === 'Enter') sendLine(); });
+  $('#send').addEventListener('click', () => { sendLine(); $('#line').focus(); });
   // 선택이 끝나면 자동으로 클립보드에 복사 (데스크톱 드래그·모바일 길게눌러 선택 모두)
   term.onSelectionChange(() => { const s = term.getSelection(); if (s) copyText(s); });
   // 위로 스크롤하면 '맨 아래로' 버튼 표시
@@ -147,6 +155,7 @@ function setupTerm(){
 function doFit(){ try { fit.fit(); } catch (e) {} }
 
 function key(seq){ sendWs({ type:'input', sessionId: active, data: seq }); }
+function sendLine(){ const ln = $('#line'); sendWs({ type:'input', sessionId: active, data: ln.value + '\r' }); ln.value=''; }
 const KEYSEQ = { esc:'\x1b', tab:'\t', ctrlc:'\x03', up:'\x1b[A', down:'\x1b[B', left:'\x1b[D', right:'\x1b[C', enter:'\r' };
 
 function copyText(text){
