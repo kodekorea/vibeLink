@@ -3,8 +3,8 @@ import { Pressable, Text, View } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
+import { notifyLocal } from '@/lib/notify';
 
 const URL_KEY = 'mtb_hub_url';
 
@@ -39,10 +39,7 @@ export default function Terminal() {
     try {
       const m = JSON.parse(e.nativeEvent.data);
       if (m.t === 'notify') {
-        await Notifications.scheduleNotificationAsync({
-          content: { title: 'MTB: ' + (m.label || '세션'), body: '완료 / 입력 대기' },
-          trigger: null,
-        });
+        await notifyLocal('MTB: ' + (m.label || '세션'), '완료 / 입력 대기');
       }
     } catch (err) { /* ignore */ }
   }
