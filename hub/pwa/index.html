@@ -2,26 +2,30 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>MTB Hub</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
 <style>
   :root{color-scheme:dark}*{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:#0b0b0b;color:#ddd;font-family:sans-serif}
-  #app{display:flex;flex-direction:column;height:100%}
+  html,body{margin:0;height:100%;background:#0b0b0b;color:#ddd;font-family:sans-serif;overflow:hidden}
+  #app{display:flex;flex-direction:column;height:100vh;height:100dvh}
   #pair{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;height:100%}
   #pair input{font-size:18px;padding:10px;width:220px;text-align:center}
   .btn,#pairBtn{font-size:16px;padding:10px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px}
-  #bar{display:flex;gap:6px;padding:6px;overflow-x:auto;background:#151515;align-items:center}
+  #main{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
+  #bar{display:flex;gap:6px;padding:6px;padding-top:calc(6px + env(safe-area-inset-top));overflow-x:auto;background:#151515;align-items:center;flex:0 0 auto}
   .chip{padding:6px 12px;background:#222;border-radius:16px;white-space:nowrap;font-size:13px}
   .chip.active{background:#2563eb}
   #plus{padding:6px 12px;background:#333;border-radius:16px;font-size:18px}
-  #term{flex:1;min-height:0;position:relative}
+  #term{flex:1 1 auto;min-height:0;position:relative}
   #term .xterm-viewport{overflow-y:auto !important;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
-  #inputbar{display:flex;gap:6px;padding:6px;background:#151515}
+  #keybar{display:flex;gap:6px;padding:6px;background:#101010;overflow-x:auto;flex:0 0 auto}
+  .key{flex:0 0 auto;min-width:46px;padding:9px 10px;background:#262626;color:#eee;border:1px solid #333;border-radius:6px;font-size:15px;text-align:center;user-select:none;-webkit-user-select:none}
+  .key:active{background:#2563eb}
+  #inputbar{display:flex;gap:6px;padding:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom));background:#151515;flex:0 0 auto}
   #inputbar input{flex:1;font-size:16px;padding:8px;background:#000;color:#eee;border:1px solid #333;border-radius:6px}
-  #modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
+  #modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:10}
   #modal.show{display:flex}
   #sheet{background:#1a1a1a;width:90%;max-width:420px;max-height:80%;overflow:auto;border-radius:10px;padding:14px}
   .row{padding:10px;border-bottom:1px solid #2a2a2a;cursor:pointer}
@@ -39,9 +43,18 @@
   <div id="main" class="hidden">
     <div id="bar"></div>
     <div id="term"></div>
+    <div id="keybar">
+      <div class="key" data-k="esc">Esc</div>
+      <div class="key" data-k="tab">Tab</div>
+      <div class="key" data-k="ctrlc">^C</div>
+      <div class="key" data-k="up">↑</div>
+      <div class="key" data-k="down">↓</div>
+      <div class="key" data-k="left">←</div>
+      <div class="key" data-k="right">→</div>
+      <div class="key" data-k="enter">⏎</div>
+    </div>
     <div id="inputbar">
       <input id="line" placeholder="명령 입력 후 Enter" autocomplete="off" autocapitalize="off">
-      <button class="btn" id="esc">Esc</button>
     </div>
   </div>
 </div>
@@ -84,11 +97,16 @@ function setupTerm(){
   doFit();
   term.onData(d => sendWs({ type:'input', sessionId: active, data: d }));
   term.onResize(({cols,rows}) => sendWs({ type:'resize', sessionId: active, cols, rows }));
-  window.addEventListener('resize', doFit);
+  window.addEventListener('resize', applyViewport);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', applyViewport);
+    window.visualViewport.addEventListener('scroll', applyViewport);
+  }
   $('#line').addEventListener('keydown', e => {
     if (e.key === 'Enter') { sendWs({ type:'input', sessionId: active, data: $('#line').value + '\r' }); $('#line').value=''; }
   });
-  $('#esc').onclick = () => sendWs({ type:'input', sessionId: active, data: '\x1b' });
+  setupKeybar();
+  applyViewport();
   let sx=0, sy=0, st=0; const t = $('#term');
   t.addEventListener('touchstart', e => { const k=e.changedTouches[0]; sx=k.clientX; sy=k.clientY; st=Date.now(); }, {passive:true});
   t.addEventListener('touchend', e => {
@@ -97,6 +115,19 @@ function setupTerm(){
   }, {passive:true});
 }
 function doFit(){ try { fit.fit(); } catch (e) {} }
+
+function key(seq){ sendWs({ type:'input', sessionId: active, data: seq }); }
+const KEYSEQ = { esc:'\x1b', tab:'\t', ctrlc:'\x03', up:'\x1b[A', down:'\x1b[B', left:'\x1b[D', right:'\x1b[C', enter:'\r' };
+function setupKeybar(){
+  document.querySelectorAll('#keybar .key').forEach(b => b.addEventListener('click', () => key(KEYSEQ[b.dataset.k])));
+}
+function applyViewport(){
+  const vv = window.visualViewport;
+  const h = vv ? vv.height : window.innerHeight;
+  const app = document.getElementById('app');
+  if (app) app.style.height = h + 'px';
+  doFit();
+}
 
 function connect(){
   ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws');
