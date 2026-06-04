@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   listSessions, closeSession, getActiveSessionId, setActiveSessionId,
   onSessionChange, onHostChange, type Session,
@@ -12,8 +13,10 @@ export function SessionBar({ onActive, showNew, onNew }: {
   showNew?: boolean;
   onNew?: () => void;
 }) {
+  const insets = useSafeAreaInsets();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string | null>(getActiveSessionId());
+  const lastActive = useRef<string | null | undefined>(undefined);
 
   const refresh = useCallback(async () => {
     let list: Session[] = [];
@@ -25,29 +28,39 @@ export function SessionBar({ onActive, showNew, onNew }: {
       setActiveSessionId(id); // emits
     }
     setActiveId(id);
-    onActive(id ? (list.find(s => s.id === id) ?? null) : null);
+    // 활성 세션이 실제로 바뀐 경우에만 부모 재로드(폴링마다 재로드 방지)
+    if (id !== lastActive.current) {
+      lastActive.current = id;
+      onActive(id ? (list.find(s => s.id === id) ?? null) : null);
+    }
   }, [onActive]);
 
-  // 세션/호스트 변경 + 화면 포커스 시 갱신
-  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
+  // 포커스 동안 2초마다 폴링 → 다른 곳(터미널 WebView)에서 만든/지운 세션이 바로 반영됨
+  useFocusEffect(useCallback(() => {
+    refresh();
+    const t = setInterval(refresh, 2000);
+    return () => clearInterval(t);
+  }, [refresh]));
+
   useEffect(() => {
     const offS = onSessionChange(() => { setActiveId(getActiveSessionId()); refresh(); });
-    const offH = onHostChange(() => refresh());
+    const offH = onHostChange(() => { lastActive.current = undefined; refresh(); });
     return () => { offS(); offH(); };
   }, [refresh]);
 
-  function pick(s: Session) { setActiveSessionId(s.id); setActiveId(s.id); onActive(s); }
+  function pick(s: Session) { setActiveSessionId(s.id); setActiveId(s.id); lastActive.current = s.id; onActive(s); }
 
   function remove(s: Session) {
     Alert.alert('세션 종료', s.label + ' 세션을 종료할까요?', [
       { text: '취소', style: 'cancel' },
-      { text: '종료', style: 'destructive', onPress: async () => { try { await closeSession(s.id); } catch {} refresh(); } },
+      { text: '종료', style: 'destructive', onPress: async () => { try { await closeSession(s.id); } catch { /* */ } refresh(); } },
     ]);
   }
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false}
-      style={styles.bar} contentContainerStyle={{ gap: 6, paddingHorizontal: 8, alignItems: 'center' }}>
+      style={[styles.bar, { paddingTop: insets.top, maxHeight: 48 + insets.top }]}
+      contentContainerStyle={{ gap: 6, paddingHorizontal: 8, alignItems: 'center' }}>
       {sessions.map(s => {
         const on = s.id === activeId;
         return (
@@ -68,7 +81,7 @@ export function SessionBar({ onActive, showNew, onNew }: {
 }
 
 const styles = StyleSheet.create({
-  bar: { maxHeight: 48, backgroundColor: color.surfaceSoft, borderBottomWidth: 1, borderBottomColor: color.hairline },
+  bar: { backgroundColor: color.surfaceSoft, borderBottomWidth: 1, borderBottomColor: color.hairline },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingLeft: 12, paddingRight: 8, backgroundColor: color.surfaceCard, borderRadius: radius.pill, borderWidth: 1, borderColor: color.hairline },
   active: { backgroundColor: color.primary, borderColor: 'transparent' },
   txt: { color: color.muted, fontSize: 13, maxWidth: 150 },

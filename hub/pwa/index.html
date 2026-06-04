@@ -357,7 +357,15 @@ async function addAndCreate(p){
 async function createSession(p){
   $('#modal').classList.remove('show');
   const r = await api('/sessions/create', { method:'POST', body: JSON.stringify({ path: p }) });
-  try { const j = await r.json(); if (j && j.id) { active = j.id; term.reset(); renderBar(); } } catch (e) {}
+  try { const j = await r.json(); if (j && j.id) { active = j.id; term.reset(); renderBar(); focusTerminal(); } } catch (e) {}
+}
+// 새 세션/전환 시 수동 탭 없이도 키보드+레이아웃이 잡히게: 입력칸 포커스(키보드) → 뷰포트 재맞춤.
+function focusTerminal(){
+  setTimeout(() => {
+    try { $('#line').focus(); } catch (e) {}
+    applyViewport();
+    setTimeout(applyViewport, 350);
+  }, 200);
 }
 window.__mtbNew = openNewSession;
 </script>

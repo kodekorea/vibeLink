@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listHosts, getActiveHost, setActiveHost, removeHost, type Host } from '@/lib/hub';
 import { notificationsAvailable } from '@/lib/notify';
 import { color, radius, font } from '@/lib/theme';
 
 export default function Settings() {
+  const insets = useSafeAreaInsets();
   const [hosts, setHosts] = useState<Host[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -20,7 +22,7 @@ export default function Settings() {
   async function remove(id: string) { await removeHost(id); refresh(); }
 
   return (
-    <ScrollView style={styles.root} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: 20, gap: 16 }}>
+    <ScrollView style={styles.root} contentContainerStyle={{ padding: 20, paddingTop: insets.top + 16, gap: 16 }}>
       <Text style={styles.section}>연결된 PC (호스트)</Text>
       {hosts.length === 0 ? <Text style={styles.empty}>없음</Text> : null}
       {hosts.map(h => (

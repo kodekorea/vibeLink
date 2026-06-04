@@ -6,10 +6,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: color.canvas },
-        headerTintColor: color.ink,
-        headerTitleStyle: { fontFamily: font.display, fontSize: 22, color: color.ink },
-        headerShadowVisible: false,
+        headerShown: false,
         tabBarStyle: { backgroundColor: color.canvas, borderTopColor: color.hairline },
         tabBarActiveTintColor: color.primary,
         tabBarInactiveTintColor: color.muted,
