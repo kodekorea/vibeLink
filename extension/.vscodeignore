@@ -1,0 +1,14 @@
+.vscode/**
+src/**
+node_modules/**
+*.ts
+tsconfig.json
+.gitignore
+.eslintrc*
+out/*.map
+out/auth.js
+out/editor.js
+out/filesystem.js
+out/server.js
+out/terminal.js
+out/tunnel.js

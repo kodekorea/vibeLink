@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Tests
+.pytest_cache/
+.pytest_tmp/
+
+# Local data
+*.log
+.mtb/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Local secrets / config
+*.env
+
+# Node / extension / hub
+**/node_modules/
+**/dist/
+**/out/
+*.vsix
+**/cloudflared
+**/cloudflared.exe
