@@ -8,8 +8,14 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ title: 'MTB Hub 연결' }} />
+    <Stack
+      screenOptions={{
+        headerStyle: { backgroundColor: '#0b0b0b' },
+        headerTintColor: '#fff',
+        headerShadowVisible: false,
+      }}
+    >
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="terminal" options={{ title: 'MTB Hub' }} />
     </Stack>
   );

@@ -24,6 +24,10 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-camera",
+        { "cameraPermission": "QR 코드를 스캔해 hub에 연결합니다." }
+      ],
       "expo-secure-store",
       "expo-notifications"
     ]
