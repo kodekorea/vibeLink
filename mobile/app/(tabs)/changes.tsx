@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { apiGet } from '@/lib/hub';
-import { ProjectBar } from '@/components/project-bar';
+import { apiGet, type Session } from '@/lib/hub';
+import { SessionBar } from '@/components/session-bar';
 import { color, font } from '@/lib/theme';
 
 interface Change { file: string; kind: 'edit' | 'write' | 'multiedit'; edits?: { old: string; new: string }[]; content?: string; }
@@ -64,7 +64,7 @@ export default function Changes() {
 
   return (
     <View style={styles.root}>
-      <ProjectBar onChange={load} />
+      <SessionBar onActive={(s: Session | null) => { if (s) load(s.cwd); else { setChanges([]); } }} />
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={color.primary} /></View>
       ) : error ? (

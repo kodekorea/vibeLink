@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { apiGet } from '@/lib/hub';
+import { apiGet, type Session } from '@/lib/hub';
+import { SessionBar } from '@/components/session-bar';
 import { color, font } from '@/lib/theme';
 
 interface Entry { name: string; path: string; dir: boolean; size: number; }
@@ -70,6 +71,7 @@ export default function Files() {
 
   return (
     <View style={styles.root}>
+      <SessionBar onActive={(s: Session | null) => load(s ? s.cwd : null)} />
       <View style={styles.bar}>
         {cwd ? (
           <Pressable onPress={() => load(parentOf(cwd))} hitSlop={10}><Text style={styles.link}>⬆ 상위</Text></Pressable>

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getActiveHost, onHostChange, type Host } from '@/lib/hub';
+import { getActiveHost, onHostChange, getActiveSessionId, onSessionChange, type Host, type Session } from '@/lib/hub';
+import { SessionBar } from '@/components/session-bar';
 import { notifyLocal } from '@/lib/notify';
 import { color } from '@/lib/theme';
 
@@ -20,6 +21,8 @@ const NOTIFY_INJECT = `(function(){
 export default function Terminal() {
   const insets = useSafeAreaInsets();
   const [host, setHost] = useState<Host | null>(null);
+  const webRef = useRef<WebView>(null);
+  const [sid, setSid] = useState<string | null>(getActiveSessionId());
 
   useEffect(() => {
     let alive = true;
@@ -27,6 +30,11 @@ export default function Terminal() {
     refresh();
     const off = onHostChange(refresh);
     return () => { alive = false; off(); };
+  }, []);
+
+  useEffect(() => {
+    const off = onSessionChange(() => setSid(getActiveSessionId()));
+    return off;
   }, []);
 
   async function onMessage(e: { nativeEvent: { data: string } }) {
@@ -42,15 +50,23 @@ export default function Terminal() {
 
   return (
     <View style={{ flex: 1, backgroundColor: color.surfaceDark, paddingTop: insets.top, paddingBottom: insets.bottom }}>
-      <WebView
-        key={host.id}
-        source={{ uri: host.url }}
-        injectedJavaScriptBeforeContentLoaded={cookieInject}
-        injectedJavaScript={NOTIFY_INJECT}
-        onMessage={onMessage}
-        style={{ flex: 1, backgroundColor: color.surfaceDark }}
-        keyboardDisplayRequiresUserAction={false}
+      <SessionBar
+        showNew
+        onActive={(s: Session | null) => setSid(s ? s.id : null)}
+        onNew={() => webRef.current?.injectJavaScript('window.__mtbNew && window.__mtbNew(); true;')}
       />
+      <View style={{ flex: 1 }}>
+        <WebView
+          ref={webRef}
+          key={host.id + ':' + (sid || '')}
+          source={{ uri: host.url + '?embed=1' + (sid ? '&session=' + encodeURIComponent(sid) : '') }}
+          injectedJavaScriptBeforeContentLoaded={cookieInject}
+          injectedJavaScript={NOTIFY_INJECT}
+          onMessage={onMessage}
+          style={{ flex: 1, backgroundColor: color.surfaceDark }}
+          keyboardDisplayRequiresUserAction={false}
+        />
+      </View>
     </View>
   );
 }
