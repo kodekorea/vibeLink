@@ -1,0 +1,38 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
+<style>body{font-family:sans-serif;background:#0b0b0b;color:#ddd;padding:16px;margin:0}
+label{display:block;margin:10px 0 4px;font-size:13px;color:#aaa}
+input{width:100%;padding:8px;background:#000;color:#eee;border:1px solid #333;border-radius:6px;font-size:14px}
+button{margin-top:12px;margin-right:8px;padding:9px 14px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer}
+.url{word-break:break-all;color:#6ad;margin-top:8px;min-height:18px}
+pre{background:#111;border:1px solid #222;border-radius:6px;padding:8px;height:150px;overflow:auto;font-size:11px;color:#9a9;white-space:pre-wrap}
+.status{font-weight:bold}</style></head>
+<body>
+<h2>MTB Hub</h2>
+<div>상태: <span id="status" class="status">-</span></div>
+<div class="url" id="url"></div>
+<label>포트</label><input id="port" type="number">
+<label>암호 (MTB_PASSWORD)</label><input id="password" type="text">
+<div>
+  <button id="save">저장</button>
+  <button id="toggle">시작/정지</button>
+  <button id="qr">QR 페이지</button>
+  <button id="proj">projects.json</button>
+</div>
+<label>로그</label><pre id="logs"></pre>
+<script>
+const $=s=>document.getElementById(s);
+function render(s){
+  $('status').textContent = s.running ? '실행 중' : '정지';
+  $('url').textContent = s.url || '';
+  if (document.activeElement!==$('port')) $('port').value = s.port;
+  if (document.activeElement!==$('password')) $('password').value = s.password;
+  $('logs').textContent = (s.logs||[]).join('');
+  $('toggle').textContent = s.running ? '정지' : '시작';
+}
+$('save').onclick = async()=>render(await window.mtb.save({ port:$('port').value, password:$('password').value }));
+$('toggle').onclick = async()=>{ const s=await window.mtb.getState(); render(await (s.running?window.mtb.stop():window.mtb.start())); };
+$('qr').onclick = ()=>window.mtb.openQr();
+$('proj').onclick = ()=>window.mtb.openProjects();
+window.mtb.onState(render);
+window.mtb.getState().then(render);
+</script></body></html>

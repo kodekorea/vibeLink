@@ -1,0 +1,24 @@
+{
+  "name": "mtb-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MTB Hub desktop tray app (spawns hub/ as a child process)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.shain.mtbhub",
+    "productName": "MTB Hub",
+    "files": ["main.js", "preload.js", "settings.html", "tray.png"],
+    "extraResources": [
+      { "from": "../hub", "to": "hub", "filter": ["src/**/*", "pwa/**/*", "package.json", "node_modules/**/*"] }
+    ],
+    "win": { "target": ["nsis"] }
+  },
+  "devDependencies": {
+    "electron": "^31.7.0",
+    "electron-builder": "^24.13.3"
+  }
+}
