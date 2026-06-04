@@ -7,7 +7,7 @@ import { AuthStore } from './auth';
 import { TunnelManager } from './tunnel';
 import { ProjectStore } from './projects';
 import { SessionManager } from './sessions';
-import { browseDir, drives } from './fsbrowse';
+import { browseDir, drives, listEntries, readFileText } from './fsbrowse';
 
 function parseCookies(req: http.IncomingMessage): Record<string, string> {
   const out: Record<string, string> = {};
@@ -25,6 +25,10 @@ function remoteIp(req: http.IncomingMessage): string {
 }
 function isLoopback(ip: string): boolean {
   return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+}
+function bearer(req: http.IncomingMessage): string {
+  const h = String(req.headers['authorization'] ?? '');
+  return h.startsWith('Bearer ') ? h.slice(7).trim() : '';
 }
 
 export class HubServer {
@@ -44,7 +48,8 @@ export class HubServer {
 
     this.httpServer.on('upgrade', (req, socket, head) => {
       if (req.url !== '/ws') { socket.destroy(); return; }
-      if (!store.verifyJwt(parseCookies(req)['mtb_jwt'] ?? '')) { socket.destroy(); return; }
+      const wsTok = parseCookies(req)['mtb_jwt'] || bearer(req);
+      if (!store.verifyJwt(wsTok)) { socket.destroy(); return; }
       this.wss.handleUpgrade(req, socket, head, ws => {
         this.clients.add(ws);
         ws.on('close', () => this.clients.delete(ws));
@@ -79,7 +84,8 @@ export class HubServer {
   }
 
   private auth(req: http.IncomingMessage): boolean {
-    return !!this.store.verifyJwt(parseCookies(req)['mtb_jwt'] ?? '');
+    const tok = parseCookies(req)['mtb_jwt'] || bearer(req);
+    return !!this.store.verifyJwt(tok);
   }
 
   private async route(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
@@ -134,6 +140,29 @@ export class HubServer {
       return;
     }
 
+    // 파일 탐색기: 디렉터리+파일 목록
+    if (meth === 'GET' && pathOnly === '/files') {
+      if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
+      const p = new URL(url, 'http://x').searchParams.get('path');
+      if (!p) {
+        this.json(res, 200, { cwd: null, entries: drives().map(d => ({ name: d.name, path: d.path, dir: true, size: 0 })) });
+        return;
+      }
+      try { this.json(res, 200, { cwd: p, entries: listEntries(decodeURIComponent(p)) }); }
+      catch (e) { this.json(res, 400, { error: String(e) }); }
+      return;
+    }
+
+    // 파일 탐색기: 파일 내용 읽기
+    if (meth === 'GET' && pathOnly === '/file') {
+      if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
+      const p = new URL(url, 'http://x').searchParams.get('path');
+      if (!p) { this.json(res, 400, { error: 'path required' }); return; }
+      try { this.json(res, 200, readFileText(decodeURIComponent(p))); }
+      catch (e) { this.json(res, 400, { error: String(e) }); }
+      return;
+    }
+
     // POST
     if (meth === 'POST') {
       let body = '';
@@ -156,7 +185,7 @@ export class HubServer {
       const r = this.store.attemptPair(code, deviceId, ip, ua);
       if (!r.ok) { if (r.reason !== 'rate_limited') this.store.registerFailure(code, ip, ua); this.json(res, r.reason === 'rate_limited' ? 429 : 401, { error: r.reason }); return; }
       res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': cookieHeader(r.token!) });
-      res.end(JSON.stringify({ ok: true })); return;
+      res.end(JSON.stringify({ ok: true, token: r.token })); return;
     }
 
     if (url === '/auto-pair') {
