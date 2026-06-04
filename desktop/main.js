@@ -10,6 +10,35 @@ const SETTINGS_PATH = path.join(os.homedir(), '.mtb', 'desktop.json');
 
 let tray = null, win = null, hubProc = null, hubUrl = '', logs = [];
 
+// .env 파서 (의존성 없이 KEY=VALUE) — ngrok 토큰/도메인을 hub로 넘기기 위함.
+function parseDotEnv(text) {
+  const out = {};
+  for (const line of text.split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t || t.startsWith('#')) continue;
+    const i = t.indexOf('=');
+    if (i < 0) continue;
+    const k = t.slice(0, i).trim();
+    let v = t.slice(i + 1).trim();
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+    if (k) out[k] = v;
+  }
+  return out;
+}
+// .env 탐색 순서: ~/.mtb/.env(설치 후 권장) → 저장소 루트(.env, 개발) → desktop/.env → 패키지 리소스
+function loadDotEnv() {
+  const candidates = [
+    path.join(os.homedir(), '.mtb', '.env'),
+    path.join(__dirname, '..', '.env'),
+    path.join(__dirname, '.env'),
+    app.isPackaged ? path.join(process.resourcesPath, '.env') : null,
+  ].filter(Boolean);
+  for (const f of candidates) {
+    try { if (fs.existsSync(f)) return { file: f, vars: parseDotEnv(fs.readFileSync(f, 'utf8')) }; } catch { /* ignore */ }
+  }
+  return { file: null, vars: {} };
+}
+
 function readSettings() { try { return JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf8')); } catch { return {}; } }
 function writeSettings(s) { fs.mkdirSync(path.dirname(SETTINGS_PATH), { recursive: true }); fs.writeFileSync(SETTINGS_PATH, JSON.stringify(s, null, 2)); }
 function settings() { const s = readSettings(); return { port: Number(s.port || process.env.MTB_PORT || 47801), password: s.password || 'changeme1234' }; }
@@ -19,7 +48,11 @@ function log(s) { logs.push(s); if (logs.length > 200) logs.shift(); }
 function startHub() {
   if (hubProc) return;
   const cfg = settings();
-  const env = Object.assign({}, process.env, { MTB_PORT: String(cfg.port), MTB_PASSWORD: cfg.password });
+  const dot = loadDotEnv();
+  const env = Object.assign({}, process.env, dot.vars, { MTB_PORT: String(cfg.port), MTB_PASSWORD: cfg.password });
+  // ngrok 토큰이 있으면 자동으로 ngrok 고정 도메인 모드 사용(집 밖 고정 접속).
+  if (env.NGROK_AUTHTOKEN && !env.MTB_TUNNEL) env.MTB_TUNNEL = 'ngrok';
+  if (dot.file) log('[env] loaded ' + dot.file + (env.NGROK_AUTHTOKEN ? ' (ngrok)' : ''));
   hubProc = spawn('node', ['--import', 'tsx', 'src/index.ts'], { cwd: hubDir(), env });
   hubProc.stdout.on('data', d => { const s = d.toString(); const m = s.match(/https:\/\/[^\s"]+/); if (m) { hubUrl = m[0]; pushState(); } log(s); });
   hubProc.stderr.on('data', d => log(d.toString()));
