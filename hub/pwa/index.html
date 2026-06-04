@@ -20,6 +20,8 @@
   #plus{padding:6px 12px;background:#333;border-radius:16px;font-size:18px}
   #term{flex:1 1 auto;min-height:0;position:relative}
   #term .xterm-viewport{overflow-y:auto !important;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
+  #toBottom{position:absolute;right:12px;bottom:12px;z-index:5;display:none;width:42px;height:42px;border-radius:21px;background:#2563eb;color:#fff;border:none;font-size:20px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  #toBottom.show{display:block}
   #keybar{display:flex;gap:6px;padding:6px;background:#101010;overflow-x:auto;flex:0 0 auto}
   .key{flex:0 0 auto;min-width:46px;padding:9px 10px;background:#262626;color:#eee;border:1px solid #333;border-radius:6px;font-size:15px;text-align:center;user-select:none;-webkit-user-select:none}
   .key:active{background:#2563eb}
@@ -42,7 +44,7 @@
   </div>
   <div id="main" class="hidden">
     <div id="bar"></div>
-    <div id="term"></div>
+    <div id="term"><button id="toBottom" title="맨 아래로">⤓</button></div>
     <div id="keybar">
       <div class="key" data-k="esc">Esc</div>
       <div class="key" data-k="tab">Tab</div>
@@ -53,6 +55,8 @@
       <div class="key" data-k="right">→</div>
       <div class="key" data-k="enter">⏎</div>
       <div class="key" data-k="copy">복사</div>
+      <div class="key" data-k="fdec">A−</div>
+      <div class="key" data-k="finc">A+</div>
     </div>
     <div id="inputbar">
       <input id="line" placeholder="명령 입력 후 Enter" autocomplete="off" autocapitalize="off">
@@ -91,8 +95,15 @@ function start(){
   connect();
 }
 
+let fontSize = Math.min(22, Math.max(9, parseInt(localStorage.getItem('mtb_font') || '14', 10) || 14));
 function setupTerm(){
-  term = new Terminal({ scrollback: 5000, fontSize: 13, theme: { background:'#0b0b0b' } });
+  term = new Terminal({
+    scrollback: 5000,
+    fontSize: fontSize,
+    lineHeight: 1.15,
+    fontFamily: 'ui-monospace, Menlo, Consolas, "Roboto Mono", monospace',
+    theme: { background:'#0b0b0b', foreground:'#e6e6e6', cursor:'#2563eb', selectionBackground:'#2563eb66' },
+  });
   fit = new FitAddon.FitAddon();
   term.loadAddon(fit);
   term.open($('#term'));
@@ -109,6 +120,10 @@ function setupTerm(){
   });
   // 선택이 끝나면 자동으로 클립보드에 복사 (데스크톱 드래그·모바일 길게눌러 선택 모두)
   term.onSelectionChange(() => { const s = term.getSelection(); if (s) copyText(s); });
+  // 위로 스크롤하면 '맨 아래로' 버튼 표시
+  term.onScroll(updateToBottom);
+  const tb = $('#toBottom');
+  tb.addEventListener('click', () => { term.scrollToBottom(); updateToBottom(); });
   setupKeybar();
   applyViewport();
   let sx=0, sy=0, st=0; const t = $('#term');
@@ -143,14 +158,29 @@ function flashCopied(){
   el.textContent = '복사됨'; setTimeout(() => { el.textContent = prev; }, 900);
 }
 
+function updateToBottom(){
+  const tb = $('#toBottom'); if (!tb || !term) return;
+  const b = term.buffer.active;
+  const scrolledUp = b.viewportY < b.baseY - 1;
+  tb.classList.toggle('show', scrolledUp);
+}
+function setFont(px){
+  fontSize = Math.min(22, Math.max(9, px));
+  localStorage.setItem('mtb_font', String(fontSize));
+  try { term.options.fontSize = fontSize; } catch (e) {}
+  doFit();
+}
 function setupKeybar(){
   document.querySelectorAll('#keybar .key').forEach(b => b.addEventListener('click', () => {
-    if (b.dataset.k === 'copy') {
+    const k = b.dataset.k;
+    if (k === 'copy') {
       const s = term.getSelection();
       if (s) { copyText(s); flashCopied(); }
       return;
     }
-    key(KEYSEQ[b.dataset.k]);
+    if (k === 'fdec') { setFont(fontSize - 1); return; }
+    if (k === 'finc') { setFont(fontSize + 1); return; }
+    key(KEYSEQ[k]);
   }));
 }
 function applyViewport(){
