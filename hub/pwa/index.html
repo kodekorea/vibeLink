@@ -15,7 +15,7 @@
   .btn,#pairBtn{font-size:16px;padding:10px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px}
   #main{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
   #bar{display:flex;gap:6px;padding:6px;padding-top:calc(6px + env(safe-area-inset-top));overflow-x:auto;background:#151515;align-items:center;flex:0 0 auto}
-  .chip{padding:6px 12px;background:#222;border-radius:16px;white-space:nowrap;font-size:13px}
+  .chip{padding:6px 12px;background:#222;border-radius:16px;white-space:nowrap;font-size:13px;max-width:150px;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto}
   .chip.active{background:#2563eb}
   #plus{padding:6px 12px;background:#333;border-radius:16px;font-size:18px}
   #term{flex:1 1 auto;min-height:0;position:relative}
@@ -140,6 +140,9 @@ function setupTerm(){
     const k=e.changedTouches[0], dx=k.clientX-sx, dy=k.clientY-sy, dt=Date.now()-st;
     if (dt<600 && Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.6) switchByDelta(dx<0?1:-1);
   }, {passive:true});
+  // 레이아웃이 안정된 뒤 다시 맞춰 첫 화면에서 상단이 가리는 문제 방지
+  setTimeout(applyViewport, 250);
+  setTimeout(applyViewport, 800);
 }
 function doFit(){ try { fit.fit(); } catch (e) {} }
 
@@ -265,15 +268,20 @@ function notify(m){
 
 function renderBar(){
   const bar = $('#bar'); bar.innerHTML = '';
+  let activeEl = null;
   for (const s of sessions) {
     const c = document.createElement('div');
     c.className = 'chip' + (s.id === active ? ' active' : '');
     c.textContent = s.label;
+    c.title = s.label;
     c.onclick = () => switchTo(s.id);
     bar.appendChild(c);
+    if (s.id === active) activeEl = c;
   }
   const plus = document.createElement('div'); plus.id = 'plus'; plus.textContent = '+';
   plus.onclick = openNewSession; bar.appendChild(plus);
+  // 새/활성 칩이 화면 밖으로 밀리면 보이도록 스크롤
+  if (activeEl) { try { activeEl.scrollIntoView({ inline: 'center', block: 'nearest' }); } catch (e) {} }
 }
 function switchTo(id){
   if (id === active) return;
