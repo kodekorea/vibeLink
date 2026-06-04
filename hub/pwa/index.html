@@ -52,6 +52,7 @@
       <div class="key" data-k="left">←</div>
       <div class="key" data-k="right">→</div>
       <div class="key" data-k="enter">⏎</div>
+      <div class="key" data-k="copy">복사</div>
     </div>
     <div id="inputbar">
       <input id="line" placeholder="명령 입력 후 Enter" autocomplete="off" autocapitalize="off">
@@ -106,6 +107,8 @@ function setupTerm(){
   $('#line').addEventListener('keydown', e => {
     if (e.key === 'Enter') { sendWs({ type:'input', sessionId: active, data: $('#line').value + '\r' }); $('#line').value=''; }
   });
+  // 선택이 끝나면 자동으로 클립보드에 복사 (데스크톱 드래그·모바일 길게눌러 선택 모두)
+  term.onSelectionChange(() => { const s = term.getSelection(); if (s) copyText(s); });
   setupKeybar();
   applyViewport();
   let sx=0, sy=0, st=0; const t = $('#term');
@@ -119,8 +122,36 @@ function doFit(){ try { fit.fit(); } catch (e) {} }
 
 function key(seq){ sendWs({ type:'input', sessionId: active, data: seq }); }
 const KEYSEQ = { esc:'\x1b', tab:'\t', ctrlc:'\x03', up:'\x1b[A', down:'\x1b[B', left:'\x1b[D', right:'\x1b[C', enter:'\r' };
+
+function copyText(text){
+  if (!text) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+  } else { fallbackCopy(text); }
+}
+function fallbackCopy(text){
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  } catch (e) {}
+}
+function flashCopied(){
+  const el = document.querySelector('#keybar .key[data-k="copy"]');
+  if (!el) return; const prev = el.textContent;
+  el.textContent = '복사됨'; setTimeout(() => { el.textContent = prev; }, 900);
+}
+
 function setupKeybar(){
-  document.querySelectorAll('#keybar .key').forEach(b => b.addEventListener('click', () => key(KEYSEQ[b.dataset.k])));
+  document.querySelectorAll('#keybar .key').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.k === 'copy') {
+      const s = term.getSelection();
+      if (s) { copyText(s); flashCopied(); }
+      return;
+    }
+    key(KEYSEQ[b.dataset.k]);
+  }));
 }
 function applyViewport(){
   const vv = window.visualViewport;
