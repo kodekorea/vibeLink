@@ -58,3 +58,8 @@ export async function apiGet<T>(apiPath: string): Promise<T> {
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return (await r.json()) as T;
 }
+
+// 에이전트/변경 탭이 공유하는 선택된 프로젝트 경로 (탭 전환에도 유지)
+let selectedProjectPath: string | null = null;
+export function getSelectedProject(): string | null { return selectedProjectPath; }
+export function setSelectedProject(p: string): void { selectedProjectPath = p; }
