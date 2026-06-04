@@ -5,6 +5,7 @@ import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getActiveHost, onHostChange, type Host } from '@/lib/hub';
 import { notifyLocal } from '@/lib/notify';
+import { color } from '@/lib/theme';
 
 const NOTIFY_INJECT = `(function(){
   function hook(){ try {
@@ -40,14 +41,14 @@ export default function Terminal() {
   const cookieInject = "document.cookie='mtb_jwt=" + host.token + ";path=/';true;";
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0b0b0b', paddingTop: insets.top, paddingBottom: insets.bottom }}>
+    <View style={{ flex: 1, backgroundColor: color.surfaceDark, paddingTop: insets.top, paddingBottom: insets.bottom }}>
       <WebView
         key={host.id}
         source={{ uri: host.url }}
         injectedJavaScriptBeforeContentLoaded={cookieInject}
         injectedJavaScript={NOTIFY_INJECT}
         onMessage={onMessage}
-        style={{ flex: 1, backgroundColor: '#0b0b0b' }}
+        style={{ flex: 1, backgroundColor: color.surfaceDark }}
         keyboardDisplayRequiresUserAction={false}
       />
     </View>

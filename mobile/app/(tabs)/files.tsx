@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { apiGet } from '@/lib/hub';
+import { color, font } from '@/lib/theme';
 
 interface Entry { name: string; path: string; dir: boolean; size: number; }
 interface FileView { name: string; content: string; truncated: boolean; }
@@ -53,10 +54,10 @@ export default function Files() {
 
   if (file) {
     return (
-      <View style={styles.root}>
-        <View style={styles.bar}>
+      <View style={styles.viewerRoot}>
+        <View style={styles.viewerBar}>
           <Pressable onPress={() => setFile(null)} hitSlop={10}><Text style={styles.link}>← 닫기</Text></Pressable>
-          <Text style={styles.barTitle} numberOfLines={1}>{file.name}</Text>
+          <Text style={styles.viewerTitle} numberOfLines={1}>{file.name}</Text>
         </View>
         <ScrollView style={styles.flex} contentContainerStyle={{ padding: 12 }} horizontal={false}>
           <ScrollView horizontal>
@@ -78,7 +79,7 @@ export default function Files() {
         <Text style={styles.barTitle} numberOfLines={1}>{cwd ?? ''}</Text>
       </View>
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.center}><ActivityIndicator color={color.primary} /></View>
       ) : error ? (
         <View style={styles.center}><Text style={styles.err}>{error}</Text></View>
       ) : (
@@ -99,15 +100,18 @@ export default function Files() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0b0b0b' },
+  root: { flex: 1, backgroundColor: color.canvas },
   flex: { flex: 1 },
-  bar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#222' },
-  barTitle: { color: '#888', fontSize: 12, flex: 1 },
-  link: { color: '#7aa2ff', fontSize: 15 },
+  bar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: color.hairline },
+  barTitle: { color: color.mutedSoft, fontSize: 12, flex: 1 },
+  link: { color: color.primary, fontSize: 15 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  err: { color: '#f87171', fontSize: 14, padding: 24, textAlign: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
-  rowName: { color: '#eee', fontSize: 15, flex: 1 },
-  rowSize: { color: '#777', fontSize: 12 },
-  code: { color: '#ddd', fontSize: 12, fontFamily: 'monospace' },
+  err: { color: color.error, fontSize: 14, padding: 24, textAlign: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: color.hairline },
+  rowName: { color: color.ink, fontSize: 15, flex: 1, fontFamily: font.bodyMedium },
+  rowSize: { color: color.mutedSoft, fontSize: 12 },
+  viewerRoot: { flex: 1, backgroundColor: color.surfaceDark },
+  viewerBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: color.surfaceDarkElevated },
+  viewerTitle: { color: color.onDark, fontSize: 12, flex: 1 },
+  code: { color: color.onDark, fontSize: 12, fontFamily: font.code },
 });

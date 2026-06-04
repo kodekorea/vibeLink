@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { apiGet } from '@/lib/hub';
 import { ProjectBar } from '@/components/project-bar';
+import { color, font } from '@/lib/theme';
 
 interface Change { file: string; kind: 'edit' | 'write' | 'multiedit'; edits?: { old: string; new: string }[]; content?: string; }
 
@@ -41,10 +42,10 @@ export default function Changes() {
       });
     }
     return (
-      <View style={styles.root}>
+      <View style={styles.viewerRoot}>
         <View style={styles.bar2}>
           <Pressable onPress={() => setSel(null)} hitSlop={10}><Text style={styles.link}>← 목록</Text></Pressable>
-          <Text style={styles.barTitle} numberOfLines={1}>{base(sel.file)}</Text>
+          <Text style={styles.viewerTitle} numberOfLines={1}>{base(sel.file)}</Text>
         </View>
         <ScrollView style={styles.flex}>
           <ScrollView horizontal contentContainerStyle={{ padding: 12 }}>
@@ -65,7 +66,7 @@ export default function Changes() {
     <View style={styles.root}>
       <ProjectBar onChange={load} />
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.center}><ActivityIndicator color={color.primary} /></View>
       ) : error ? (
         <View style={styles.center}><Text style={styles.err}>{error}</Text></View>
       ) : changes.length === 0 ? (
@@ -90,19 +91,20 @@ export default function Changes() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0b0b0b' },
+  root: { flex: 1, backgroundColor: color.canvas },
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  err: { color: '#f87171', padding: 24, textAlign: 'center' },
-  empty: { color: '#888', padding: 24, textAlign: 'center' },
-  bar2: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#222' },
-  barTitle: { color: '#aaa', fontSize: 14, flex: 1 },
-  link: { color: '#7aa2ff', fontSize: 15 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
-  kind: { color: '#7aa2ff', fontSize: 16, width: 20, textAlign: 'center' },
-  fname: { color: '#eee', fontSize: 15 },
-  fdir: { color: '#666', fontSize: 11 },
-  code: { fontSize: 12, fontFamily: 'monospace' },
-  add: { color: '#86efac' },
-  del: { color: '#fca5a5' },
+  err: { color: color.error, padding: 24, textAlign: 'center' },
+  empty: { color: color.muted, padding: 24, textAlign: 'center' },
+  viewerRoot: { flex: 1, backgroundColor: color.surfaceDark },
+  bar2: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: color.surfaceDarkElevated },
+  viewerTitle: { color: color.onDark, fontSize: 14, flex: 1 },
+  link: { color: color.primary, fontSize: 15 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: color.hairline },
+  kind: { color: color.primary, fontSize: 16, width: 20, textAlign: 'center' },
+  fname: { color: color.ink, fontSize: 15, fontFamily: font.bodyMedium },
+  fdir: { color: color.mutedSoft, fontSize: 11 },
+  code: { fontSize: 12, fontFamily: font.code },
+  add: { color: color.success },
+  del: { color: color.error },
 });

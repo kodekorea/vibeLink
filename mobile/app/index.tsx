@@ -5,6 +5,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { getActiveHost, addHost } from '@/lib/hub';
+import { color, radius, font } from '@/lib/theme';
 
 type Stage = 'checking' | 'scan' | 'connect';
 
@@ -103,14 +104,14 @@ export default function Index() {
         pointerEvents="box-none"
       >
         <View style={styles.head}>
-          <Text style={styles.title}>PC의 QR을 비추세요</Text>
-          <Text style={styles.sub}>hub 실행 후 뜨는 QR (또는 /qr.html)</Text>
+          <Text style={styles.titleLight}>PC의 QR을 비추세요</Text>
+          <Text style={styles.subLight}>hub 실행 후 뜨는 QR (또는 /qr.html)</Text>
         </View>
         {permission?.granted ? (
           <View style={styles.frame} />
         ) : (
           <View style={styles.head}>
-            <Text style={styles.sub}>카메라 권한이 필요해요</Text>
+            <Text style={styles.subLight}>카메라 권한이 필요해요</Text>
             <Pressable style={styles.btn} onPress={requestPermission}>
               <Text style={styles.btnTxt}>권한 허용</Text>
             </Pressable>
@@ -126,16 +127,18 @@ export default function Index() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0b0b0b' },
-  connect: { flex: 1, paddingHorizontal: 24, gap: 14, justifyContent: 'center', backgroundColor: '#0b0b0b' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: color.canvas },
+  connect: { flex: 1, paddingHorizontal: 24, gap: 14, justifyContent: 'center', backgroundColor: color.canvas },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24 },
   head: { alignItems: 'center', gap: 8 },
-  title: { color: '#fff', fontSize: 22, fontWeight: '700', textAlign: 'center' },
-  sub: { color: '#bbb', fontSize: 13, textAlign: 'center' },
-  err: { color: '#f87171', fontSize: 13, textAlign: 'center' },
-  frame: { width: 240, height: 240, borderWidth: 3, borderColor: '#2563eb', borderRadius: 22, borderCurve: 'continuous', backgroundColor: 'transparent' },
-  input: { color: '#fff', backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: '#444', borderRadius: 10, padding: 14, fontSize: 16, borderCurve: 'continuous' },
-  btn: { backgroundColor: '#2563eb', paddingVertical: 12, paddingHorizontal: 26, borderRadius: 10, borderCurve: 'continuous', alignItems: 'center', minHeight: 48, justifyContent: 'center' },
-  btnTxt: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  link: { color: '#7aa2ff', fontSize: 15, padding: 10, textAlign: 'center' },
+  title: { color: color.ink, fontSize: 30, fontFamily: font.display, textAlign: 'center' },
+  sub: { color: color.muted, fontSize: 13, textAlign: 'center' },
+  titleLight: { color: color.onDark, fontSize: 22, fontFamily: font.display, textAlign: 'center' },
+  subLight: { color: '#ddd', fontSize: 13, textAlign: 'center' },
+  err: { color: color.error, fontSize: 13, textAlign: 'center' },
+  frame: { width: 240, height: 240, borderWidth: 3, borderColor: color.primary, borderRadius: 22, borderCurve: 'continuous', backgroundColor: 'transparent' },
+  input: { color: color.ink, backgroundColor: '#fff', borderWidth: 1, borderColor: color.hairline, borderRadius: radius.md, padding: 14, fontSize: 16, fontFamily: font.body, borderCurve: 'continuous' },
+  btn: { backgroundColor: color.primary, paddingVertical: 12, paddingHorizontal: 26, borderRadius: radius.md, borderCurve: 'continuous', alignItems: 'center', minHeight: 48, justifyContent: 'center' },
+  btnTxt: { color: color.onPrimary, fontSize: 16, fontFamily: font.bodySemibold },
+  link: { color: color.primary, fontSize: 15, padding: 10, fontFamily: font.bodyMedium, textAlign: 'center' },
 });

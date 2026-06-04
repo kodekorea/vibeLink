@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { apiGet, getSelectedProject, setSelectedProject, onHostChange } from '@/lib/hub';
+import { color, radius, font } from '@/lib/theme';
 
 interface Project { label: string; path: string; }
 
@@ -44,10 +45,10 @@ export function ProjectBar({ onChange }: { onChange: (path: string) => void }) {
 }
 
 const styles = StyleSheet.create({
-  bar: { maxHeight: 46, backgroundColor: '#101010', borderBottomWidth: 1, borderBottomColor: '#222' },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, backgroundColor: '#222', borderRadius: 14 },
-  active: { backgroundColor: '#2563eb' },
-  txt: { color: '#bbb', fontSize: 13, maxWidth: 170 },
-  txtActive: { color: '#fff' },
-  empty: { color: '#777', fontSize: 12, padding: 10 },
+  bar: { maxHeight: 46, backgroundColor: color.surfaceSoft, borderBottomWidth: 1, borderBottomColor: color.hairline },
+  chip: { paddingHorizontal: 12, paddingVertical: 7, backgroundColor: color.surfaceCard, borderRadius: radius.pill, borderWidth: 1, borderColor: color.hairline },
+  active: { backgroundColor: color.primary, borderColor: 'transparent' },
+  txt: { color: color.muted, fontSize: 13, maxWidth: 170, fontFamily: font.bodyMedium },
+  txtActive: { color: color.onPrimary },
+  empty: { color: color.mutedSoft, fontSize: 12, padding: 10 },
 });

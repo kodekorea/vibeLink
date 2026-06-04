@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { listHosts, getActiveHost, setActiveHost, removeHost, type Host } from '@/lib/hub';
 import { notificationsAvailable } from '@/lib/notify';
+import { color, radius, font } from '@/lib/theme';
 
 export default function Settings() {
   const [hosts, setHosts] = useState<Host[]>([]);
@@ -43,17 +44,17 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0b0b0b' },
-  section: { color: '#888', fontSize: 13, fontWeight: '600' },
-  empty: { color: '#777', fontSize: 13 },
-  card: { backgroundColor: '#151515', borderRadius: 12, borderCurve: 'continuous', padding: 14, gap: 6, flexDirection: 'row', alignItems: 'center' },
-  cardActive: { borderWidth: 1, borderColor: '#2563eb' },
+  root: { flex: 1, backgroundColor: color.canvas },
+  section: { color: color.muted, fontSize: 13, fontFamily: font.bodySemibold },
+  empty: { color: color.mutedSoft, fontSize: 13 },
+  card: { backgroundColor: color.surfaceCard, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, gap: 6, flexDirection: 'row', alignItems: 'center' },
+  cardActive: { borderWidth: 1, borderColor: color.primary },
   cardMain: { flex: 1, gap: 4 },
-  hLabel: { color: '#eee', fontSize: 15, fontWeight: '600' },
-  hUrl: { color: '#777', fontSize: 12 },
-  del: { color: '#fca5a5', fontSize: 14 },
-  add: { backgroundColor: '#1e293b', borderRadius: 10, borderCurve: 'continuous', padding: 14, alignItems: 'center' },
-  addTxt: { color: '#93c5fd', fontSize: 15, fontWeight: '600' },
-  label: { color: '#888', fontSize: 12 },
-  value: { color: '#eee', fontSize: 15 },
+  hLabel: { color: color.ink, fontSize: 15, fontFamily: font.bodyMedium },
+  hUrl: { color: color.mutedSoft, fontSize: 12 },
+  del: { color: color.error, fontSize: 14 },
+  add: { backgroundColor: color.primary, borderRadius: radius.md, borderCurve: 'continuous', padding: 14, alignItems: 'center' },
+  addTxt: { color: color.onPrimary, fontSize: 15, fontFamily: font.bodySemibold },
+  label: { color: color.muted, fontSize: 12 },
+  value: { color: color.ink, fontSize: 15 },
 });

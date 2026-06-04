@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { apiGet } from '@/lib/hub';
 import { ProjectBar } from '@/components/project-bar';
+import { color, radius, font } from '@/lib/theme';
 
 interface Ev { kind: string; text?: string; tool?: string; file?: string; isError?: boolean; }
 
@@ -61,7 +62,7 @@ export default function Agent() {
     <View style={styles.root}>
       <ProjectBar onChange={onProject} />
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color="#fff" /></View>
+        <View style={styles.center}><ActivityIndicator color={color.primary} /></View>
       ) : error ? (
         <View style={styles.center}><Text style={styles.err}>{error}</Text></View>
       ) : (
@@ -72,7 +73,7 @@ export default function Agent() {
             keyExtractor={(_, i) => String(i)}
             renderItem={renderItem}
             contentContainerStyle={{ padding: 12, gap: 8 }}
-            refreshControl={<RefreshControl refreshing={loading} onRefresh={() => path && load(path)} tintColor="#fff" />}
+            refreshControl={<RefreshControl refreshing={loading} onRefresh={() => path && load(path)} tintColor={color.muted} />}
           />
           {events.length > 0 ? (
             <Pressable style={styles.fab} onPress={scrollToBottom} hitSlop={8}>
@@ -86,18 +87,18 @@ export default function Agent() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0b0b0b' },
+  root: { flex: 1, backgroundColor: color.canvas },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  err: { color: '#f87171', padding: 24, textAlign: 'center' },
-  bubble: { borderRadius: 12, borderCurve: 'continuous', padding: 12, maxWidth: '92%' },
-  user: { backgroundColor: '#1e3a8a', alignSelf: 'flex-end' },
-  userTxt: { color: '#fff', fontSize: 14 },
-  asst: { backgroundColor: '#1a1a1a', alignSelf: 'flex-start' },
-  asstTxt: { color: '#e5e5e5', fontSize: 14 },
-  think: { color: '#666', fontSize: 12, fontStyle: 'italic', paddingHorizontal: 4 },
-  tool: { color: '#7aa2ff', fontSize: 12, paddingHorizontal: 4 },
-  result: { color: '#777', fontSize: 11, paddingHorizontal: 8, fontFamily: 'monospace' },
-  resultErr: { color: '#f87171' },
-  fab: { position: 'absolute', right: 16, bottom: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)' },
-  fabTxt: { color: '#fff', fontSize: 22, lineHeight: 26 },
+  err: { color: color.error, padding: 24, textAlign: 'center' },
+  bubble: { borderRadius: radius.lg, borderCurve: 'continuous', padding: 12, maxWidth: '92%' },
+  user: { backgroundColor: color.primary, alignSelf: 'flex-end' },
+  userTxt: { color: color.onPrimary, fontSize: 14, fontFamily: font.body },
+  asst: { backgroundColor: color.surfaceCard, alignSelf: 'flex-start' },
+  asstTxt: { color: color.ink, fontSize: 14, fontFamily: font.body },
+  think: { color: color.mutedSoft, fontSize: 12, fontStyle: 'italic', paddingHorizontal: 4 },
+  tool: { color: color.muted, fontSize: 12, paddingHorizontal: 4 },
+  result: { color: color.mutedSoft, fontSize: 11, paddingHorizontal: 8, fontFamily: font.code },
+  resultErr: { color: color.error },
+  fab: { position: 'absolute', right: 16, bottom: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: color.primary, alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)' },
+  fabTxt: { color: color.onPrimary, fontSize: 22, lineHeight: 26 },
 });
