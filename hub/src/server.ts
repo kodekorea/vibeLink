@@ -172,8 +172,13 @@ export class HubServer {
       const p = String(data['path'] ?? '');
       if (!p) { this.json(res, 400, { error: 'path required' }); return; }
       const label = String(data['label'] ?? (p.split(/[\\/]/).filter(Boolean).pop() || p));
-      this.sessions.create({ label, path: p });
-      this.json(res, 200, { ok: true }); return;
+      try {
+        const id = this.sessions.create({ label, path: p });
+        this.json(res, 200, { ok: true, id });
+      } catch (e) {
+        this.json(res, 500, { error: String(e) });
+      }
+      return;
     }
 
     if (url === '/sessions/close') {
