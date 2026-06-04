@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>MTB Hub</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+<style>
+  :root{color-scheme:dark}*{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#0b0b0b;color:#ddd;font-family:sans-serif}
+  #app{display:flex;flex-direction:column;height:100%}
+  #pair{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;height:100%}
+  #pair input{font-size:18px;padding:10px;width:220px;text-align:center}
+  .btn,#pairBtn{font-size:16px;padding:10px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px}
+  #bar{display:flex;gap:6px;padding:6px;overflow-x:auto;background:#151515;align-items:center}
+  .chip{padding:6px 12px;background:#222;border-radius:16px;white-space:nowrap;font-size:13px}
+  .chip.active{background:#2563eb}
+  #plus{padding:6px 12px;background:#333;border-radius:16px;font-size:18px}
+  #term{flex:1;min-height:0;position:relative}
+  #term .xterm-viewport{overflow-y:auto !important;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
+  #inputbar{display:flex;gap:6px;padding:6px;background:#151515}
+  #inputbar input{flex:1;font-size:16px;padding:8px;background:#000;color:#eee;border:1px solid #333;border-radius:6px}
+  #modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}
+  #modal.show{display:flex}
+  #sheet{background:#1a1a1a;width:90%;max-width:420px;max-height:80%;overflow:auto;border-radius:10px;padding:14px}
+  .row{padding:10px;border-bottom:1px solid #2a2a2a;cursor:pointer}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="pair">
+    <h2>MTB Hub</h2>
+    <input id="pw" type="password" placeholder="암호" autocomplete="off">
+    <button id="pairBtn">연결</button>
+    <div id="pairMsg" style="color:#f66;font-size:13px"></div>
+  </div>
+  <div id="main" class="hidden">
+    <div id="bar"></div>
+    <div id="term"></div>
+    <div id="inputbar">
+      <input id="line" placeholder="명령 입력 후 Enter" autocomplete="off" autocapitalize="off">
+      <button class="btn" id="esc">Esc</button>
+    </div>
+  </div>
+</div>
+<div id="modal"><div id="sheet"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+<script>
+const deviceId = (() => {
+  let id = localStorage.getItem('mtb_device');
+  if (!id) { id = 'dev-' + Math.random().toString(36).slice(2); localStorage.setItem('mtb_device', id); }
+  return id;
+})();
+const $ = s => document.querySelector(s);
+let ws, term, fit, sessions = [], active = '';
+
+function api(p, opts){ return fetch(p, Object.assign({ headers:{ 'Content-Type':'application/json' } }, opts)); }
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+$('#pairBtn').onclick = pair;
+$('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') pair(); });
+async function pair(){
+  const r = await api('/pair', { method:'POST', body: JSON.stringify({ code: $('#pw').value, device_id: deviceId }) });
+  if (r.ok) start(); else $('#pairMsg').textContent = '인증 실패';
+}
+api('/api/me').then(r => { if (r.ok) start(); });
+
+function start(){
+  $('#pair').classList.add('hidden');
+  $('#main').classList.remove('hidden');
+  setupTerm();
+  connect();
+}
+
+function setupTerm(){
+  term = new Terminal({ scrollback: 5000, fontSize: 13, theme: { background:'#0b0b0b' } });
+  fit = new FitAddon.FitAddon();
+  term.loadAddon(fit);
+  term.open($('#term'));
+  doFit();
+  term.onData(d => sendWs({ type:'input', sessionId: active, data: d }));
+  term.onResize(({cols,rows}) => sendWs({ type:'resize', sessionId: active, cols, rows }));
+  window.addEventListener('resize', doFit);
+  $('#line').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { sendWs({ type:'input', sessionId: active, data: $('#line').value + '\r' }); $('#line').value=''; }
+  });
+  $('#esc').onclick = () => sendWs({ type:'input', sessionId: active, data: '\x1b' });
+  let sx=0, sy=0, st=0; const t = $('#term');
+  t.addEventListener('touchstart', e => { const k=e.changedTouches[0]; sx=k.clientX; sy=k.clientY; st=Date.now(); }, {passive:true});
+  t.addEventListener('touchend', e => {
+    const k=e.changedTouches[0], dx=k.clientX-sx, dy=k.clientY-sy, dt=Date.now()-st;
+    if (dt<600 && Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.6) switchByDelta(dx<0?1:-1);
+  }, {passive:true});
+}
+function doFit(){ try { fit.fit(); } catch (e) {} }
+
+function connect(){
+  ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws');
+  ws.onopen = () => doFit();
+  ws.onclose = () => setTimeout(connect, 1500);
+  ws.onmessage = e => handle(JSON.parse(e.data));
+}
+function sendWs(m){ if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
+
+function handle(m){
+  if (m.type === 'session_list') {
+    sessions = m.sessions;
+    if ((!active || !sessions.find(s => s.id === active))) active = sessions[0] ? sessions[0].id : '';
+    renderBar();
+  } else if (m.type === 'terminal_data') {
+    if (m.sessionId === active) term.write(m.data);
+  }
+}
+
+function renderBar(){
+  const bar = $('#bar'); bar.innerHTML = '';
+  for (const s of sessions) {
+    const c = document.createElement('div');
+    c.className = 'chip' + (s.id === active ? ' active' : '');
+    c.textContent = s.label;
+    c.onclick = () => switchTo(s.id);
+    bar.appendChild(c);
+  }
+  const plus = document.createElement('div'); plus.id = 'plus'; plus.textContent = '+';
+  plus.onclick = openNewSession; bar.appendChild(plus);
+}
+function switchTo(id){
+  if (id === active) return;
+  active = id; term.reset();
+  sendWs({ type:'select', sessionId: id });
+  renderBar(); doFit();
+}
+function switchByDelta(d){
+  const i = sessions.findIndex(s => s.id === active);
+  const n = sessions[i + d];
+  if (n) switchTo(n.id);
+}
+
+async function openNewSession(){
+  const { projects } = await (await api('/projects')).json();
+  const sheet = $('#sheet');
+  sheet.innerHTML = '<h3>새 세션 — 프로젝트 선택</h3>';
+  for (const p of projects) {
+    const row = document.createElement('div'); row.className = 'row';
+    row.textContent = '▶ ' + p.label;
+    row.onclick = () => createSession(p.path);
+    sheet.appendChild(row);
+  }
+  const browse = document.createElement('button'); browse.className = 'btn'; browse.textContent = '폴더 찾아보기';
+  browse.style.marginTop = '10px'; browse.onclick = () => browseFrom(null); sheet.appendChild(browse);
+  const close = document.createElement('button'); close.textContent = '닫기'; close.style.marginLeft = '8px';
+  close.onclick = () => $('#modal').classList.remove('show'); sheet.appendChild(close);
+  $('#modal').classList.add('show');
+}
+async function browseFrom(p){
+  const { entries, cwd } = await (await api('/fs' + (p ? ('?path=' + encodeURIComponent(p)) : ''))).json();
+  const sheet = $('#sheet');
+  sheet.innerHTML = '<h3>' + (cwd ? escapeHtml(cwd) : '드라이브') + '</h3>';
+  if (cwd) {
+    const up = document.createElement('div'); up.className = 'row'; up.textContent = '⬆ 상위';
+    up.onclick = () => browseFrom(parentOf(cwd)); sheet.appendChild(up);
+    const here = document.createElement('button'); here.className = 'btn'; here.textContent = '여기서 세션 시작';
+    here.onclick = () => addAndCreate(cwd); sheet.appendChild(here);
+  }
+  for (const e of entries) {
+    const row = document.createElement('div'); row.className = 'row';
+    row.textContent = '📁 ' + e.name; row.onclick = () => browseFrom(e.path);
+    sheet.appendChild(row);
+  }
+}
+function parentOf(p){ const i = Math.max(p.lastIndexOf('\\'), p.lastIndexOf('/')); return i > 2 ? p.slice(0, i) : null; }
+async function addAndCreate(p){
+  const label = p.split(/[\\/]/).filter(Boolean).pop() || p;
+  await api('/projects/add', { method:'POST', body: JSON.stringify({ label, path: p }) });
+  createSession(p);
+}
+async function createSession(p){
+  $('#modal').classList.remove('show');
+  await api('/sessions/create', { method:'POST', body: JSON.stringify({ path: p }) });
+}
+</script>
+</body>
+</html>
