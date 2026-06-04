@@ -47,7 +47,7 @@ export async function getActiveHost(): Promise<Host | null> {
 
 export async function setActiveHost(id: string): Promise<void> {
   await ensureLoaded();
-  if (hosts!.some(h => h.id === id)) { activeId = id; await persist(); emit(); }
+  if (hosts!.some(h => h.id === id)) { activeId = id; activeSessionId = null; await persist(); emit(); emitSession(); }
 }
 
 export async function removeHost(id: string): Promise<void> {
@@ -118,4 +118,38 @@ export async function loadSelectedProject(): Promise<void> {
   if (_selByHost[activeId]) return;
   const v = await SecureStore.getItemAsync(SELPROJ_PREFIX + activeId);
   if (v) _selByHost[activeId] = v;
+}
+
+// ── 공유 세션 상태 (모든 탭이 같은 활성 세션을 본다) ──
+export interface Session { id: string; label: string; cwd: string; }
+
+let activeSessionId: string | null = null;
+const sessionListeners = new Set<() => void>();
+
+export function onSessionChange(cb: () => void): () => void {
+  sessionListeners.add(cb);
+  return () => sessionListeners.delete(cb);
+}
+function emitSession() { for (const cb of sessionListeners) cb(); }
+
+export function getActiveSessionId(): string | null { return activeSessionId; }
+export function setActiveSessionId(id: string | null): void {
+  if (activeSessionId === id) return;
+  activeSessionId = id;
+  emitSession();
+}
+
+export async function listSessions(): Promise<Session[]> {
+  const r = await apiGet<{ sessions: Session[] }>('/sessions');
+  return r.sessions;
+}
+
+export async function closeSession(id: string): Promise<void> {
+  const h = await getActiveHost();
+  if (!h) return;
+  await fetch(h.url + '/sessions/close', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + h.token },
+    body: JSON.stringify({ id }),
+  });
 }
