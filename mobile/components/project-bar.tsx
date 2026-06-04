@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-import { apiGet, getSelectedProject, setSelectedProject } from '@/lib/hub';
+import { apiGet, getSelectedProject, setSelectedProject, onHostChange } from '@/lib/hub';
 
 interface Project { label: string; path: string; }
 
@@ -9,14 +9,19 @@ export function ProjectBar({ onChange }: { onChange: (path: string) => void }) {
   const [sel, setSel] = useState<string | null>(getSelectedProject());
 
   useEffect(() => {
-    apiGet<{ projects: Project[] }>('/projects')
-      .then(r => {
-        setProjects(r.projects);
-        let s = getSelectedProject();
-        if (!s && r.projects[0]) { s = r.projects[0].path; setSelectedProject(s); }
-        if (s) { setSel(s); onChange(s); }
-      })
-      .catch(() => {});
+    function loadProjects() {
+      apiGet<{ projects: Project[] }>('/projects')
+        .then(r => {
+          setProjects(r.projects);
+          let s = getSelectedProject();
+          if (!s && r.projects[0]) { s = r.projects[0].path; setSelectedProject(s); }
+          if (s) { setSel(s); onChange(s); } else { setSel(null); }
+        })
+        .catch(() => { setProjects([]); });
+    }
+    loadProjects();
+    const off = onHostChange(loadProjects);
+    return off;
   }, []);
 
   function pick(p: string) { setSelectedProject(p); setSel(p); onChange(p); }

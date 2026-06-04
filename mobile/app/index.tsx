@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { loadCreds, pair } from '@/lib/hub';
+import { getActiveHost, addHost } from '@/lib/hub';
 
 type Stage = 'checking' | 'scan' | 'connect';
 
@@ -19,7 +19,7 @@ export default function Index() {
   const scanned = useRef(false);
 
   useEffect(() => {
-    loadCreds().then(c => {
+    getActiveHost().then(c => {
       if (c) router.replace('/terminal');
       else setStage('scan');
     });
@@ -42,7 +42,7 @@ export default function Index() {
   async function connect() {
     setBusy(true);
     setError('');
-    const res = await pair(url, password);
+    const res = await addHost(url, password);
     setBusy(false);
     if (res.ok) router.replace('/terminal');
     else setError(res.error || '실패');
