@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { apiGet } from '@/lib/hub';
 import { ProjectBar } from '@/components/project-bar';
 
@@ -16,6 +16,11 @@ export default function Agent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [path, setPath] = useState<string | null>(null);
+  const listRef = useRef<FlatList<Ev>>(null);
+
+  function scrollToBottom() {
+    try { listRef.current?.scrollToEnd({ animated: true }); } catch (e) { /* */ }
+  }
 
   async function load(p: string) {
     setLoading(true);
@@ -23,6 +28,7 @@ export default function Agent() {
     try {
       const r = await apiGet<{ events: Ev[] }>('/agent/log?path=' + encodeURIComponent(p));
       setEvents(r.events);
+      setTimeout(scrollToBottom, 120);
     } catch (e) {
       setError('세션을 불러오지 못했어요 (claude 세션이 있어야 함)');
       setEvents([]);
@@ -59,13 +65,21 @@ export default function Agent() {
       ) : error ? (
         <View style={styles.center}><Text style={styles.err}>{error}</Text></View>
       ) : (
-        <FlatList
-          data={events}
-          keyExtractor={(_, i) => String(i)}
-          renderItem={renderItem}
-          contentContainerStyle={{ padding: 12, gap: 8 }}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={() => path && load(path)} tintColor="#fff" />}
-        />
+        <>
+          <FlatList
+            ref={listRef}
+            data={events}
+            keyExtractor={(_, i) => String(i)}
+            renderItem={renderItem}
+            contentContainerStyle={{ padding: 12, gap: 8 }}
+            refreshControl={<RefreshControl refreshing={loading} onRefresh={() => path && load(path)} tintColor="#fff" />}
+          />
+          {events.length > 0 ? (
+            <Pressable style={styles.fab} onPress={scrollToBottom} hitSlop={8}>
+              <Text style={styles.fabTxt}>⤓</Text>
+            </Pressable>
+          ) : null}
+        </>
       )}
     </View>
   );
@@ -84,4 +98,6 @@ const styles = StyleSheet.create({
   tool: { color: '#7aa2ff', fontSize: 12, paddingHorizontal: 4 },
   result: { color: '#777', fontSize: 11, paddingHorizontal: 8, fontFamily: 'monospace' },
   resultErr: { color: '#f87171' },
+  fab: { position: 'absolute', right: 16, bottom: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)' },
+  fabTxt: { color: '#fff', fontSize: 22, lineHeight: 26 },
 });
