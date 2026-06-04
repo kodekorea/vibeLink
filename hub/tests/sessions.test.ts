@@ -77,3 +77,24 @@ test('write는 해당 세션 pty로 전달', () => {
   sm.write(id, 'ls\r');
   assert.deepEqual(f.writes, ['ls\r']);
 });
+
+test('터미널 벨(\\x07) → notify 방송(라벨 포함)', () => {
+  const f = fakePty();
+  const msgs: any[] = [];
+  const sm = new SessionManager(() => f.pty, m => msgs.push(m), 'powershell.exe', '');
+  const id = sm.create({ label: 'projA', path: 'C:\\a' });
+  f.emit('done\x07');
+  const n = msgs.find(m => m.type === 'notify');
+  assert.ok(n, 'notify가 방송돼야 함');
+  assert.equal(n.sessionId, id);
+  assert.equal(n.label, 'projA');
+});
+
+test('notify는 디바운스 윈도 내 중복 방송 안 함', () => {
+  const f = fakePty();
+  const msgs: any[] = [];
+  const sm = new SessionManager(() => f.pty, m => msgs.push(m), 'powershell.exe', '');
+  sm.create({ label: 'p', path: 'C:\\p' });
+  f.emit('\x07'); f.emit('\x07');
+  assert.equal(msgs.filter(m => m.type === 'notify').length, 1);
+});

@@ -9,7 +9,10 @@ const MAX_BUFFER = 200 * 1024;
 interface Session {
   id: string; label: string; cwd: string;
   pty: IPty; buffer: string; cols: number; rows: number;
+  lastNotify: number;
 }
+
+const NOTIFY_DEBOUNCE_MS = 3000;
 
 export class SessionManager {
   private sessions = new Map<string, Session>();
@@ -27,12 +30,14 @@ export class SessionManager {
       name: 'xterm-256color', cols, rows, cwd: project.path, env: process.env,
     });
     const id = String(++this.counter);
-    const session: Session = { id, label: project.label, cwd: project.path, pty, buffer: '', cols, rows };
+    const session: Session = { id, label: project.label, cwd: project.path, pty, buffer: '', cols, rows, lastNotify: 0 };
     this.sessions.set(id, session);
 
     pty.onData(data => {
       this.append(session, data);
       this.broadcast({ type: 'terminal_data', sessionId: id, data });
+      // 터미널 벨(BEL) = "완료/입력 대기" 신호 → 폰 알림 (세션당 디바운스)
+      if (data.indexOf('\x07') !== -1) this.maybeNotify(session);
     });
     pty.onExit(() => {
       this.broadcast({ type: 'terminal_exit', sessionId: id });
@@ -83,6 +88,13 @@ export class SessionManager {
 
   private broadcastList(): void {
     this.broadcast({ type: 'session_list', sessions: this.list() });
+  }
+
+  private maybeNotify(s: Session): void {
+    const now = Date.now();
+    if (now - s.lastNotify < NOTIFY_DEBOUNCE_MS) return;
+    s.lastNotify = now;
+    this.broadcast({ type: 'notify', sessionId: s.id, label: s.label });
   }
 
   private append(s: Session, data: string): void {

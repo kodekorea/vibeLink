@@ -85,6 +85,7 @@ api('/api/me').then(r => { if (r.ok) start(); });
 function start(){
   $('#pair').classList.add('hidden');
   $('#main').classList.remove('hidden');
+  try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
   setupTerm();
   connect();
 }
@@ -144,7 +145,22 @@ function handle(m){
     renderBar();
   } else if (m.type === 'terminal_data') {
     if (m.sessionId === active) term.write(m.data);
+  } else if (m.type === 'notify') {
+    notify(m);
   }
+}
+
+function notify(m){
+  try { if (navigator.vibrate) navigator.vibrate(200); } catch (e) {}
+  // 활성 세션이 화면에 보이는 동안엔 시끄럽지 않게 — 백그라운드거나 다른 세션일 때만 알림
+  if (!document.hidden && m.sessionId === active) return;
+  const s = sessions.find(x => x.id === m.sessionId);
+  const label = (s && s.label) || m.label || '세션';
+  try {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('MTB: ' + label, { body: '완료 / 입력 대기', tag: 'mtb-' + m.sessionId });
+    }
+  } catch (e) {}
 }
 
 function renderBar(){
