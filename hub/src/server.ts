@@ -8,6 +8,7 @@ import { TunnelManager } from './tunnel';
 import { ProjectStore } from './projects';
 import { SessionManager } from './sessions';
 import { browseDir, drives, listEntries, readFileText } from './fsbrowse';
+import { findLatestTranscript, parseTranscript } from './transcript';
 
 function parseCookies(req: http.IncomingMessage): Record<string, string> {
   const out: Record<string, string> = {};
@@ -159,6 +160,30 @@ export class HubServer {
       const p = new URL(url, 'http://x').searchParams.get('path');
       if (!p) { this.json(res, 400, { error: 'path required' }); return; }
       try { this.json(res, 200, readFileText(decodeURIComponent(p))); }
+      catch (e) { this.json(res, 400, { error: String(e) }); }
+      return;
+    }
+
+    // 에이전트뷰: 세션 트랜스크립트(대화 타임라인)
+    if (meth === 'GET' && pathOnly === '/agent/log') {
+      if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
+      const p = new URL(url, 'http://x').searchParams.get('path');
+      if (!p) { this.json(res, 400, { error: 'path required' }); return; }
+      const file = findLatestTranscript(decodeURIComponent(p));
+      if (!file) { this.json(res, 404, { error: 'no session transcript' }); return; }
+      try { this.json(res, 200, { events: parseTranscript(fs.readFileSync(file, 'utf8')).events }); }
+      catch (e) { this.json(res, 400, { error: String(e) }); }
+      return;
+    }
+
+    // 변경사항: 트랜스크립트에서 에이전트가 고친 파일 추출
+    if (meth === 'GET' && pathOnly === '/agent/changes') {
+      if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
+      const p = new URL(url, 'http://x').searchParams.get('path');
+      if (!p) { this.json(res, 400, { error: 'path required' }); return; }
+      const file = findLatestTranscript(decodeURIComponent(p));
+      if (!file) { this.json(res, 404, { error: 'no session transcript' }); return; }
+      try { this.json(res, 200, { changes: parseTranscript(fs.readFileSync(file, 'utf8')).changes }); }
       catch (e) { this.json(res, 400, { error: String(e) }); }
       return;
     }
