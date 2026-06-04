@@ -1,7 +1,7 @@
 import type { IPty, PtySpawn } from './nodePty';
 
 export interface Project { label: string; path: string; }
-export interface SessionInfo { id: string; label: string; }
+export interface SessionInfo { id: string; label: string; cwd: string; }
 export type Send = (msg: object) => void;
 
 const MAX_BUFFER = 200 * 1024;
@@ -69,7 +69,7 @@ export class SessionManager {
   }
 
   list(): SessionInfo[] {
-    return Array.from(this.sessions.values()).map(s => ({ id: s.id, label: s.label }));
+    return Array.from(this.sessions.values()).map(s => ({ id: s.id, label: s.label, cwd: s.cwd }));
   }
 
   // 새 클라이언트 접속 시: 목록 + 각 세션 버퍼 리플레이

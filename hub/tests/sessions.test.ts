@@ -25,7 +25,7 @@ test('create: pty 생성 + launch 명령 입력 + 목록 등록 + session_list �
   const id = sm.create({ label: 'projA', path: 'C:\\a' });
   assert.equal(id, '1');
   assert.deepEqual(f.writes, ['claude\r']);
-  assert.deepEqual(sm.list(), [{ id: '1', label: 'projA' }]);
+  assert.deepEqual(sm.list(), [{ id: '1', label: 'projA', cwd: 'C:\\a' }]);
   assert.ok(msgs.some(m => m.type === 'session_list'));
 });
 
