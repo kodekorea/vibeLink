@@ -92,6 +92,28 @@ function bearer(req: http.IncomingMessage): string {
   const h = String(req.headers['authorization'] ?? '');
   return h.startsWith('Bearer ') ? h.slice(7).trim() : '';
 }
+// 현재 LISTEN 중인 TCP 포트 목록(중복 제거, 정렬). netstat 파싱. hub 자기 포트는 제외.
+function listeningPorts(selfPort: number): Promise<number[]> {
+  return new Promise((resolve, reject) => {
+    import('child_process').then((cp) => {
+      cp.execFile('netstat', ['-ano', '-p', 'TCP'], { windowsHide: true, maxBuffer: 8 * 1024 * 1024 }, (err, stdout) => {
+        if (err && !stdout) { reject(err); return; }
+        const set = new Set<number>();
+        for (const line of String(stdout).split(/\r?\n/)) {
+          const parts = line.trim().split(/\s+/);
+          if (parts.length < 4 || parts[3] !== 'LISTENING') continue;
+          const m = parts[1].match(/:(\d+)$/);
+          if (!m) continue;
+          const port = Number(m[1]);
+          // 너무 낮은 시스템 포트, hub 자기 포트, 임시 포트(>49151)는 제외 — dev 서버 후보만.
+          if (port < 1024 || port === selfPort || port > 49151) continue;
+          set.add(port);
+        }
+        resolve(Array.from(set).sort((a, b) => a - b));
+      });
+    }).catch(reject);
+  });
+}
 
 export class HubServer {
   private httpServer: http.Server;
@@ -206,6 +228,14 @@ export class HubServer {
     if (meth === 'GET' && pathOnly === '/api/me') {
       if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
       this.json(res, 200, { ok: true }); return;
+    }
+
+    // 현재 LISTEN 중인 로컬 포트 목록 (dev 서버 프리뷰용)
+    if (meth === 'GET' && pathOnly === '/ports') {
+      if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
+      try { this.json(res, 200, { ports: await listeningPorts(this._port) }); }
+      catch (e) { this.json(res, 200, { ports: [], error: String(e) }); }
+      return;
     }
 
     // 세션 목록
