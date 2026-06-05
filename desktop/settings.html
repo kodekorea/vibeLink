@@ -1,81 +1,114 @@
-<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
-<style>body{font-family:-apple-system,"Segoe UI",sans-serif;background:#faf9f5;color:#141413;padding:16px;margin:0}
-h2{font-family:Georgia,"Times New Roman",serif;font-weight:500;color:#141413;margin:0 0 6px}
-h3{font-size:14px;color:#141413;margin:0 0 4px}
-label{display:block;margin:10px 0 4px;font-size:13px;color:#6c6a64}
-input{width:100%;padding:9px;background:#fff;color:#141413;border:1px solid #e6dfd8;border-radius:8px;font-size:14px;box-sizing:border-box}
-button{margin-top:12px;margin-right:8px;padding:9px 14px;background:#cc785c;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer}
-button:active{background:#a9583e}
-button.secondary{background:#efe9de;color:#141413}
-.url{word-break:break-all;color:#cc785c;margin-top:8px;min-height:18px;font-size:13px}
-.card{background:#efe9de;border-radius:12px;padding:14px;margin:14px 0}
-.hint{font-size:12px;color:#6c6a64;line-height:1.5;margin:4px 0}
-.ok{color:#5db872;font-size:12px}
-pre{font-family:"Cascadia Mono",Consolas,monospace;background:#181715;border:1px solid #252320;border-radius:6px;padding:8px;height:140px;overflow:auto;font-size:11px;color:#a09d96;white-space:pre-wrap}
-.status{font-weight:bold;color:#141413}</style></head>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<style>
+  :root{--bg:#faf9f5;--card:#efe9de;--ink:#141413;--muted:#6c6a64;--line:#e6dfd8;--accent:#cc785c;--accentPress:#a9583e;--dark:#181715}
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:20px}
+  h1{font-family:Georgia,serif;font-weight:500;font-size:24px;margin:0 0 2px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 18px}
+  .status{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;margin-bottom:6px}
+  .dot{width:10px;height:10px;border-radius:5px;background:#bbb}
+  .dot.on{background:#5db872}
+  .url{color:var(--accent);font-size:13px;word-break:break-all;min-height:16px;margin-bottom:14px}
+  .row{display:flex;gap:10px;margin-bottom:16px}
+  button{font-size:14px;font-weight:600;padding:11px 16px;border:none;border-radius:10px;cursor:pointer}
+  .primary{background:var(--accent);color:#fff;flex:1}
+  .primary:active{background:var(--accentPress)}
+  .ghost{background:var(--card);color:var(--ink)}
+  .card{background:var(--card);border-radius:12px;padding:16px;margin-bottom:14px}
+  .card h2{font-size:14px;margin:0 0 10px;color:var(--ink)}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  input,select{width:100%;padding:9px;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;font-size:14px}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;background:#fff;border:1px solid var(--line);color:var(--ink);font-weight:500}
+  .seg button.sel{background:var(--accent);color:#fff;border-color:transparent}
+  .hint{font-size:12px;color:var(--muted);line-height:1.5;margin:6px 0 0}
+  details{margin-bottom:14px}
+  summary{font-size:13px;color:var(--muted);cursor:pointer;padding:6px 0}
+  pre{background:var(--dark);color:#a09d96;font-family:"Cascadia Mono",Consolas,monospace;font-size:11px;border-radius:8px;padding:10px;height:120px;overflow:auto;white-space:pre-wrap;margin:0}
+  a{color:var(--accent)}
+</style></head>
 <body>
-<h2>MTB Hub</h2>
-<div>상태: <span id="status" class="status">-</span></div>
-<div class="url" id="url"></div>
+  <h1>MTB Hub</h1>
+  <p class="sub">Run Claude sessions on this PC, control them from your phone.</p>
 
-<label>포트</label><input id="port" type="number">
-<label>암호 (폰에서 연결 시 입력)</label><input id="password" type="text">
-
-<div class="card">
-  <h3>외부 접속 — Tailscale (가장 추천)</h3>
-  <div class="hint">
-    PC와 폰에 Tailscale을 깔고 같은 계정으로 로그인하면, 집·밖 어디서나 고정 주소로 됩니다.
-    설정 입력 없이 QR 페이지의 "Tailscale" QR만 스캔하면 끝. (무료·영구·빠름)
+  <div class="status"><span class="dot" id="dot"></span><span id="statusText">Stopped</span></div>
+  <div class="url" id="url"></div>
+  <div class="row">
+    <button class="primary" id="toggle">Start</button>
+    <button class="ghost" id="qr">Show QR</button>
   </div>
-  <button class="secondary" id="tailscale">Tailscale 받기</button>
-</div>
 
-<div class="card">
-  <h3>외부 접속 — ngrok (대안: 토큰 붙여넣기)</h3>
-  <div class="hint">
-    Tailscale 대신 ngrok 토큰을 넣어도 외부 접속이 됩니다.<br>
-    ① 가입 → ② 토큰 복사해서 아래 붙여넣기 → 저장. (무료, 고정 주소 자동)
+  <div class="card">
+    <h2>Access from phone</h2>
+    <p class="hint"><b>Same Wi‑Fi:</b> just scan the LAN QR. <b>Anywhere:</b> install <a href="#" id="tsLink">Tailscale</a> on this PC and your phone (same account), then scan the Tailscale QR. No tokens needed.</p>
+    <button class="ghost" id="tsBtn" style="margin-top:8px">Get Tailscale</button>
   </div>
-  <button class="secondary" id="signup">① ngrok 가입/로그인</button>
-  <button class="secondary" id="getToken">② 토큰 복사 페이지 열기</button>
-  <label>ngrok 토큰 (authtoken)</label><input id="ngrokToken" type="text" placeholder="여기에 붙여넣기">
-  <label>고정 도메인 (선택 — 없으면 비워두기)</label><input id="ngrokDomain" type="text" placeholder="xxxx.ngrok-free.dev">
-  <div class="hint" id="ngrokState"></div>
-</div>
 
-<div>
-  <button id="save">저장</button>
-  <button id="toggle">시작/정지</button>
-  <button id="qr">QR 페이지</button>
-  <button class="secondary" id="proj">projects.json</button>
-</div>
-<label>로그</label><pre id="logs"></pre>
+  <div class="card">
+    <h2>Settings</h2>
+    <label>Pairing password</label>
+    <input id="password" type="text">
+    <label>Claude run mode</label>
+    <div class="seg" id="claudeMode">
+      <button data-v="normal">claude</button>
+      <button data-v="skip">skip permissions</button>
+    </div>
+    <p class="hint">"skip permissions" runs <code>claude --dangerously-skip-permissions</code>.</p>
+    <label>Claude theme</label>
+    <div class="seg" id="claudeTheme">
+      <button data-v="light">Light</button>
+      <button data-v="dark">Dark</button>
+    </div>
+    <label>Port</label>
+    <input id="port" type="number">
+  </div>
+
+  <details>
+    <summary>Advanced — ngrok (alternative to Tailscale)</summary>
+    <div class="card" style="margin-top:8px">
+      <p class="hint">Paste an ngrok token for a fixed external URL without Tailscale.</p>
+      <button class="ghost" id="ngrokSignup" style="margin:6px 0">ngrok sign up / token</button>
+      <label>ngrok token</label>
+      <input id="ngrokToken" type="text">
+      <label>ngrok domain (optional)</label>
+      <input id="ngrokDomain" type="text" placeholder="xxxx.ngrok-free.dev">
+    </div>
+  </details>
+
+  <button class="primary" id="save" style="width:100%;margin-bottom:14px">Save</button>
+  <pre id="logs"></pre>
 
 <script>
 const $=s=>document.getElementById(s);
+let cur = {};
+function seg(id, val){ document.querySelectorAll('#'+id+' button').forEach(b=>b.classList.toggle('sel', b.dataset.v===val)); }
+function segVal(id){ const b=document.querySelector('#'+id+' button.sel'); return b?b.dataset.v:null; }
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{ b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); });
+
 function render(s){
-  $('status').textContent = s.running ? '실행 중' : '정지';
+  cur = s;
+  $('dot').classList.toggle('on', !!s.running);
+  $('statusText').textContent = s.running ? 'Running' : 'Stopped';
+  $('toggle').textContent = s.running ? 'Stop' : 'Start';
   $('url').textContent = s.url || '';
-  if (document.activeElement!==$('port')) $('port').value = s.port;
-  if (document.activeElement!==$('password')) $('password').value = s.password;
-  if (document.activeElement!==$('ngrokToken')) $('ngrokToken').value = s.ngrokToken || '';
-  if (document.activeElement!==$('ngrokDomain')) $('ngrokDomain').value = s.ngrokDomain || '';
-  $('ngrokState').innerHTML = s.ngrokToken
-    ? '<span class="ok">● 외부 접속 켜짐 (ngrok)</span>'
-    : '토큰 없음 — 집 안에서는 LAN QR로 접속하세요.';
+  if (document.activeElement!==$('password')) $('password').value = s.password||'';
+  if (document.activeElement!==$('port')) $('port').value = s.port||47801;
+  if (document.activeElement!==$('ngrokToken')) $('ngrokToken').value = s.ngrokToken||'';
+  if (document.activeElement!==$('ngrokDomain')) $('ngrokDomain').value = s.ngrokDomain||'';
+  seg('claudeMode', s.claudeMode||'normal');
+  seg('claudeTheme', s.claudeTheme||'light');
   $('logs').textContent = (s.logs||[]).join('');
-  $('toggle').textContent = s.running ? '정지' : '시작';
 }
-$('save').onclick = async()=>render(await window.mtb.save({
-  port:$('port').value, password:$('password').value,
-  ngrokToken:$('ngrokToken').value, ngrokDomain:$('ngrokDomain').value,
-}));
 $('toggle').onclick = async()=>{ const s=await window.mtb.getState(); render(await (s.running?window.mtb.stop():window.mtb.start())); };
 $('qr').onclick = ()=>window.mtb.openQr();
-$('proj').onclick = ()=>window.mtb.openProjects();
-$('tailscale').onclick = ()=>window.mtb.openExternal('https://tailscale.com/download');
-$('signup').onclick = ()=>window.mtb.openExternal('https://dashboard.ngrok.com/signup');
-$('getToken').onclick = ()=>window.mtb.openExternal('https://dashboard.ngrok.com/get-started/your-authtoken');
+$('tsBtn').onclick = ()=>window.mtb.openExternal('https://tailscale.com/download');
+$('tsLink').onclick = (e)=>{ e.preventDefault(); window.mtb.openExternal('https://tailscale.com/download'); };
+$('ngrokSignup').onclick = ()=>window.mtb.openExternal('https://dashboard.ngrok.com/get-started/your-authtoken');
+$('save').onclick = async()=>render(await window.mtb.save({
+  password:$('password').value, port:$('port').value,
+  claudeMode:segVal('claudeMode')||'normal', claudeTheme:segVal('claudeTheme')||'light',
+  ngrokToken:$('ngrokToken').value, ngrokDomain:$('ngrokDomain').value,
+}));
 window.mtb.onState(render);
 window.mtb.getState().then(render);
 </script></body></html>

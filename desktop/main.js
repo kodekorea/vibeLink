@@ -46,6 +46,8 @@ function settings() {
   return {
     port: Number(s.port || process.env.MTB_PORT || 47801),
     password: s.password || 'changeme1234',
+    claudeMode: s.claudeMode === 'skip' ? 'skip' : 'normal', // normal | skip
+    claudeTheme: s.claudeTheme === 'dark' ? 'dark' : 'light', // light | dark
     ngrokToken: s.ngrokToken || '',
     ngrokDomain: s.ngrokDomain || '',
   };
@@ -61,6 +63,9 @@ function startHub() {
   // 설정창에 입력한 ngrok 토큰/도메인이 우선(.env보다). 사용자는 설정창에서 키만 붙여넣으면 됨.
   if (cfg.ngrokToken) env.NGROK_AUTHTOKEN = cfg.ngrokToken;
   if (cfg.ngrokDomain) env.NGROK_DOMAIN = cfg.ngrokDomain;
+  // claude 실행 모드: normal=`claude`, skip=`claude --dangerously-skip-permissions`
+  env.MTB_LAUNCH = cfg.claudeMode === 'skip' ? 'claude --dangerously-skip-permissions' : 'claude';
+  env.MTB_CLAUDE_THEME = cfg.claudeTheme;
   // ngrok 토큰이 있으면 자동으로 ngrok 고정 도메인 모드 사용(집 밖 고정 접속).
   if (env.NGROK_AUTHTOKEN && !env.MTB_TUNNEL) env.MTB_TUNNEL = 'ngrok';
   if (dot.file) log('[env] loaded ' + dot.file);
@@ -89,7 +94,7 @@ function updateTray() {
 }
 function showWindow() {
   if (win && !win.isDestroyed()) { win.show(); win.focus(); return; }
-  win = new BrowserWindow({ width: 460, height: 600, title: 'MTB Hub', webPreferences: { preload: path.join(__dirname, 'preload.js') } });
+  win = new BrowserWindow({ width: 480, height: 680, title: 'MTB Hub', webPreferences: { preload: path.join(__dirname, 'preload.js') } });
   win.loadFile('settings.html');
   win.on('close', e => { if (!app.isQuitting) { e.preventDefault(); win.hide(); } });
   win.webContents.on('did-finish-load', pushState);
@@ -103,6 +108,8 @@ ipcMain.handle('mtb:save', (_e, s) => {
   writeSettings(Object.assign({}, cur, {
     port: Number(s.port) || 47801,
     password: s.password || 'changeme1234',
+    claudeMode: s.claudeMode === 'skip' ? 'skip' : 'normal',
+    claudeTheme: s.claudeTheme === 'dark' ? 'dark' : 'light',
     ngrokToken: (s.ngrokToken || '').trim(),
     ngrokDomain: (s.ngrokDomain || '').trim(),
   }));
