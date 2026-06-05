@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   listSessions, closeSession, getActiveSessionId, setActiveSessionId,
   onSessionChange, onHostChange, type Session,
 } from '@/lib/hub';
-import { color, radius } from '@/lib/theme';
+import { color, radius, font } from '@/lib/theme';
 
 export function SessionBar({ onActive, showNew, onNew }: {
   onActive: (s: Session | null) => void;
@@ -58,37 +58,43 @@ export function SessionBar({ onActive, showNew, onNew }: {
   }
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}
-      style={[styles.bar, { paddingTop: insets.top, maxHeight: 48 + insets.top }]}
-      contentContainerStyle={{ gap: 6, paddingHorizontal: 8, alignItems: 'center' }}>
-      {sessions.map(s => {
-        const on = s.id === activeId;
-        return (
-          <Pressable key={s.id} onPress={() => pick(s)} style={[styles.chip, on && styles.active]}>
-            <Text style={[styles.txt, on && styles.txtOn]} numberOfLines={1}>{s.label}</Text>
-            <Pressable onPress={() => remove(s)} hitSlop={8} style={styles.x}>
-              <Text style={[styles.xTxt, on && styles.txtOn]}>×</Text>
+    // 상단 네브바: 크림이 상태바까지 꽉 차고(paddingTop=insets), 칩 행은 그 아래 고정 높이.
+    <View style={[styles.nav, { paddingTop: insets.top }]}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        style={styles.row}
+        contentContainerStyle={styles.rowContent}>
+        {sessions.map(s => {
+          const on = s.id === activeId;
+          return (
+            <Pressable key={s.id} onPress={() => pick(s)} style={[styles.chip, on && styles.active]}>
+              <Text style={[styles.txt, on && styles.txtOn]} numberOfLines={1}>{s.label}</Text>
+              <Pressable onPress={() => remove(s)} hitSlop={10} style={[styles.x, on && styles.xOn]}>
+                <Text style={[styles.xTxt, on && styles.txtOn]}>×</Text>
+              </Pressable>
             </Pressable>
-          </Pressable>
-        );
-      })}
-      {sessions.length === 0 ? <Text style={styles.empty}>실행 중인 세션 없음</Text> : null}
-      {showNew ? (
-        <Pressable onPress={() => onNew?.()} style={styles.plus}><Text style={styles.plusTxt}>＋</Text></Pressable>
-      ) : null}
-    </ScrollView>
+          );
+        })}
+        {sessions.length === 0 ? <Text style={styles.empty}>실행 중인 세션 없음 — 터미널 탭에서 ＋</Text> : null}
+        {showNew ? (
+          <Pressable onPress={() => onNew?.()} style={styles.plus} hitSlop={6}><Text style={styles.plusTxt}>＋</Text></Pressable>
+        ) : null}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: { backgroundColor: color.surfaceSoft, borderBottomWidth: 1, borderBottomColor: color.hairline },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingLeft: 12, paddingRight: 8, backgroundColor: color.surfaceCard, borderRadius: radius.pill, borderWidth: 1, borderColor: color.hairline },
+  nav: { backgroundColor: color.canvas, borderBottomWidth: 1, borderBottomColor: color.hairline },
+  row: { height: 52 },
+  rowContent: { gap: 8, paddingHorizontal: 12, alignItems: 'center' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 36, paddingLeft: 14, paddingRight: 8, backgroundColor: color.surfaceCard, borderRadius: radius.pill, borderWidth: 1, borderColor: color.hairline },
   active: { backgroundColor: color.primary, borderColor: 'transparent' },
-  txt: { color: color.muted, fontSize: 13, maxWidth: 150 },
+  txt: { color: color.bodyStrong, fontSize: 14, fontFamily: font.bodyMedium, maxWidth: 180 },
   txtOn: { color: color.onPrimary },
-  x: { width: 18, height: 18, alignItems: 'center', justifyContent: 'center' },
-  xTxt: { color: color.mutedSoft, fontSize: 16, lineHeight: 18 },
-  plus: { paddingHorizontal: 12, paddingVertical: 7, backgroundColor: color.surfaceCard, borderRadius: radius.pill, borderWidth: 1, borderColor: color.hairline },
-  plusTxt: { color: color.ink, fontSize: 16 },
-  empty: { color: color.mutedSoft, fontSize: 12, padding: 10 },
+  x: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.06)' },
+  xOn: { backgroundColor: 'rgba(255,255,255,0.22)' },
+  xTxt: { color: color.muted, fontSize: 15, lineHeight: 16 },
+  plus: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceCard, borderWidth: 1, borderColor: color.hairline },
+  plusTxt: { color: color.primary, fontSize: 20, lineHeight: 22 },
+  empty: { color: color.mutedSoft, fontSize: 13, paddingHorizontal: 6 },
 });

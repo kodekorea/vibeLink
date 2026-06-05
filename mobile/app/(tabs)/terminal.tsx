@@ -49,7 +49,7 @@ export default function Terminal() {
   const cookieInject = "document.cookie='mtb_jwt=" + host.token + ";path=/';true;";
 
   return (
-    <View style={{ flex: 1, backgroundColor: color.surfaceDark, paddingTop: insets.top, paddingBottom: insets.bottom }}>
+    <View style={{ flex: 1, backgroundColor: color.surfaceDark, paddingBottom: insets.bottom }}>
       <SessionBar
         showNew
         onActive={(s: Session | null) => setSid(s ? s.id : null)}
