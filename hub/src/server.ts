@@ -22,6 +22,38 @@ function parseCookies(req: http.IncomingMessage): Record<string, string> {
 function cookieHeader(token: string): string {
   return `mtb_jwt=${token}; HttpOnly; SameSite=Strict; Max-Age=${7 * 24 * 3600}; Path=/`;
 }
+// Windows 전용 화면 캡처 폴백: System.Drawing 으로 전체 가상 스크린을 PNG(base64)로 캡처.
+// screenshot-desktop 번들 캡처기가 실패하는 환경을 위한 무의존 대비책.
+function captureScreenPowerShell(): Promise<Buffer> {
+  const ps = [
+    'Add-Type -AssemblyName System.Windows.Forms,System.Drawing;',
+    '$b=[System.Windows.Forms.SystemInformation]::VirtualScreen;',
+    '$bmp=New-Object System.Drawing.Bitmap($b.Width,$b.Height);',
+    '$g=[System.Drawing.Graphics]::FromImage($bmp);',
+    '$g.CopyFromScreen($b.Location,[System.Drawing.Point]::Empty,$b.Size);',
+    '$ms=New-Object System.IO.MemoryStream;',
+    '$bmp.Save($ms,[System.Drawing.Imaging.ImageFormat]::Png);',
+    '$g.Dispose();$bmp.Dispose();',
+    '[Console]::Out.Write([System.Convert]::ToBase64String($ms.ToArray()));',
+  ].join('');
+  return new Promise<Buffer>((resolve, reject) => {
+    import('child_process').then((cp) => {
+      const child = cp.execFile(
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-STA', '-Command', ps],
+        { windowsHide: true, maxBuffer: 256 * 1024 * 1024 },
+        (err, stdout) => {
+          if (err) { reject(err); return; }
+          const b64 = String(stdout).trim();
+          if (!b64) { reject(new Error('powershell capture: empty output')); return; }
+          try { resolve(Buffer.from(b64, 'base64')); }
+          catch (e) { reject(e); }
+        },
+      );
+      child.on('error', reject);
+    }).catch(reject);
+  });
+}
 function remoteIp(req: http.IncomingMessage): string {
   return (req.socket as net.Socket).remoteAddress ?? '';
 }
@@ -235,6 +267,34 @@ export class HubServer {
       } as Record<string, string>)[ext] || 'application/octet-stream';
       res.writeHead(200, { 'Content-Type': mime });
       fs.createReadStream(fp).pipe(res);
+      return;
+    }
+
+    // PC 화면 캡처(PNG) — OpenCV 새창·GUI 앱 등 무엇이든 폰에서 보기
+    if (meth === 'GET' && pathOnly === '/screen') {
+      if (!this.auth(req)) { res.writeHead(401); res.end(); return; }
+      try {
+        let img: Buffer | null = null;
+        // 1순위: screenshot-desktop (멀티플랫폼)
+        try {
+          const spec: string = 'screenshot-desktop';
+          const mod: any = await import(spec);
+          const screenshot = mod.default || mod;
+          img = await screenshot({ format: 'png' });
+        } catch (primaryErr) {
+          // 일부 Windows 환경에서 screenshot-desktop 번들 캡처기가 실패함 → PowerShell 폴백
+          if (process.platform === 'win32') {
+            img = await captureScreenPowerShell();
+          } else {
+            throw primaryErr;
+          }
+        }
+        if (!img || img.length === 0) throw new Error('empty capture');
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-store' });
+        res.end(img);
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' }); res.end(String(e));
+      }
       return;
     }
 
