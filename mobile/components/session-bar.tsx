@@ -68,12 +68,14 @@ export function SessionBar({ onActive, showNew, onNew }: {
         contentContainerStyle={styles.rowContent}>
         {sessions.map(s => {
           const on = s.id === activeId;
+          // 색을 inline으로 강제 — 리마운트/테마 전환에도 항상 대비가 보장됨.
+          const tabBg = on ? c.primary : c.surfaceCard;
+          const txtColor = on ? c.onPrimary : c.bodyStrong;
           return (
-            <Pressable key={s.id} onPress={() => pick(s)} style={[styles.tab, on ? styles.tabOn : styles.tabOff]}>
-              {on ? <View style={styles.accent} /> : null}
-              <Text style={[styles.txt, on && styles.txtOn]} numberOfLines={1}>{s.label}</Text>
+            <Pressable key={s.id} onPress={() => pick(s)} style={[styles.tab, { backgroundColor: tabBg, borderColor: on ? 'transparent' : c.hairline }]}>
+              <Text style={[styles.txt, { color: txtColor, fontWeight: on ? '700' : '600' }]} numberOfLines={1}>{s.label}</Text>
               <Pressable onPress={() => remove(s)} hitSlop={10} style={styles.x}>
-                <Text style={[styles.xTxt, on && styles.xTxtOn]}>×</Text>
+                <Text style={[styles.xTxt, { color: on ? c.onPrimary : c.mutedSoft }]}>×</Text>
               </Pressable>
             </Pressable>
           );
@@ -88,22 +90,16 @@ export function SessionBar({ onActive, showNew, onNew }: {
 }
 
 const makeStyles = (c: Palette) => StyleSheet.create({
-  nav: { backgroundColor: c.surfaceDarkElevated, borderBottomWidth: 1, borderBottomColor: c.hairline },
-  row: { height: 46 },
-  rowContent: { gap: 4, paddingHorizontal: 8, alignItems: 'flex-end' },
-  // 탭: 위만 둥글고 아래는 평평. 활성 탭은 콘텐츠 색(크림)으로 아래선을 덮어 이어짐.
-  tab: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 38, minWidth: 96, maxWidth: 200, paddingLeft: 12, paddingRight: 6, borderTopLeftRadius: 12, borderTopRightRadius: 12, overflow: 'hidden' },
-  tabOff: { backgroundColor: c.surfaceCard },
-  tabOn: { backgroundColor: c.canvas, marginBottom: -1, borderWidth: 1, borderBottomWidth: 0, borderColor: c.hairline },
-  accent: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: c.primary },
-  // 커스텀 폰트(Inter)가 로드 안 된 순간 안드로이드에서 글자가 투명해지는 문제를 피하려고
-  // 탭 라벨은 시스템 폰트 + fontWeight를 쓴다(폰트 로딩 상태와 무관하게 항상 보임).
-  txt: { flexShrink: 1, color: c.bodyStrong, fontSize: 13, fontWeight: '600' },
-  txtOn: { color: c.ink, fontWeight: '700' },
+  nav: { backgroundColor: c.surfaceSoft, borderBottomWidth: 1, borderBottomColor: c.hairline },
+  row: { height: 48 },
+  rowContent: { gap: 6, paddingHorizontal: 8, alignItems: 'center' },
+  // 알약 탭. 활성=코랄 채움(흰 글자), 비활성=카드색(진한 글자) — 색은 렌더 시 inline으로 강제.
+  tab: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 36, minWidth: 90, maxWidth: 200, paddingLeft: 14, paddingRight: 6, borderRadius: 18, borderWidth: 1 },
+  // 시스템 폰트 + fontWeight (커스텀 폰트 미로드 시 안드로이드 투명글자 방지)
+  txt: { flexShrink: 1, fontSize: 13 },
   x: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
-  xTxt: { color: c.mutedSoft, fontSize: 16, lineHeight: 17 },
-  xTxtOn: { color: c.muted },
-  plus: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceCard, marginLeft: 4, marginBottom: 2 },
+  xTxt: { fontSize: 16, lineHeight: 17 },
+  plus: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceCard, borderWidth: 1, borderColor: c.hairline, marginLeft: 2 },
   plusTxt: { color: c.primary, fontSize: 20, lineHeight: 22 },
-  empty: { color: c.muted, fontSize: 13, paddingHorizontal: 8, paddingBottom: 8 },
+  empty: { color: c.muted, fontSize: 13, paddingHorizontal: 8 },
 });

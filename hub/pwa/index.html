@@ -42,8 +42,6 @@
   #inputbar input{flex:1;font-size:16px;padding:14px 14px;min-height:50px;background:var(--input-bg);color:var(--txt);border:1px solid var(--line);border-radius:12px}
   #inputbar input#line{flex:1}
   #inputbar input:focus{outline:none;border-color:var(--accent)}
-  #snipToggle,#attach{flex:0 0 auto;width:50px;min-height:50px;background:var(--tint);color:var(--accent);border:1px solid var(--key-border);border-radius:12px;font-size:18px}
-  #snipToggle:active,#attach:active{background:var(--accent);color:#fff}
   #attach.busy{opacity:.5}
   #send{flex:0 0 auto;width:54px;min-height:50px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:20px;box-shadow:0 2px 10px rgba(204,120,92,.35)}
   #send:active{background:var(--accent-press)}
@@ -84,13 +82,13 @@
       <div class="key" data-k="copy" data-i18n="copy">Copy</div>
       <div class="key" data-k="fdec">A−</div>
       <div class="key" data-k="finc">A+</div>
+      <div class="key" id="snipToggle" title="snippets">★</div>
+      <div class="key" id="attach" title="attach image/file">📎</div>
       <div class="key" data-k="theme" title="theme">◐</div>
     </div>
+    <input id="attachFile" type="file" accept="image/*,.pdf,.txt,.md" style="display:none">
     <div id="snippets"></div>
     <div id="inputbar">
-      <button id="snipToggle" title="자주 쓰는 명령">★</button>
-      <button id="attach" title="이미지/파일 첨부">📎</button>
-      <input id="attachFile" type="file" accept="image/*,.pdf,.txt,.md" style="display:none">
       <input id="line" placeholder="명령 입력" autocomplete="off" autocapitalize="off">
       <button id="send" title="전송">▶</button>
     </div>
@@ -308,6 +306,7 @@ function setFont(px){
 function setupKeybar(){
   document.querySelectorAll('#keybar .key').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.k;
+    if (!k) return; // #snipToggle/#attach는 자체 리스너로 처리
     if (k === 'copy') {
       const s = term.getSelection();
       if (s) { copyText(s); flashCopied(); }
