@@ -382,6 +382,13 @@ export class HubServer {
       this.json(res, 200, { projects: this.projects.list() }); return;
     }
 
+    if (url === '/projects/remove') {
+      const p = String(data['path'] ?? '');
+      if (!p) { this.json(res, 400, { error: 'path required' }); return; }
+      this.projects.remove(p);
+      this.json(res, 200, { projects: this.projects.list() }); return;
+    }
+
     // 새 폴더 만들기 (새 프로젝트 시작용)
     if (url === '/fs/mkdir') {
       const parent = String(data['parent'] ?? '');

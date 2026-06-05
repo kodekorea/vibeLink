@@ -52,6 +52,10 @@
   #sheet h3{margin:0 0 12px;font-size:17px}
   .row{padding:13px 10px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:8px;color:var(--txt)}
   .row:active{background:var(--panel2)}
+  .row-fav{display:flex;align-items:center;gap:8px}
+  .fav-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fav-del{flex:0 0 auto;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:15px;color:var(--mut);font-size:18px;background:var(--panel2)}
+  .fav-del:active{background:#c64545;color:#fff}
   .sheet-actions{display:flex;gap:8px;margin-top:14px}
   .sheet-actions .btn{flex:1}
   .btn.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line);box-shadow:none}
@@ -117,11 +121,11 @@ const STR = {
   en: { authFail:'Authentication failed', cmdPlaceholder:'Type a command', copy:'Copy', copied:'Copied', connect:'Connect', password:'Password',
     newSessionPick:'New session — pick a project', browseFolder:'Browse folders', close:'Close', drives:'Drives', up:'⬆ Up',
     startHere:'Start session here', doneWaiting:'Done / waiting for input', session:'Session', uploadFail:'Upload failed',
-    deletePrefix:'Delete', saveCurrent:'＋ Save current', newFolder:'＋ New folder', newFolderPrompt:'New folder name', mkdirFail:'Could not create folder' },
+    deletePrefix:'Delete', delete:'Delete', saveCurrent:'＋ Save current', newFolder:'＋ New folder', newFolderPrompt:'New folder name', mkdirFail:'Could not create folder' },
   ko: { authFail:'인증 실패', cmdPlaceholder:'명령 입력', copy:'복사', copied:'복사됨', connect:'연결', password:'암호',
     newSessionPick:'새 세션 — 프로젝트 선택', browseFolder:'폴더 찾아보기', close:'닫기', drives:'드라이브', up:'⬆ 상위',
     startHere:'여기서 세션 시작', doneWaiting:'완료 / 입력 대기', session:'세션', uploadFail:'업로드 실패',
-    deletePrefix:'삭제', saveCurrent:'＋ 현재 입력 저장', newFolder:'＋ 새 폴더', newFolderPrompt:'새 폴더 이름', mkdirFail:'폴더를 만들 수 없어요' },
+    deletePrefix:'삭제', delete:'삭제', saveCurrent:'＋ 현재 입력 저장', newFolder:'＋ 새 폴더', newFolderPrompt:'새 폴더 이름', mkdirFail:'폴더를 만들 수 없어요' },
 };
 const LANG = (QLANG || localStorage.getItem('mtb_lang') || 'en').startsWith('ko') ? 'ko' : 'en';
 function T(k){ return (STR[LANG] && STR[LANG][k]) || STR.en[k] || k; }
@@ -402,9 +406,17 @@ async function openNewSession(){
   const sheet = $('#sheet');
   sheet.innerHTML = '<h3>' + escapeHtml(T('newSessionPick')) + '</h3>';
   for (const p of projects) {
-    const row = document.createElement('div'); row.className = 'row';
-    row.textContent = '▶ ' + p.label;
-    row.onclick = () => createSession(p.path);
+    const row = document.createElement('div'); row.className = 'row row-fav';
+    const lbl = document.createElement('span'); lbl.className = 'fav-label'; lbl.textContent = '▶ ' + p.label;
+    lbl.onclick = () => createSession(p.path);
+    const del = document.createElement('span'); del.className = 'fav-del'; del.textContent = '×'; del.title = T('delete') || 'delete';
+    del.onclick = async (e) => {
+      e.stopPropagation();
+      if (!confirm((T('deletePrefix') || 'Delete') + ': ' + p.label + ' ?')) return;
+      await api('/projects/remove', { method:'POST', body: JSON.stringify({ path: p.path }) });
+      openNewSession();
+    };
+    row.appendChild(lbl); row.appendChild(del);
     sheet.appendChild(row);
   }
   const actions = document.createElement('div'); actions.className = 'sheet-actions';

@@ -22,4 +22,12 @@ export class ProjectStore {
     fs.writeFileSync(this.file, JSON.stringify(list, null, 2));
     return list;
   }
+
+  // 즐겨찾기에서 제거(폴더 자체는 삭제 안 함)
+  remove(projectPath: string): Project[] {
+    const list = this.list().filter(p => p.path !== projectPath);
+    fs.mkdirSync(path.dirname(this.file), { recursive: true });
+    fs.writeFileSync(this.file, JSON.stringify(list, null, 2));
+    return list;
+  }
 }

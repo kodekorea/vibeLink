@@ -22,6 +22,16 @@ test('add 하면 저장되고 list로 다시 읽힌다', () => {
   fs.unlinkSync(f);
 });
 
+test('remove 하면 즐겨찾기에서 빠진다', () => {
+  const f = tmpFile();
+  const store = new ProjectStore(f);
+  store.add({ label: 'a', path: 'C:\\a' });
+  store.add({ label: 'b', path: 'C:\\b' });
+  store.remove('C:\\a');
+  assert.deepEqual(store.list(), [{ label: 'b', path: 'C:\\b' }]);
+  fs.unlinkSync(f);
+});
+
 test('같은 path는 중복되지 않고 최신 label로 갱신', () => {
   const f = tmpFile();
   const store = new ProjectStore(f);
