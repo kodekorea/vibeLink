@@ -24,6 +24,31 @@ function extOf(name: string): string {
   return i >= 0 ? name.slice(i).toLowerCase() : '';
 }
 
+// VS Code 류 — 소스 종류별 아이콘(이모지). 확장자/특수파일명 기준.
+const ICON_BY_EXT: Record<string, string> = {
+  '.ts': '🟦', '.tsx': '🟦', '.js': '🟨', '.jsx': '🟨', '.mjs': '🟨', '.cjs': '🟨',
+  '.json': '🔧', '.html': '🌐', '.htm': '🌐', '.css': '🎨', '.scss': '🎨',
+  '.py': '🐍', '.rb': '💎', '.go': '🐹', '.rs': '🦀', '.java': '☕', '.kt': '🟪',
+  '.c': '🔵', '.h': '🔵', '.cpp': '🔵', '.cs': '🟩', '.php': '🐘', '.swift': '🕊️',
+  '.sh': '🐚', '.bat': '🖥️', '.ps1': '🖥️', '.vbs': '🖥️',
+  '.md': '📝', '.txt': '📄', '.log': '📜', '.csv': '📊', '.xml': '📰', '.yml': '⚙️', '.yaml': '⚙️',
+  '.pdf': '📕', '.doc': '📘', '.docx': '📘', '.xls': '📗', '.xlsx': '📗', '.ppt': '📙', '.pptx': '📙',
+  '.png': '🖼️', '.jpg': '🖼️', '.jpeg': '🖼️', '.gif': '🖼️', '.webp': '🖼️', '.bmp': '🖼️', '.svg': '🖼️',
+  '.zip': '📦', '.tar': '📦', '.gz': '📦', '.7z': '📦', '.rar': '📦',
+  '.mp3': '🎵', '.wav': '🎵', '.mp4': '🎬', '.mov': '🎬', '.mkv': '🎬',
+  '.env': '🔑', '.gitignore': '🌳', '.lock': '🔒', '.exe': '⚡', '.dll': '⚙️',
+};
+const ICON_BY_NAME: Record<string, string> = {
+  'package.json': '📦', 'package-lock.json': '🔒', 'tsconfig.json': '🟦', 'readme.md': '📖',
+  '.gitignore': '🌳', '.env': '🔑', 'dockerfile': '🐳', 'license': '⚖️', 'makefile': '🔨',
+};
+function iconFor(name: string, dir: boolean): string {
+  if (dir) return '📁';
+  const low = name.toLowerCase();
+  if (ICON_BY_NAME[low]) return ICON_BY_NAME[low];
+  return ICON_BY_EXT[extOf(name)] || '📄';
+}
+
 function parentOf(p: string): string | null {
   const i = Math.max(p.lastIndexOf('\\'), p.lastIndexOf('/'));
   return i > 2 ? p.slice(0, i) : null;
@@ -133,7 +158,7 @@ export default function Files() {
           contentInsetAdjustmentBehavior="automatic"
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => open(item)}>
-              <Text style={styles.rowName} numberOfLines={1}>{item.dir ? '📁 ' : '📄 '}{item.name}</Text>
+              <Text style={styles.rowName} numberOfLines={1}>{iconFor(item.name, item.dir)} {item.name}</Text>
               {!item.dir ? <Text style={styles.rowSize}>{fmtSize(item.size)}</Text> : null}
             </Pressable>
           )}
