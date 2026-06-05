@@ -33,6 +33,10 @@ export default function TabsLayout() {
         options={{ title: t('files'), tabBarIcon: ({ color, size }) => <Ionicons name="folder-outline" color={color} size={size} /> }}
       />
       <Tabs.Screen
+        name="preview"
+        options={{ title: t('preview'), tabBarIcon: ({ color, size }) => <Ionicons name="eye-outline" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{ title: t('settings'), tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" color={color} size={size} /> }}
       />

@@ -22,6 +22,9 @@ const EN = {
   completionAlarm: 'Completion alarm', available: 'Available', expoGoOff: 'Off in Expo Go (needs dev build)',
   delete: 'Delete', appearance: 'Appearance', theme: 'Theme', language: 'Language', light: 'Light', dark: 'Dark',
   endSession: 'End session', endSessionQ: (l: string) => `End session "${l}"?`, cancel: 'Cancel', end: 'End',
+  // preview
+  preview: 'Preview', web: 'Web', screen: 'Screen', port: 'Port', open: 'Open', refresh: 'Refresh', auto: 'Auto',
+  previewLanHint: 'Web preview needs same Wi‑Fi (connect via LAN QR).', screenFail: 'Could not capture screen',
 };
 type Dict = typeof EN;
 const KO: Dict = {
@@ -40,6 +43,8 @@ const KO: Dict = {
   completionAlarm: '완료 알림', available: '사용 가능', expoGoOff: 'Expo Go에서는 꺼짐 (dev build 필요)',
   delete: '삭제', appearance: '화면', theme: '테마', language: '언어', light: '라이트', dark: '다크',
   endSession: '세션 종료', endSessionQ: (l: string) => `${l} 세션을 종료할까요?`, cancel: '취소', end: '종료',
+  preview: '프리뷰', web: '웹', screen: '화면', port: '포트', open: '열기', refresh: '새로고침', auto: '자동',
+  previewLanHint: '웹 프리뷰는 같은 와이파이에서만 돼요 (LAN QR로 접속).', screenFail: '화면을 캡처할 수 없어요',
 };
 const DICTS = { en: EN, ko: KO };
 export function t<K extends keyof Dict>(k: K): Dict[K] { return DICTS[getLang()][k]; }

@@ -204,3 +204,27 @@ export async function imageDataUri(filePath: string): Promise<{ uri?: string; er
     return { error: String(e) };
   }
 }
+
+// dev 웹서버 프리뷰용 베이스: 활성 호스트가 http://<ip>:<port> 형태면 그 ip로 'http://<ip>'를 돌려준다.
+// (같은 와이파이/LAN/Tailscale 직접접속일 때 동작. https 터널이면 null → LAN 안내)
+export async function previewBase(): Promise<string | null> {
+  const h = await getActiveHost();
+  if (!h) return null;
+  const m = h.url.match(/^http:\/\/([^/:]+)(?::\d+)?$/i);
+  return m ? 'http://' + m[1] : null;
+}
+
+// PC 화면 캡처를 data URI로 (인증 fetch → arrayBuffer → base64)
+export async function screenDataUri(): Promise<{ uri?: string; error?: string }> {
+  const h = await getActiveHost();
+  if (!h) return { error: 'not connected' };
+  try {
+    const r = await fetch(h.url + '/screen', { headers: { Authorization: 'Bearer ' + h.token } });
+    if (!r.ok) return { error: 'HTTP ' + r.status };
+    const buf = await r.arrayBuffer();
+    if (!buf || buf.byteLength === 0) return { error: 'empty' };
+    return { uri: 'data:image/png;base64,' + bytesToBase64(new Uint8Array(buf)) };
+  } catch (e) {
+    return { error: String(e) };
+  }
+}
