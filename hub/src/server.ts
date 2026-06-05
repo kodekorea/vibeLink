@@ -305,6 +305,24 @@ export class HubServer {
       this.json(res, 200, { projects: this.projects.list() }); return;
     }
 
+    // 폰에서 이미지/파일 업로드 → PC에 저장 → 경로 반환(터미널에 붙여 Claude가 읽게)
+    if (url === '/upload') {
+      const b64 = String(data['data'] ?? '');
+      const name = String(data['name'] ?? 'upload.png').replace(/[^a-zA-Z0-9._-]/g, '_').slice(-80) || 'upload.png';
+      if (!b64) { this.json(res, 400, { error: 'data required' }); return; }
+      try {
+        const m = b64.match(/^data:[^;]+;base64,(.*)$/);
+        const buf = Buffer.from(m ? m[1] : b64, 'base64');
+        if (buf.length > 25 * 1024 * 1024) { this.json(res, 413, { error: 'too large (25MB max)' }); return; }
+        const dir = path.join(os.homedir(), '.mtb', 'uploads');
+        fs.mkdirSync(dir, { recursive: true });
+        const file = path.join(dir, Date.now() + '-' + name);
+        fs.writeFileSync(file, buf);
+        this.json(res, 200, { path: file });
+      } catch (e) { this.json(res, 400, { error: String(e) }); }
+      return;
+    }
+
     res.writeHead(404); res.end('not found');
   }
 
