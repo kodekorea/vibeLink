@@ -18,11 +18,28 @@ function loadSecret(): string {
   return s;
 }
 
+// claude를 라이트 테마로 띄우도록 ~/.claude/settings.json의 theme를 보장(없으면 추가/갱신).
+function ensureClaudeTheme(theme: string): void {
+  if (!theme) return;
+  try {
+    const p = path.join(os.homedir(), '.claude', 'settings.json');
+    let cfg: Record<string, unknown> = {};
+    try { cfg = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { /* 새로 생성 */ }
+    if (cfg.theme === theme) return;
+    cfg.theme = theme;
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
+  } catch { /* 권한 등 — 무시 */ }
+}
+
 async function main(): Promise<void> {
   const port = Number(process.env.MTB_PORT ?? 47800);
   const shell = process.env.MTB_SHELL ?? 'powershell.exe';
   const launch = process.env.MTB_LAUNCH ?? 'claude';
   const log = (m: string) => console.log(`[hub] ${m}`);
+
+  // MTB_CLAUDE_THEME 지정 시 claude 테마 보장(기본 light = Claude 라이트 느낌)
+  ensureClaudeTheme(process.env.MTB_CLAUDE_THEME ?? 'light');
 
   if (!process.env.MTB_PASSWORD) log('경고: MTB_PASSWORD 미설정 — 첫 페어링은 /admin 코드가 필요(이 프로토타입은 MTB_PASSWORD 권장).');
 
