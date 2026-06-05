@@ -6,7 +6,7 @@ import {
   listSessions, closeSession, getActiveSessionId, setActiveSessionId,
   onSessionChange, onHostChange, type Session,
 } from '@/lib/hub';
-import { color, font } from '@/lib/theme';
+import { color } from '@/lib/theme';
 
 export function SessionBar({ onActive, showNew, onNew }: {
   onActive: (s: Session | null) => void;
@@ -93,8 +93,10 @@ const styles = StyleSheet.create({
   tabOff: { backgroundColor: color.surfaceCard },
   tabOn: { backgroundColor: color.canvas, marginBottom: -1, borderWidth: 1, borderBottomWidth: 0, borderColor: color.hairline },
   accent: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: color.primary },
-  txt: { flexShrink: 1, color: color.bodyStrong, fontSize: 13, fontFamily: font.bodySemibold },
-  txtOn: { color: color.ink, fontFamily: font.bodySemibold },
+  // 커스텀 폰트(Inter)가 로드 안 된 순간 안드로이드에서 글자가 투명해지는 문제를 피하려고
+  // 탭 라벨은 시스템 폰트 + fontWeight를 쓴다(폰트 로딩 상태와 무관하게 항상 보임).
+  txt: { flexShrink: 1, color: color.bodyStrong, fontSize: 13, fontWeight: '600' },
+  txtOn: { color: color.ink, fontWeight: '700' },
   x: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
   xTxt: { color: color.mutedSoft, fontSize: 16, lineHeight: 17 },
   xTxtOn: { color: color.muted },
