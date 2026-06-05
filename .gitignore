@@ -40,3 +40,6 @@ image copy*
 *.vsix
 **/cloudflared
 **/cloudflared.exe
+
+.agents/
+.docs/
