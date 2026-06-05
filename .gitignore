@@ -24,6 +24,15 @@ Thumbs.db
 # Local secrets / config
 *.env
 
+# KakaoTalk screenshots and temporary images
+KakaoTalk_*
+image copy*
+*.jpg
+*.png
+!desktop/build/icon.png
+!desktop/tray.png
+!hub/pwa/*.png
+
 # Node / extension / hub
 **/node_modules/
 **/dist/

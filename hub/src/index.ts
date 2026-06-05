@@ -57,13 +57,12 @@ async function main(): Promise<void> {
   const lan = server.lanUrl();
   if (lan) { log(`같은 와이파이(추천): ${lan}`); log(`QR 페이지: http://127.0.0.1:${port}/qr.html`); }
 
-  // 터널 선택: MTB_TUNNEL=ngrok|named|quick (기본: named env 있으면 named, 없으면 quick)
+  // 터널 선택: MTB_TUNNEL=named|quick (기본: named env 있으면 named, 없으면 quick)
   const name = process.env.MTB_TUNNEL_NAME;
   const url = process.env.MTB_TUNNEL_URL;
   const mode = process.env.MTB_TUNNEL || (name && url ? 'named' : 'quick');
   try {
-    if (mode === 'ngrok') await tunnel.start('ngrok', port);
-    else if (mode === 'named' && name && url) await tunnel.start('named', port, name, url);
+    if (mode === 'named' && name && url) await tunnel.start('named', port, name, url);
     else await tunnel.start('quick', port);
     tunnel.onReady(u => { log(`접속 URL: ${u}`); log(`QR: ${u}/qr.html`); });
   } catch (e) { log(`터널 시작 실패(로컬은 동작): ${String(e)}`); }

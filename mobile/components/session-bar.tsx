@@ -68,21 +68,32 @@ export function SessionBar({ onActive, showNew, onNew }: {
         contentContainerStyle={styles.rowContent}>
         {sessions.map(s => {
           const on = s.id === activeId;
-          // 색을 inline으로 강제 — 리마운트/테마 전환에도 항상 대비가 보장됨.
-          const tabBg = on ? c.primary : c.surfaceCard;
-          const txtColor = on ? c.onPrimary : c.bodyStrong;
+          const tabBg = on ? c.canvas : c.surfaceCard;
+          const txtColor = on ? c.ink : c.muted;
+          const tabBorderColor = c.hairline;
           return (
-            <Pressable key={s.id} onPress={() => pick(s)} style={[styles.tab, { backgroundColor: tabBg, borderColor: on ? 'transparent' : c.hairline }]}>
-              <Text style={[styles.txt, { color: txtColor, fontWeight: on ? '700' : '600' }]} numberOfLines={1}>{s.label}</Text>
+            <Pressable key={s.id} onPress={() => pick(s)} style={[
+              styles.tab,
+              {
+                backgroundColor: tabBg,
+                borderColor: tabBorderColor,
+                borderBottomWidth: on ? 0 : 1,
+                marginBottom: on ? -1 : 0,
+              }
+            ]}>
+              {on ? <View style={[styles.accent, { backgroundColor: c.primary }]} /> : null}
+              <Text style={[styles.txt, { color: txtColor, fontWeight: on ? '700' : '500' }]} numberOfLines={1}>{s.label}</Text>
               <Pressable onPress={() => remove(s)} hitSlop={10} style={styles.x}>
-                <Text style={[styles.xTxt, { color: on ? c.onPrimary : c.mutedSoft }]}>×</Text>
+                <Text style={[styles.xTxt, { color: on ? c.muted : c.mutedSoft }]}>×</Text>
               </Pressable>
             </Pressable>
           );
         })}
-        {sessions.length === 0 ? <Text style={styles.empty}>{t('noSession')}</Text> : null}
+        {sessions.length === 0 ? <Text style={[styles.empty, { color: c.muted }]}>{t('noSession')}</Text> : null}
         {showNew ? (
-          <Pressable onPress={() => onNew?.()} style={styles.plus} hitSlop={6}><Text style={styles.plusTxt}>＋</Text></Pressable>
+          <Pressable onPress={() => onNew?.()} style={[styles.plus, { backgroundColor: c.surfaceCard, borderColor: c.hairline }]} hitSlop={6}>
+            <Text style={[styles.plusTxt, { color: c.primary }]}>＋</Text>
+          </Pressable>
         ) : null}
       </ScrollView>
     </View>
@@ -91,15 +102,15 @@ export function SessionBar({ onActive, showNew, onNew }: {
 
 const makeStyles = (c: Palette) => StyleSheet.create({
   nav: { backgroundColor: c.surfaceSoft, borderBottomWidth: 1, borderBottomColor: c.hairline },
-  row: { height: 48 },
-  rowContent: { gap: 6, paddingHorizontal: 8, alignItems: 'center' },
-  // 알약 탭. 활성=코랄 채움(흰 글자), 비활성=카드색(진한 글자) — 색은 렌더 시 inline으로 강제.
-  tab: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 36, minWidth: 90, maxWidth: 200, paddingLeft: 14, paddingRight: 6, borderRadius: 18, borderWidth: 1 },
-  // 시스템 폰트 + fontWeight (커스텀 폰트 미로드 시 안드로이드 투명글자 방지)
+  row: { height: 46 },
+  rowContent: { gap: 2, paddingHorizontal: 8, alignItems: 'flex-end' },
+  // 탭: 위만 둥글고 아래는 평평. 활성 탭은 콘텐츠 색(크림)으로 아래선을 덮어 이어짐.
+  tab: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 38, minWidth: 96, maxWidth: 200, paddingLeft: 12, paddingRight: 6, borderTopLeftRadius: 12, borderTopRightRadius: 12, overflow: 'hidden', borderWidth: 1 },
+  accent: { position: 'absolute', top: 0, left: 0, right: 0, height: 3 },
   txt: { flexShrink: 1, fontSize: 13 },
   x: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
   xTxt: { fontSize: 16, lineHeight: 17 },
-  plus: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceCard, borderWidth: 1, borderColor: c.hairline, marginLeft: 2 },
-  plusTxt: { color: c.primary, fontSize: 20, lineHeight: 22 },
-  empty: { color: c.muted, fontSize: 13, paddingHorizontal: 8 },
+  plus: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginLeft: 4, marginBottom: 2 },
+  plusTxt: { fontSize: 20, lineHeight: 22 },
+  empty: { fontSize: 13, paddingHorizontal: 8, paddingBottom: 8 },
 });

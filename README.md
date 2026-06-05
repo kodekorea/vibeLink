@@ -1,108 +1,132 @@
-# mobile_term_bridge
+# 🌟 MTB Hub (Mobile Terminal Bridge)
 
-> LTE 휴대폰에서 사무실 PC 의 Antigravity 바이브 코딩 터미널 영역을 실시간 미러링 + 입력 + push 알림 받는 단일 사용자 도구.
->
-> 단일 사용자 전용. 본인 외 접속 차단.
+> A premium, high-performance, and secure bridge to mirror, monitor, and control your desktop terminals and workspaces directly from your mobile device.
 
-## 산출 기반
-- 기획서 별도 보관 (29 turn 회의 결과, status AGREED, 2026-05-25)
-- WBS 순서: **M1 (인증+터널) → M2 (캡처+송신) → M3 (PWA) → M4 (입력 주입) → M5 (push) → M6 (종합 검증)**
+---
 
-## 현재 진행 (2026-05-26)
-- ✅ M0 scaffold + BAT (실행·페어링·모든폐기·설치)
-- ✅ M1-T2 페어링 + JWT (7/7 tests). `MTB_PASSWORD=<your_password>` 영구 암호 + Tailscale 헤더 자동 + **localhost 자동 페어링** (PC 직접 접속 시 폼 우회).
-- ✅ M1-T3 CLI (6/6 tests)
-- ✅ M1-T1 외부 도달 — **Tailscale Serve** (Cloudflare 대신, 카드 없이 가능)
-- ✅ M2-T1 Win32 캡처 + PrintWindow(PW_RENDERFULLCONTENT) Electron 호환
-- ✅ M2 영역 한정 crop (드래그 선택, 윈도우별 localStorage)
-- ✅ M3-T1 PWA 페어링 + 영상 + 입력 UI
-- ✅ M3 줌 슬라이더 + 전체 화면 탭 + 하단 절반 모드 + **3번째 OCR 검수 탭** (캡처 + 블록별 인라인 편집 + ▶▶ 전체 순차 실행, 한글 줄 자동 필터 + 영문 모델 default)
-- ✅ M3 **터미널 상태 단추** (전체화면+Antigravity) — 픽셀 diff 기반 🟢대기/🔴실행중/🟡변화, idle 5s hold 후 Web Audio 두-톤 차임
-- ✅ M4 입력 주입 — WM_CHAR (메모장·PowerShell), SendInput+AttachThreadInput (Antigravity·Electron). Multi-line 순차 + Enter 자동.
-- ✅ M5-T1 regex prompt detector (10/10 tests)
-- ✅ M5-T2 ProcessEndWatcher (7/7 tests)
-- ✅ **UI 개선 4건 (2026-05-26)**: ① `.status.busy` 노랑+펄스 진행중 상태 (페어링/전송/OCR/음성 등 진행중을 초록 (완료색) 으로 표시하던 혼란 해소). ② 방향키 4개 (↑↓←→) — 표준+전체화면 양쪽 + `_NAV_VKS` 에 37/39 추가 (auto-end skip). ③ 222/999 단추 제거 + 🤔추천 ("다음 무슨 작업하면 좋을까?") 추가 + 커밋·푸쉬 → 💾커밋푸시 ("커밋하고 푸시해줘") 통합. ④ 🔓 권한모드 단추 (Shift+Tab × 1, Claude Code 권한 모드 전환) — server `inject_key_with_mods_sendinput()` + `/input` 의 `mods` / `repeat` 파라미터 신규.
-- ✅ **터미널 탭 전환 단추 (⬅️탭 / 탭➡️)** — Ctrl+Alt+← / Ctrl+Alt+→. Antigravity keybindings.json 에 `workbench.action.terminal.focusNext/Previous` 사전 설정 필요.
-- ✅ **프로젝트 폴더 매크로 (2026-05-26)** — ⚙️ 폴더 단추로 label+path 등록 (localStorage). 폴더 단추 클릭 시 자동 시퀀스 — Ctrl+Shift+` (새 터미널) → 800ms 대기 → `cd "<path>"` Enter. 휴대폰 단독으로 폴더 추가·삭제·전환 가능. 키바인드·확장 사전 설정 불요.
-- ✅ **단추 UI 정리 (2026-05-26 → 2026-05-27)** — 단일 grid → 처음엔 5 그룹 (응답/키/터미널/제어/매크로) → 공간 차지 과다 피드백으로 **3 그룹 (응답+제어, 키+터미널, 매크로)** 으로 합침. 그룹별 border-left 색상 (회색·파랑·녹색) + 작은 라벨. ⛔Ctrl+C 인터럽트, ➕새 터미널 (Ctrl+Shift+`), ➗스플릿 (Ctrl+Shift+5) 추가. 권한모드 Shift+Tab × 3 → × 1.
-- ✅ **OCR 검수 fixture 인프라 (2026-05-26)** — `server/ocr_log.py` 누적 저장 (capture+raw+meta+corrected, LRU 200), `/ocr/feedback` 엔드포인트, PWA 💾 검수 저장 단추 + paste 시 자동 silent 저장. `server/ocr_stats.py` 로 raw vs 검수본 글자 diff Top 20 패턴 분석. 정확도 개선 fixture 시드 용도. ▶▶ 전체 순차는 통합 paste 로 변경 — 엔터는 사용자 직접 (오인식 코드 자동 실행 방지).
-- ✅ 총 **52/52** 단위 테스트 통과 (modifier+key+repeat 3건 + ocr_log 5건 포함).
-- ⬜ M5-T3 Cloudflare Worker push relay (카드 필요, 보류) — 종 단추 폐기, push 도입 시 부활
-- ⬜ M5-T4 PWA push 수신 (M5-T3 후속)
-- ⬜ M6 통합 시나리오 본격 사용 검증
+## 🎨 Overview
 
-## 디렉토리
-```
-mobile_term_bridge/
-├── README.md
-├── requirements.txt
-├── 실행.bat              (Windows 실행)
-├── 설치.bat              (의존성 설치)
-├── .gitignore
-├── server/               (PC 서버 측)
-│   ├── server.py         (HTTP + WSS 메인)
-│   ├── auth.py           (페어링 + JWT) ← 1차 구현 완료
-│   ├── capture.py        (Win32 영역 캡처) [stub]
-│   ├── inject.py         (ConPTY / SendMessage 입력 주입) [stub]
-│   ├── push.py           (trigger + Cloudflare Worker relay) [stub]
-│   └── audit.py          (JSON Lines 감사 로그)
-├── pwa/                  (휴대폰 PWA 클라이언트)
-│   ├── index.html
-│   ├── manifest.json
-│   └── sw.js             (Service Worker)
-├── worker/               (Cloudflare Worker)
-│   └── push_relay.js
-└── tests/
-    └── test_auth.py      (M1-T2 단위 테스트)
+**MTB Hub** is a single-user companion utility designed for developers who want to stay connected to their development environment while on the move. By bridging a beautiful native Android application (built with Expo) and a desktop tray application (built with Electron), MTB Hub allows you to inspect active ports, switch terminal tabs, run macro sequences, and send keystrokes to your workstation securely over your local network.
+
+The visual interface has been completely redesigned with a warm, premium cream and coral palette (inspired by Anthropic's clean, warm aesthetics), featuring smooth transitions and active blending animations.
+
+---
+
+## ✨ Key Features
+
+- 💻 **Electron Desktop Controller**: A lightweight system tray application that manages the background hub server, configures ports/passwords, and provides clean settings panels.
+- 📱 **Native Android Companion (Expo)**: A fast, smooth React Native app equipped with:
+  - **Active Session Bar**: A Chrome-style tab interface that tracks and blends with your active session.
+  - **Dynamic Port Detection**: Live port detection and status monitoring (active ports indicated with green indicators `●`).
+  - **Quick Action Pads**: Dedicated arrow keys, tab controls, and editor-focused macros.
+  - **Macro Folder Sequencing**: Group commands into custom sequences and run them with a single tap.
+  - **QR Code Pairing**: Instantly connect your mobile app to your desktop server by scanning a local QR code.
+- 🔒 **Secure-by-Design**: Single-user authorization using robust, local-first passwords and tokens. Removed all external third-party tunnels (like ngrok) to ensure your data stays private and stays inside your local network.
+
+---
+
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    subgraph Mobile App (React Native + Expo)
+        A[Session & WebView UI] <--> B[QR Scanner & Storage]
+    end
+
+    subgraph Desktop Tray App (Electron)
+        C[System Tray & Window UI] --> D[Hub Process Manager]
+    end
+
+    subgraph Hub Backend Server (Node.js + TS)
+        E[HTTP / WebSocket Server] <--> F[Port Monitoring & CMD Injector]
+    end
+
+    A <-->|Secure Local Network WSS / HTTP| E
+    D <-->|Spawn / IPC Control| E
 ```
 
-## 운영 제약 (plan.md 1.2 발췌)
-- PWA 단일 트랙 — Native FCM 영구 배제 (사용자 선호: 업데이트 부담 회피).
-- Push trigger 자동 명령 실행 영구 금지.
-- 사무실 PC 24/7 가동 + outbound HTTPS 가정.
-- MVP 한도: code_lines ≤ 400, files ≤ 8 (사용자 명시 예외).
+---
 
-## 의존성 (M1 기준)
-- Python 3.10+
-- `pyjwt` (JWT 발급/검증)
-- `aiohttp` (HTTP + WSS 서버)
-- `psutil` (M5 process watcher)
-- `Pillow` + `mss` + `pywin32` (M2 캡처)
+## 📁 Repository Structure
 
-## 실행 (정식 페어링 흐름)
-
-### 1. 사전 1회
-```powershell
-.\설치.bat          # 가상환경 + 의존성 설치
+```
+mobile_term_bridge_distrib/
+├── hub/                  # Node.js + TypeScript Backend Hub Server
+│   ├── src/              # Server source files (server.ts, tunnel.ts, etc.)
+│   └── pwa/              # Lightweight pairing/QR landing pages
+├── desktop/              # Electron Desktop Tray Application & Setup Wizard
+│   ├── main.js           # Electron main process
+│   └── build/            # Desktop custom app icons
+├── mobile/               # React Native + Expo Companion App
+│   ├── app/              # Expo Router pages (tabs, preview, etc.)
+│   └── components/       # Custom session bars and controls
+└── README.md             # This document
 ```
 
-### 2. 서버 가동
-```powershell
-.\실행.bat
+---
+
+## 🚀 Getting Started
+
+### 1. Desktop App Installation (Windows)
+
+To install MTB Hub on your desktop:
+1. Locate the precompiled installer at `desktop/dist/MTB Hub Setup 0.1.0.exe`.
+2. Run the installer. You will see a step-by-step setup wizard allowing you to choose your installation directory.
+3. The wizard will automatically create a desktop shortcut named **MTB Hub** with the custom warm coral icon.
+4. Launch the application. It will run silently in your Windows System Tray and automatically spawn the Hub server.
+
+*To build from source:*
+```bash
+cd desktop
+npm install
+npm run dist
 ```
-포트 47800 에서 LISTEN. 종료는 Ctrl+C.
 
-### 3. Tailscale HTTPS 노출 (한 번만 — 본 PC 영구)
-```powershell
-tailscale serve --bg --https=443 http://localhost:47800
+### 2. Mobile App Setup (Android)
+
+You can run the mobile app using Expo or compile a local APK.
+
+**Option A: Cloud Build (EAS)**
+If you don't have Android Studio set up, you can trigger a cloud build to get a direct-install `.apk`:
+```bash
+cd mobile
+npm install -g eas-cli
+eas login
+eas build --platform android --profile preview
 ```
-→ `https://<this-pc>.<tailnet>.ts.net/` URL 출력. 휴대폰 Tailscale 가입 시 자동 도달.
 
-### 4. 페어링 (휴대폰 ↔ PC, 매 신규 device 마다 1회)
-PC 에서 `.\페어링.bat` 더블클릭 → 6자리 코드 출력 (5분 1회용).
-휴대폰 PWA 페어링 폼에 코드 입력 → JWT cookie 발급 → 7일 유효.
+**Option B: Local Development Run**
+1. Install **JDK 17** and **Android Studio** (on Windows, you can use `winget`):
+   ```powershell
+   winget install EclipseAdoptium.Temurin.17.JDK
+   winget install Google.AndroidStudio
+   ```
+2. Configure environment variables: Set `ANDROID_HOME` to your Android SDK path, and add `%ANDROID_HOME%\platform-tools` to your `Path`.
+3. Connect your Android device via USB (with USB Debugging enabled) and run:
+   ```bash
+   cd mobile
+   npm run android
+   ```
 
-### 5. 사용
-PWA 에 영구 표시되는 main UI 에서:
-- 윈도우 드롭다운 (자동 로드) → 캡처할 윈도우 선택
-- 자동(2fps) 또는 캡처 단발
-- 영역 설정 (드래그) → 영역 확정 — 윈도우 타이틀별 저장
-- 줌 슬라이더 (100~400%) 텍스트 가독성
-- 전체 화면 탭 → 하단 절반 모드 (휴대폰 텍스트 ~2배)
-- 입력 박스 + Electron 모드 (Antigravity 같은 Chromium 앱) / 일반 모드 (메모장·PowerShell)
+---
 
-### 6. device 폐기 (휴대폰 분실 등)
-`.\모든폐기.bat` 더블클릭 → 발급된 모든 JWT 즉시 무효화. 새 페어링부터 다시 사용.
+## 🌏 한국어 안내 (Overview in Korean)
 
-## 디버그 (옵션)
-임시 페어링 코드 고정 — `set MTB_FIXED_CODE=000000` env 후 서버 가동. 운영 시 사용 금지.
+**MTB Hub (Mobile Terminal Bridge)**는 모바일 기기(Android)를 사용하여 사무실이나 개인 작업실 PC의 개발 환경 및 터미널을 실시간 모니터링하고 제어할 수 있는 개발자 전용 1인 도구입니다.
+
+### 🌟 주요 기능
+- **프리미엄 UI/UX**: 크림색과 웜 코랄 컬러(Anthropic 테마) 기반의 고품격 웹/앱 테마 및 탭 블렌딩 애니메이션.
+- **데스크톱 트레이 앱 (Electron)**: 시스템 트레이에 상주하며 허브 서버를 자동 가동 및 제어하고, 설정을 관리합니다.
+- **모바일 동반 앱 (Expo)**: 크롬 스타일 세션 탭 바, 터미널 단축키 패드, 매크로 폴더 관리, 편리한 QR 코드 페어링을 지원합니다.
+- **로컬 중심 보안**: ngrok 등 외부 터널을 배제하고 로컬 네트워크 내에서 보안 비밀번호와 토큰 인증을 통해 오직 나만 접속할 수 있도록 설계되었습니다.
+
+### ⚙️ 빠른 시작
+1. `desktop/dist/MTB Hub Setup 0.1.0.exe` 파일을 실행하여 마법사 형식으로 PC에 설치합니다. (바탕화면에 **MTB Hub** 단축아이콘이 자동 생성됩니다.)
+2. 트레이 아이콘 우클릭 -> **Open QR page** 또는 설정 화면을 띄워 QR 코드를 확인합니다.
+3. 모바일 앱에서 QR 코드를 스캔하여 PC와 페어링한 뒤 터미널 및 열린 포트 상태를 즉시 모니터링합니다.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

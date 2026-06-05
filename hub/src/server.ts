@@ -96,7 +96,10 @@ function bearer(req: http.IncomingMessage): string {
 function listeningPorts(selfPort: number): Promise<number[]> {
   return new Promise((resolve, reject) => {
     import('child_process').then((cp) => {
-      cp.execFile('netstat', ['-ano', '-p', 'TCP'], { windowsHide: true, maxBuffer: 8 * 1024 * 1024 }, (err, stdout) => {
+      const netstatCmd = process.platform === 'win32'
+        ? (process.env.SystemRoot ? path.join(process.env.SystemRoot, 'System32', 'netstat.exe') : 'C:\\Windows\\System32\\netstat.exe')
+        : 'netstat';
+      cp.execFile(netstatCmd, ['-ano', '-p', 'TCP'], { windowsHide: true, maxBuffer: 8 * 1024 * 1024 }, (err, stdout) => {
         if (err && !stdout) { reject(err); return; }
         const set = new Set<number>();
         for (const line of String(stdout).split(/\r?\n/)) {

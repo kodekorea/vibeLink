@@ -15,7 +15,17 @@
     "extraResources": [
       { "from": "../hub", "to": "hub", "filter": ["src/**/*", "pwa/**/*", "package.json", "node_modules/**/*"] }
     ],
-    "win": { "target": ["nsis"] }
+    "win": {
+      "target": ["nsis"],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "MTB Hub"
+    }
   },
   "devDependencies": {
     "electron": "^31.7.0",

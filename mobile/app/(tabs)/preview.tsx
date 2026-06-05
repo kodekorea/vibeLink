@@ -18,6 +18,7 @@ export default function Preview() {
   const [webUri, setWebUri] = useState<string | null>(null);
   const [webErr, setWebErr] = useState('');
   const [ports, setPorts] = useState<number[]>([]);
+  const [loadingWeb, setLoadingWeb] = useState(false);
   const webRef = useRef<WebView>(null);
 
   const loadPorts = useCallback(() => { listPorts().then(setPorts).catch(() => {}); }, []);
@@ -25,8 +26,14 @@ export default function Preview() {
 
   async function openWeb(p: string) {
     setWebErr('');
+    setLoadingWeb(true);
     const base = await previewBase();
-    if (!base) { setWebErr(t('previewLanHint')); setWebUri(null); return; }
+    if (!base) {
+      setWebErr(t('previewLanHint'));
+      setWebUri(null);
+      setLoadingWeb(false);
+      return;
+    }
     setWebUri(base + ':' + p);
   }
 
@@ -72,17 +79,47 @@ export default function Preview() {
             <Pressable style={styles.btnGhost} onPress={loadPorts}><Text style={styles.btnGhostTxt}>↻</Text></Pressable>
             {webUri ? <Pressable style={styles.btnGhost} onPress={() => webRef.current?.reload()}><Text style={styles.btnGhostTxt}>⟳</Text></Pressable> : null}
           </View>
-          <View style={styles.chips}>
-            {(ports.length ? ports.map(String) : ['3000', '5173', '8080', '4321']).map(p => (
-              <Pressable key={p} onPress={() => { setPort(p); openWeb(p); }} style={[styles.chip, port === p && webUri && styles.chipOn]}>
-                <Text style={[styles.chipTxt, port === p && webUri && styles.chipTxtOn]}>{ports.length ? '● ' : ''}{p}</Text>
-              </Pressable>
-            ))}
-          </View>
+          {ports.length > 0 ? (
+            <View style={styles.chips}>
+              {ports.map(String).map(p => (
+                <Pressable key={p} onPress={() => { setPort(p); openWeb(p); }} style={[styles.chip, port === p && webUri && styles.chipOn]}>
+                  <Text style={[styles.chipTxt, port === p && webUri && styles.chipTxtOn]}>● {p}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>감지된 로컬 포트가 없습니다 (PC에서 서버 실행 필요)</Text>
+            </View>
+          )}
           {webErr ? <Text style={styles.err}>{webErr}</Text> : null}
-          {webUri ? (
-            <WebView ref={webRef} source={{ uri: webUri }} style={styles.flex} />
-          ) : <View style={styles.center}><Text style={styles.hint}>{ports.length ? '' : t('port') + ' → ' + t('open')}</Text></View>}
+          {webUri && !webErr ? (
+            <WebView
+              ref={webRef}
+              source={{ uri: webUri }}
+              style={styles.flex}
+              onLoadStart={() => { setLoadingWeb(true); setWebErr(''); }}
+              onLoadEnd={() => setLoadingWeb(false)}
+              onError={(e) => {
+                setLoadingWeb(false);
+                setWebErr(`연결 실패: 포트가 올바르지 않거나 서버가 꺼져 있습니다 (${e.nativeEvent.description || 'Connection refused'})`);
+                setWebUri(null);
+              }}
+              onHttpError={(e) => {
+                setLoadingWeb(false);
+                setWebErr(`HTTP 오류 (${e.nativeEvent.statusCode}): 서버 응답 에러`);
+                setWebUri(null);
+              }}
+            />
+          ) : (
+            <View style={styles.center}>
+              {loadingWeb ? (
+                <ActivityIndicator color={c.primary} size="large" />
+              ) : (
+                <Text style={styles.hint}>{ports.length ? '포트를 선택하거나 직접 입력 후 Open을 누르세요.' : t('port') + ' → ' + t('open')}</Text>
+              )}
+            </View>
+          )}
         </View>
       ) : (
         <View style={styles.flex}>
@@ -130,5 +167,7 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   chipOn: { backgroundColor: c.primary, borderColor: 'transparent' },
   chipTxt: { color: c.body, fontSize: 13 },
   chipTxtOn: { color: c.onPrimary },
+  emptyContainer: { paddingHorizontal: 12, paddingVertical: 6, paddingBottom: 8 },
+  emptyText: { color: c.muted, fontSize: 13, fontStyle: 'italic' },
   shotWrap: { backgroundColor: c.surfaceDark },
 });

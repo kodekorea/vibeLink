@@ -63,17 +63,7 @@
     <input id="port" type="number">
   </div>
 
-  <details>
-    <summary>Advanced — ngrok (alternative to Tailscale)</summary>
-    <div class="card" style="margin-top:8px">
-      <p class="hint">Paste an ngrok token for a fixed external URL without Tailscale.</p>
-      <button class="ghost" id="ngrokSignup" style="margin:6px 0">ngrok sign up / token</button>
-      <label>ngrok token</label>
-      <input id="ngrokToken" type="text">
-      <label>ngrok domain (optional)</label>
-      <input id="ngrokDomain" type="text" placeholder="xxxx.ngrok-free.dev">
-    </div>
-  </details>
+
 
   <button class="primary" id="save" style="width:100%;margin-bottom:14px">Save</button>
   <pre id="logs"></pre>
@@ -93,8 +83,6 @@ function render(s){
   $('url').textContent = s.url || '';
   if (document.activeElement!==$('password')) $('password').value = s.password||'';
   if (document.activeElement!==$('port')) $('port').value = s.port||47801;
-  if (document.activeElement!==$('ngrokToken')) $('ngrokToken').value = s.ngrokToken||'';
-  if (document.activeElement!==$('ngrokDomain')) $('ngrokDomain').value = s.ngrokDomain||'';
   seg('claudeMode', s.claudeMode||'normal');
   seg('claudeTheme', s.claudeTheme||'light');
   $('logs').textContent = (s.logs||[]).join('');
@@ -103,11 +91,9 @@ $('toggle').onclick = async()=>{ const s=await window.mtb.getState(); render(awa
 $('qr').onclick = ()=>window.mtb.openQr();
 $('tsBtn').onclick = ()=>window.mtb.openExternal('https://tailscale.com/download');
 $('tsLink').onclick = (e)=>{ e.preventDefault(); window.mtb.openExternal('https://tailscale.com/download'); };
-$('ngrokSignup').onclick = ()=>window.mtb.openExternal('https://dashboard.ngrok.com/get-started/your-authtoken');
 $('save').onclick = async()=>render(await window.mtb.save({
   password:$('password').value, port:$('port').value,
   claudeMode:segVal('claudeMode')||'normal', claudeTheme:segVal('claudeTheme')||'light',
-  ngrokToken:$('ngrokToken').value, ngrokDomain:$('ngrokDomain').value,
 }));
 window.mtb.onState(render);
 window.mtb.getState().then(render);

@@ -46,7 +46,6 @@ function download(url: string, dest: string): Promise<void> {
 
 export class TunnelManager {
   private proc?: child_process.ChildProcess;
-  private ngrokListener?: { url(): string | null; close(): Promise<void> };
   private _url?: string;
   private _readyCbs: Array<(url: string) => void> = [];
   private _ready = false;
@@ -66,21 +65,6 @@ export class TunnelManager {
   }
 
   async start(mode: string, port: number, namedName?: string, namedUrl?: string): Promise<void> {
-    // ngrok: 무료 고정 도메인(NGROK_DOMAIN) 지원 — cloudflared 불필요. 집 밖 고정 접속용.
-    if (mode === 'ngrok') {
-      const token = process.env.NGROK_AUTHTOKEN;
-      if (!token) throw new Error('NGROK_AUTHTOKEN 환경변수가 필요합니다 (ngrok 대시보드 → Your Authtoken)');
-      this.log('ngrok 터널 시작 중...');
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const ngrok = require('@ngrok/ngrok') as { forward(o: Record<string, unknown>): Promise<{ url(): string | null; close(): Promise<void> }> };
-      const opts: Record<string, unknown> = { addr: port, authtoken: token };
-      if (process.env.NGROK_DOMAIN) opts.domain = process.env.NGROK_DOMAIN; // 고정 도메인(예: xxxx.ngrok-free.app)
-      this.ngrokListener = await ngrok.forward(opts);
-      const u = this.ngrokListener.url();
-      if (u) { this._url = u; this._notifyReady(u); this.log(`ngrok URL: ${u}`); }
-      return;
-    }
-
     const exe = await this.ensureCloudflared();
 
     if (mode === 'named' && namedName && namedUrl) {
@@ -148,8 +132,6 @@ export class TunnelManager {
   stop(): void {
     this.proc?.kill();
     this.proc = undefined;
-    try { void this.ngrokListener?.close(); } catch { /* ignore */ }
-    this.ngrokListener = undefined;
     this._url = undefined;
     this._ready = false;
     this._readyCbs = [];
