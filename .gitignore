@@ -42,4 +42,4 @@ image copy*
 **/cloudflared.exe
 
 .agents/
-.docs/
+docs/
