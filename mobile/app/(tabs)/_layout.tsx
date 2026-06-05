@@ -22,7 +22,7 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="agent"
-        options={{ title: t('agent'), tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" color={color} size={size} /> }}
+        options={{ title: t('agent'), tabBarIcon: ({ color, size }) => <Ionicons name="chatbubble-ellipses-outline" color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="changes"

@@ -7,7 +7,7 @@ const EN = {
   connectTitle: 'Connect to hub', hubUrl: 'hub URL', password: 'Password (MTB_PASSWORD)',
   connect: 'Connect', rescan: '← Scan QR again', authFail: 'Auth failed', failed: 'Failed',
   // tabs / common
-  terminal: 'Terminal', agent: 'Agent', changes: 'Changes', files: 'Files', settings: 'Settings',
+  terminal: 'Terminal', agent: 'Chat', changes: 'Changes', files: 'Files', settings: 'Settings',
   noSession: 'No running session — start one with ＋', close: 'Close', up: '⬆ Up', drives: 'Drives',
   list: '← List',
   // agent
@@ -29,7 +29,7 @@ const KO: Dict = {
   cameraNeeded: '카메라 권한이 필요해요', allow: '권한 허용', enterUrl: 'URL 직접 입력',
   connectTitle: 'hub 연결', hubUrl: 'hub URL', password: '암호 (MTB_PASSWORD)',
   connect: '연결', rescan: '← QR 다시 스캔', authFail: '인증 실패', failed: '실패',
-  terminal: '터미널', agent: '에이전트', changes: '변경', files: '파일', settings: '설정',
+  terminal: '터미널', agent: '대화', changes: '변경', files: '파일', settings: '설정',
   noSession: '실행 중인 세션 없음 — ＋로 시작', close: '닫기', up: '⬆ 상위', drives: '드라이브',
   list: '← 목록',
   loadSessionFail: '세션을 불러오지 못했어요 (claude 세션이 있어야 함)',
