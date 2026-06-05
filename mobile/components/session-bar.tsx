@@ -90,10 +90,10 @@ const styles = StyleSheet.create({
   rowContent: { gap: 4, paddingHorizontal: 8, alignItems: 'flex-end' },
   // 탭: 위만 둥글고 아래는 평평. 활성 탭은 콘텐츠 색(크림)으로 아래선을 덮어 이어짐.
   tab: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 38, minWidth: 96, maxWidth: 200, paddingLeft: 12, paddingRight: 6, borderTopLeftRadius: 12, borderTopRightRadius: 12, overflow: 'hidden' },
-  tabOff: { backgroundColor: color.surfaceCreamStrong, opacity: 0.85 },
+  tabOff: { backgroundColor: color.surfaceCard },
   tabOn: { backgroundColor: color.canvas, marginBottom: -1, borderWidth: 1, borderBottomWidth: 0, borderColor: color.hairline },
   accent: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: color.primary },
-  txt: { flexShrink: 1, color: color.body, fontSize: 13, fontFamily: font.bodyMedium },
+  txt: { flexShrink: 1, color: color.bodyStrong, fontSize: 13, fontFamily: font.bodySemibold },
   txtOn: { color: color.ink, fontFamily: font.bodySemibold },
   x: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
   xTxt: { color: color.mutedSoft, fontSize: 16, lineHeight: 17 },
