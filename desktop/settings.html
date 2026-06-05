@@ -22,9 +22,18 @@ pre{font-family:"Cascadia Mono",Consolas,monospace;background:#181715;border:1px
 <label>암호 (폰에서 연결 시 입력)</label><input id="password" type="text">
 
 <div class="card">
-  <h3>외부 접속 — ngrok (집 밖에서도 고정 주소)</h3>
+  <h3>외부 접속 — Tailscale (가장 추천)</h3>
   <div class="hint">
-    같은 와이파이면 필요 없어요. 집 밖에서도 쓰려면 ngrok 토큰을 넣으세요.<br>
+    PC와 폰에 Tailscale을 깔고 같은 계정으로 로그인하면, 집·밖 어디서나 고정 주소로 됩니다.
+    설정 입력 없이 QR 페이지의 "Tailscale" QR만 스캔하면 끝. (무료·영구·빠름)
+  </div>
+  <button class="secondary" id="tailscale">Tailscale 받기</button>
+</div>
+
+<div class="card">
+  <h3>외부 접속 — ngrok (대안: 토큰 붙여넣기)</h3>
+  <div class="hint">
+    Tailscale 대신 ngrok 토큰을 넣어도 외부 접속이 됩니다.<br>
     ① 가입 → ② 토큰 복사해서 아래 붙여넣기 → 저장. (무료, 고정 주소 자동)
   </div>
   <button class="secondary" id="signup">① ngrok 가입/로그인</button>
@@ -64,6 +73,7 @@ $('save').onclick = async()=>render(await window.mtb.save({
 $('toggle').onclick = async()=>{ const s=await window.mtb.getState(); render(await (s.running?window.mtb.stop():window.mtb.start())); };
 $('qr').onclick = ()=>window.mtb.openQr();
 $('proj').onclick = ()=>window.mtb.openProjects();
+$('tailscale').onclick = ()=>window.mtb.openExternal('https://tailscale.com/download');
 $('signup').onclick = ()=>window.mtb.openExternal('https://dashboard.ngrok.com/signup');
 $('getToken').onclick = ()=>window.mtb.openExternal('https://dashboard.ngrok.com/get-started/your-authtoken');
 window.mtb.onState(render);

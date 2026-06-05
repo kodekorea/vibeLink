@@ -39,7 +39,22 @@ function lanIp(): string | null {
     }
   }
   const pick = (re: RegExp) => addrs.find(a => re.test(a));
-  return pick(/^192\.168\./) || pick(/^10\./) || pick(/^172\.(1[6-9]|2\d|3[01])\./) || addrs[0] || null;
+  // Tailscale 대역(100.64.0.0/10)은 LAN이 아니라 별도 처리하므로 여기선 제외.
+  return pick(/^192\.168\./) || pick(/^10\./) || pick(/^172\.(1[6-9]|2\d|3[01])\./)
+    || addrs.find(a => !/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(a)) || null;
+}
+// Tailscale 가상 IP(100.64.0.0/10 CGNAT 대역) — 깔려 있으면 어디서나 고정 접속.
+function tailscaleIp(): string | null {
+  const ifaces = os.networkInterfaces();
+  for (const name of Object.keys(ifaces)) {
+    for (const ni of ifaces[name] ?? []) {
+      const fam = (ni as { family: string | number }).family;
+      if ((fam === 'IPv4' || fam === 4) && !ni.internal && /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(ni.address)) {
+        return ni.address;
+      }
+    }
+  }
+  return null;
 }
 function bearer(req: http.IncomingMessage): string {
   const h = String(req.headers['authorization'] ?? '');
@@ -95,6 +110,12 @@ export class HubServer {
     return ip ? `http://${ip}:${this._port}` : null;
   }
 
+  // Tailscale 직접 접속 URL (집/밖 어디서나 고정). 미설치면 null.
+  tailscaleUrl(): string | null {
+    const ip = tailscaleIp();
+    return ip ? `http://${ip}:${this._port}` : null;
+  }
+
   private onMessage(ws: WebSocket, raw: string): void {
     let m: { type?: string; sessionId?: string; data?: string; cols?: number; rows?: number };
     try { m = JSON.parse(raw); } catch { return; }
@@ -135,6 +156,13 @@ export class HubServer {
       const lu = this.lanUrl();
       if (!lu) { res.writeHead(503); res.end('no lan ip'); return; }
       const buf = await this.tunnel.qrPng(lu);
+      res.writeHead(200, { 'Content-Type': 'image/png' }); res.end(buf); return;
+    }
+    // QR (Tailscale 직접 접속 — 집/밖 어디서나 고정)
+    if (meth === 'GET' && pathOnly === '/qrts') {
+      const tu = this.tailscaleUrl();
+      if (!tu) { res.writeHead(503); res.end('no tailscale ip'); return; }
+      const buf = await this.tunnel.qrPng(tu);
       res.writeHead(200, { 'Content-Type': 'image/png' }); res.end(buf); return;
     }
     if (meth === 'GET' && pathOnly === '/qr.html') {
@@ -291,29 +319,52 @@ export class HubServer {
   }
   private qrPage(url: string): string {
     const lan = this.lanUrl();
-    const lanBlock = lan
-      ? `<img src="/qrlan" alt="LAN QR"><p>${lan}</p>`
-      : `<p>LAN IP를 찾지 못했어요</p>`;
-    const tunBlock = url
-      ? `<img src="/qr" alt="Tunnel QR"><p>${url}</p>`
-      : `<p>터널 준비 중...</p>`;
+    const ts = this.tailscaleUrl();
+    const section = (title: string, tag: string, ok: boolean, img: string, urlText: string, help?: string) => `
+<div class="card">
+  <h3>${title}</h3>
+  <div class="tag">${tag}</div>
+  ${ok ? `<img src="${img}" alt="QR"><p class="u">${urlText}</p>` : `<p class="muted">${help || '사용 불가'}</p>`}
+</div>`;
+
+    const tsCard = section(
+      '외부 접속 — Tailscale (추천)',
+      '집·밖 어디서나 · 주소 영구 고정 · 무료',
+      !!ts, '/qrts', ts ?? '',
+      'Tailscale 미설치. PC와 폰에 <a href="https://tailscale.com/download" target="_blank">Tailscale</a>을 깔고 같은 계정으로 로그인하면 여기에 고정 QR이 떠요.',
+    );
+    const lanCard = section(
+      '같은 와이파이 — LAN',
+      '집 안 · 빠름 · 설정 0',
+      !!lan, '/qrlan', lan ?? '',
+      'LAN IP를 찾지 못했어요.',
+    );
+    const tunCard = section(
+      '외부 접속 — 임시 터널',
+      '설정 없이 집 밖 · 단 재시작마다 주소 바뀜',
+      !!url, '/qr', url,
+      '터널 준비 중...',
+    );
+
     return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>MTB Hub 접속</title>
-<style>body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;margin:0;padding:24px 0;background:#111;color:#eee}
-img{width:220px;height:220px;border:14px solid #fff;border-radius:8px}
-h3{margin:6px 0}.tag{font-size:12px;color:#7aa2ff;margin-bottom:8px}
-p{font-size:13px;color:#aaa;word-break:break-all;max-width:280px;text-align:center}
-hr{width:80%;border:none;border-top:1px solid #333;margin:28px 0}</style>
-</head><body>
-<h2 style="margin:0 0 18px">MTB Hub 앱으로 스캔</h2>
-<h3>같은 와이파이 (추천 · 안정)</h3>
-<div class="tag">cloudflared 불필요</div>
-${lanBlock}
-<hr>
-<h3>외부 접속 (cloudflared)</h3>
-<div class="tag">집 밖에서 · URL이 매번 바뀜</div>
-${tunBlock}
-<p style="margin-top:20px">스캔 후 암호 입력 → 페어링</p>
+<style>
+body{font-family:-apple-system,"Segoe UI",sans-serif;margin:0;padding:24px 16px;background:#faf9f5;color:#141413;display:flex;flex-direction:column;align-items:center}
+h2{font-family:Georgia,serif;font-weight:500;margin:0 0 6px}
+.sub{font-size:13px;color:#6c6a64;margin:0 0 20px}
+.card{background:#efe9de;border-radius:16px;padding:18px;margin:0 0 16px;width:100%;max-width:320px;box-sizing:border-box;text-align:center}
+h3{margin:0 0 4px;font-size:16px;color:#141413}
+.tag{font-size:12px;color:#cc785c;margin-bottom:12px}
+img{width:220px;height:220px;border:12px solid #fff;border-radius:10px}
+.u{font-size:12px;color:#6c6a64;word-break:break-all;margin:10px 0 0}
+.muted{font-size:13px;color:#6c6a64;line-height:1.5}
+a{color:#cc785c}
+</style></head><body>
+<h2>MTB Hub 연결</h2>
+<p class="sub">앱으로 QR 스캔 → 암호 입력 → 끝</p>
+${tsCard}
+${lanCard}
+${tunCard}
 </body></html>`;
   }
 }
