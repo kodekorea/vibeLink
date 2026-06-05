@@ -85,16 +85,16 @@ export function SessionBar({ onActive, showNew, onNew }: {
 }
 
 const styles = StyleSheet.create({
-  nav: { backgroundColor: color.surfaceCreamStrong, borderBottomWidth: 1, borderBottomColor: color.hairline },
+  nav: { backgroundColor: color.surfaceDarkSoft, borderBottomWidth: 1, borderBottomColor: color.hairline },
   row: { height: 46 },
-  rowContent: { gap: 2, paddingHorizontal: 8, alignItems: 'flex-end' },
+  rowContent: { gap: 4, paddingHorizontal: 8, alignItems: 'flex-end' },
   // 탭: 위만 둥글고 아래는 평평. 활성 탭은 콘텐츠 색(크림)으로 아래선을 덮어 이어짐.
   tab: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 38, minWidth: 96, maxWidth: 200, paddingLeft: 12, paddingRight: 6, borderTopLeftRadius: 12, borderTopRightRadius: 12, overflow: 'hidden' },
-  tabOff: { backgroundColor: color.surfaceCard },
+  tabOff: { backgroundColor: color.surfaceCreamStrong, opacity: 0.85 },
   tabOn: { backgroundColor: color.canvas, marginBottom: -1, borderWidth: 1, borderBottomWidth: 0, borderColor: color.hairline },
   accent: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: color.primary },
-  txt: { flexShrink: 1, color: color.muted, fontSize: 13, fontFamily: font.bodyMedium },
-  txtOn: { color: color.ink },
+  txt: { flexShrink: 1, color: color.body, fontSize: 13, fontFamily: font.bodyMedium },
+  txtOn: { color: color.ink, fontFamily: font.bodySemibold },
   x: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
   xTxt: { color: color.mutedSoft, fontSize: 16, lineHeight: 17 },
   xTxtOn: { color: color.muted },
