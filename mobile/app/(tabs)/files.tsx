@@ -111,7 +111,8 @@ export default function Files() {
   }
 
   if (file) {
-    const dark = file.kind === 'image' || file.kind === 'text';
+    // 이미지만 다크 배경(투명 이미지 표시용). 코드/텍스트/md/pdf는 앱 테마를 따른다.
+    const dark = file.kind === 'image';
     return (
       <View style={[styles.viewerRoot, !dark && styles.viewerRootLight]}>
         <View style={[styles.viewerBar, { paddingTop: insets.top + 10 }, !dark && styles.viewerBarLight]}>
@@ -192,7 +193,7 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   viewerBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingBottom: 10, backgroundColor: c.surfaceDarkElevated },
   closeBtn: { paddingVertical: 4, paddingRight: 4 },
   viewerTitle: { color: c.onDark, fontSize: 12, flex: 1 },
-  code: { color: c.onDark, fontSize: 12, fontFamily: font.code },
+  code: { color: c.ink, fontSize: 12, fontFamily: font.code },
   viewerRootLight: { backgroundColor: c.canvas },
   viewerBarLight: { backgroundColor: c.surfaceSoft },
   viewerTitleLight: { color: c.ink },
