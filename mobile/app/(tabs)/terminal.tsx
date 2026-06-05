@@ -57,7 +57,7 @@ export default function Terminal() {
   const cookieInject = "document.cookie='mtb_jwt=" + host.token + ";path=/';true;";
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.canvas, paddingBottom: insets.bottom }}>
+    <View style={{ flex: 1, backgroundColor: c.canvas }}>
       <SessionBar
         showNew
         onActive={(s: Session | null) => setSid(s ? s.id : null)}
@@ -67,7 +67,7 @@ export default function Terminal() {
         <WebView
           ref={webRef}
           key={host.id + ':' + (sid || '')}
-          source={{ uri: host.url + '?embed=1' + (sid ? '&session=' + encodeURIComponent(sid) : '') + '&lang=' + lang }}
+          source={{ uri: host.url + '?embed=1' + (sid ? '&session=' + encodeURIComponent(sid) : '') + '&lang=' + lang + '&safe=' + Math.round(insets.bottom) }}
           injectedJavaScriptBeforeContentLoaded={cookieInject}
           injectedJavaScript={NOTIFY_INJECT}
           onMessage={onMessage}

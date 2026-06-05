@@ -109,6 +109,7 @@ const $ = s => document.querySelector(s);
 const EMBED = new URLSearchParams(location.search).has('embed');
 const WANT_SESSION = new URLSearchParams(location.search).get('session') || '';
 const QLANG = new URLSearchParams(location.search).get('lang') || '';
+const SAFE_BOTTOM = parseInt(new URLSearchParams(location.search).get('safe') || '0', 10) || 0;
 let ws, term, fit, sessions = [], active = '';
 
 // ── i18n (영어 기본, 글로벌). ?lang=ko 또는 localStorage mtb_lang로 전환 ──
@@ -148,6 +149,8 @@ function start(){
   $('#main').classList.remove('hidden');
   document.body.classList.toggle('theme-dark', theme === 'dark');
   if (EMBED) document.body.classList.add('embed');
+  // 네이티브가 넘긴 하단 안전영역만큼 입력바 패딩(제스처바 위에 정확히 앉게)
+  if (SAFE_BOTTOM > 0) $('#inputbar').style.paddingBottom = (10 + SAFE_BOTTOM) + 'px';
   try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
   setupTerm();
   connect();
