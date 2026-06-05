@@ -51,8 +51,11 @@
   #modal.show{display:flex}
   #sheet{background:var(--panel);width:92%;max-width:420px;max-height:80%;overflow:auto;border-radius:16px;padding:18px;border:1px solid var(--line)}
   #sheet h3{margin:0 0 12px;font-size:17px}
-  .row{padding:13px 10px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:8px}
+  .row{padding:13px 10px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:8px;color:var(--txt)}
   .row:active{background:var(--panel2)}
+  .sheet-actions{display:flex;gap:8px;margin-top:14px}
+  .sheet-actions .btn{flex:1}
+  .btn.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line);box-shadow:none}
   .hidden{display:none !important}
   body.embed #bar{display:none}
 </style>
@@ -114,11 +117,11 @@ const STR = {
   en: { authFail:'Authentication failed', cmdPlaceholder:'Type a command', copy:'Copy', copied:'Copied', connect:'Connect', password:'Password',
     newSessionPick:'New session — pick a project', browseFolder:'Browse folders', close:'Close', drives:'Drives', up:'⬆ Up',
     startHere:'Start session here', doneWaiting:'Done / waiting for input', session:'Session', uploadFail:'Upload failed',
-    deletePrefix:'Delete', saveCurrent:'＋ Save current' },
+    deletePrefix:'Delete', saveCurrent:'＋ Save current', newFolder:'＋ New folder', newFolderPrompt:'New folder name', mkdirFail:'Could not create folder' },
   ko: { authFail:'인증 실패', cmdPlaceholder:'명령 입력', copy:'복사', copied:'복사됨', connect:'연결', password:'암호',
     newSessionPick:'새 세션 — 프로젝트 선택', browseFolder:'폴더 찾아보기', close:'닫기', drives:'드라이브', up:'⬆ 상위',
     startHere:'여기서 세션 시작', doneWaiting:'완료 / 입력 대기', session:'세션', uploadFail:'업로드 실패',
-    deletePrefix:'삭제', saveCurrent:'＋ 현재 입력 저장' },
+    deletePrefix:'삭제', saveCurrent:'＋ 현재 입력 저장', newFolder:'＋ 새 폴더', newFolderPrompt:'새 폴더 이름', mkdirFail:'폴더를 만들 수 없어요' },
 };
 const LANG = (QLANG || localStorage.getItem('mtb_lang') || 'en').startsWith('ko') ? 'ko' : 'en';
 function T(k){ return (STR[LANG] && STR[LANG][k]) || STR.en[k] || k; }
@@ -401,10 +404,12 @@ async function openNewSession(){
     row.onclick = () => createSession(p.path);
     sheet.appendChild(row);
   }
+  const actions = document.createElement('div'); actions.className = 'sheet-actions';
   const browse = document.createElement('button'); browse.className = 'btn'; browse.textContent = T('browseFolder');
-  browse.style.marginTop = '10px'; browse.onclick = () => browseFrom(null); sheet.appendChild(browse);
-  const close = document.createElement('button'); close.textContent = T('close'); close.style.marginLeft = '8px';
-  close.onclick = () => $('#modal').classList.remove('show'); sheet.appendChild(close);
+  browse.onclick = () => browseFrom(null); actions.appendChild(browse);
+  const close = document.createElement('button'); close.className = 'btn ghost'; close.textContent = T('close');
+  close.onclick = () => $('#modal').classList.remove('show'); actions.appendChild(close);
+  sheet.appendChild(actions);
   $('#modal').classList.add('show');
 }
 async function browseFrom(p){
@@ -414,14 +419,29 @@ async function browseFrom(p){
   if (cwd) {
     const up = document.createElement('div'); up.className = 'row'; up.textContent = T('up');
     up.onclick = () => browseFrom(parentOf(cwd)); sheet.appendChild(up);
-    const here = document.createElement('button'); here.className = 'btn'; here.textContent = T('startHere');
-    here.onclick = () => addAndCreate(cwd); sheet.appendChild(here);
   }
   for (const e of entries) {
     const row = document.createElement('div'); row.className = 'row';
     row.textContent = '📁 ' + e.name; row.onclick = () => browseFrom(e.path);
     sheet.appendChild(row);
   }
+  const actions = document.createElement('div'); actions.className = 'sheet-actions';
+  if (cwd) {
+    const here = document.createElement('button'); here.className = 'btn'; here.textContent = T('startHere');
+    here.onclick = () => addAndCreate(cwd); actions.appendChild(here);
+    const mk = document.createElement('button'); mk.className = 'btn ghost'; mk.textContent = T('newFolder');
+    mk.onclick = () => newFolder(cwd); actions.appendChild(mk);
+  }
+  const close = document.createElement('button'); close.className = 'btn ghost'; close.textContent = T('close');
+  close.onclick = () => $('#modal').classList.remove('show'); actions.appendChild(close);
+  sheet.appendChild(actions);
+}
+async function newFolder(parent){
+  const name = prompt(T('newFolderPrompt'));
+  if (!name) return;
+  const r = await api('/fs/mkdir', { method:'POST', body: JSON.stringify({ parent, name }) });
+  const j = await r.json().catch(() => ({}));
+  if (j && j.path) addAndCreate(j.path); else alert(T('mkdirFail'));
 }
 function parentOf(p){ const i = Math.max(p.lastIndexOf('\\'), p.lastIndexOf('/')); return i > 2 ? p.slice(0, i) : null; }
 async function addAndCreate(p){

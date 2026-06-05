@@ -49,7 +49,7 @@ export default function Terminal() {
   const cookieInject = "document.cookie='mtb_jwt=" + host.token + ";path=/';true;";
 
   return (
-    <View style={{ flex: 1, backgroundColor: color.surfaceDark, paddingBottom: insets.bottom }}>
+    <View style={{ flex: 1, backgroundColor: color.canvas, paddingBottom: insets.bottom }}>
       <SessionBar
         showNew
         onActive={(s: Session | null) => setSid(s ? s.id : null)}
@@ -63,7 +63,7 @@ export default function Terminal() {
           injectedJavaScriptBeforeContentLoaded={cookieInject}
           injectedJavaScript={NOTIFY_INJECT}
           onMessage={onMessage}
-          style={{ flex: 1, backgroundColor: color.surfaceDark }}
+          style={{ flex: 1, backgroundColor: color.canvas }}
           keyboardDisplayRequiresUserAction={false}
         />
       </View>

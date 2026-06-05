@@ -322,6 +322,20 @@ export class HubServer {
       this.json(res, 200, { projects: this.projects.list() }); return;
     }
 
+    // 새 폴더 만들기 (새 프로젝트 시작용)
+    if (url === '/fs/mkdir') {
+      const parent = String(data['parent'] ?? '');
+      const name = String(data['name'] ?? '').trim();
+      if (!parent || !name) { this.json(res, 400, { error: 'parent and name required' }); return; }
+      if (/[\\/:*?"<>|]/.test(name)) { this.json(res, 400, { error: 'invalid folder name' }); return; }
+      try {
+        const dir = path.join(decodeURIComponent(parent), name);
+        fs.mkdirSync(dir, { recursive: true });
+        this.json(res, 200, { path: dir });
+      } catch (e) { this.json(res, 400, { error: String(e) }); }
+      return;
+    }
+
     // 폰에서 이미지/파일 업로드 → PC에 저장 → 경로 반환(터미널에 붙여 Claude가 읽게)
     if (url === '/upload') {
       const b64 = String(data['data'] ?? '');
