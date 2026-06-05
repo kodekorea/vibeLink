@@ -1,11 +1,26 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { apiGet, type Session } from '@/lib/hub';
+import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Markdown from 'react-native-markdown-display';
+import { apiGet, rawSource, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
 import { color, font } from '@/lib/theme';
 
 interface Entry { name: string; path: string; dir: boolean; size: number; }
-interface FileView { name: string; content: string; truncated: boolean; }
+
+type Kind = 'image' | 'md' | 'text' | 'pdf';
+interface FileView {
+  name: string;
+  kind: Kind;
+  content?: string;
+  truncated?: boolean;
+  source?: { uri: string; headers: Record<string, string> } | null;
+}
+
+const IMG = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'];
+function extOf(name: string): string {
+  const i = name.lastIndexOf('.');
+  return i >= 0 ? name.slice(i).toLowerCase() : '';
+}
 
 function parentOf(p: string): string | null {
   const i = Math.max(p.lastIndexOf('\\'), p.lastIndexOf('/'));
@@ -43,28 +58,52 @@ export default function Files() {
 
   async function open(e: Entry) {
     if (e.dir) { load(e.path); return; }
+    const ext = extOf(e.name);
     setLoading(true);
     try {
-      const r = await apiGet<{ content: string; truncated: boolean; size: number }>('/file?path=' + encodeURIComponent(e.path));
-      setFile({ name: e.name, content: r.content, truncated: r.truncated });
+      if (IMG.includes(ext)) {
+        const src = await rawSource(e.path);
+        setFile({ name: e.name, kind: 'image', source: src });
+      } else if (ext === '.pdf') {
+        setFile({ name: e.name, kind: 'pdf' });
+      } else {
+        const r = await apiGet<{ content: string; truncated: boolean; size: number }>('/file?path=' + encodeURIComponent(e.path));
+        setFile({ name: e.name, kind: ext === '.md' ? 'md' : 'text', content: r.content, truncated: r.truncated });
+      }
     } catch (err) {
-      setFile({ name: e.name, content: '읽기 실패: ' + String(err), truncated: false });
+      setFile({ name: e.name, kind: 'text', content: '읽기 실패: ' + String(err) });
     }
     setLoading(false);
   }
 
   if (file) {
+    const dark = file.kind === 'image' || file.kind === 'text';
     return (
-      <View style={styles.viewerRoot}>
-        <View style={styles.viewerBar}>
+      <View style={[styles.viewerRoot, !dark && styles.viewerRootLight]}>
+        <View style={[styles.viewerBar, !dark && styles.viewerBarLight]}>
           <Pressable onPress={() => setFile(null)} hitSlop={10}><Text style={styles.link}>← 닫기</Text></Pressable>
-          <Text style={styles.viewerTitle} numberOfLines={1}>{file.name}</Text>
+          <Text style={[styles.viewerTitle, !dark && styles.viewerTitleLight]} numberOfLines={1}>{file.name}</Text>
         </View>
-        <ScrollView style={styles.flex} contentContainerStyle={{ padding: 12 }} horizontal={false}>
-          <ScrollView horizontal>
-            <Text selectable style={styles.code}>{file.content}{file.truncated ? '\n\n… (잘림)' : ''}</Text>
+        {file.kind === 'image' ? (
+          file.source ? (
+            <ScrollView style={styles.flex} contentContainerStyle={styles.imageWrap} maximumZoomScale={4} minimumZoomScale={1}>
+              <Image source={file.source} style={styles.image} resizeMode="contain" />
+            </ScrollView>
+          ) : <View style={styles.center}><Text style={styles.err}>이미지를 불러올 수 없어요</Text></View>
+        ) : file.kind === 'md' ? (
+          <ScrollView style={styles.flex} contentContainerStyle={{ padding: 16 }}>
+            <Markdown style={mdStyles as any}>{file.content || ''}</Markdown>
+            {file.truncated ? <Text style={styles.truncated}>… (잘림)</Text> : null}
           </ScrollView>
-        </ScrollView>
+        ) : file.kind === 'pdf' ? (
+          <View style={styles.center}><Text style={styles.pdfMsg}>PDF 미리보기는 아직 지원 안 해요.{'\n'}터미널에서 경로로 열어보세요.</Text></View>
+        ) : (
+          <ScrollView style={styles.flex} contentContainerStyle={{ padding: 12 }}>
+            <ScrollView horizontal>
+              <Text selectable style={styles.code}>{file.content}{file.truncated ? '\n\n… (잘림)' : ''}</Text>
+            </ScrollView>
+          </ScrollView>
+        )}
       </View>
     );
   }
@@ -116,4 +155,26 @@ const styles = StyleSheet.create({
   viewerBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: color.surfaceDarkElevated },
   viewerTitle: { color: color.onDark, fontSize: 12, flex: 1 },
   code: { color: color.onDark, fontSize: 12, fontFamily: font.code },
+  viewerRootLight: { backgroundColor: color.canvas },
+  viewerBarLight: { backgroundColor: color.surfaceSoft },
+  viewerTitleLight: { color: color.ink },
+  imageWrap: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 12 },
+  image: { width: 360, height: 360, maxWidth: '100%' },
+  truncated: { color: color.mutedSoft, fontSize: 12, marginTop: 12 },
+  pdfMsg: { color: color.muted, fontSize: 14, textAlign: 'center', lineHeight: 22, padding: 24 },
 });
+
+const mdStyles = {
+  body: { color: color.body, fontFamily: font.body, fontSize: 15, lineHeight: 22 },
+  heading1: { color: color.ink, fontFamily: font.display, fontSize: 26, marginTop: 8, marginBottom: 8 },
+  heading2: { color: color.ink, fontFamily: font.display, fontSize: 22, marginTop: 8, marginBottom: 6 },
+  heading3: { color: color.ink, fontFamily: font.bodySemibold, fontSize: 18, marginTop: 6, marginBottom: 4 },
+  link: { color: color.primary },
+  code_inline: { color: color.ink, backgroundColor: color.surfaceCard, fontFamily: font.code, fontSize: 13, paddingHorizontal: 4, borderRadius: 4 },
+  code_block: { color: color.onDark, backgroundColor: color.surfaceDark, fontFamily: font.code, fontSize: 13, padding: 12, borderRadius: 8 },
+  fence: { color: color.onDark, backgroundColor: color.surfaceDark, fontFamily: font.code, fontSize: 13, padding: 12, borderRadius: 8 },
+  blockquote: { backgroundColor: color.surfaceCard, borderLeftColor: color.primary, borderLeftWidth: 3, paddingHorizontal: 12, paddingVertical: 4 },
+  bullet_list: { marginVertical: 4 },
+  ordered_list: { marginVertical: 4 },
+  hr: { backgroundColor: color.hairline, height: 1 },
+} as const;

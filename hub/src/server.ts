@@ -221,6 +221,23 @@ export class HubServer {
       return;
     }
 
+    // 파일 원본 바이트 (이미지 미리보기 등) — content-type을 확장자로 추정
+    if (meth === 'GET' && pathOnly === '/raw') {
+      if (!this.auth(req)) { res.writeHead(401); res.end(); return; }
+      const p = new URL(url, 'http://x').searchParams.get('path');
+      if (!p) { res.writeHead(400); res.end(); return; }
+      const fp = decodeURIComponent(p);
+      if (!fs.existsSync(fp)) { res.writeHead(404); res.end(); return; }
+      const ext = path.extname(fp).toLowerCase();
+      const mime = ({
+        '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
+        '.webp': 'image/webp', '.bmp': 'image/bmp', '.svg': 'image/svg+xml', '.pdf': 'application/pdf',
+      } as Record<string, string>)[ext] || 'application/octet-stream';
+      res.writeHead(200, { 'Content-Type': mime });
+      fs.createReadStream(fp).pipe(res);
+      return;
+    }
+
     // 에이전트뷰: 세션 트랜스크립트(대화 타임라인)
     if (meth === 'GET' && pathOnly === '/agent/log') {
       if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }

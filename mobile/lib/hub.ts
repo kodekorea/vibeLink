@@ -153,3 +153,13 @@ export async function closeSession(id: string): Promise<void> {
     body: JSON.stringify({ id }),
   });
 }
+
+// 파일 원본(이미지 등)을 RN <Image>/WebView에서 인증과 함께 불러올 소스.
+export async function rawSource(filePath: string): Promise<{ uri: string; headers: Record<string, string> } | null> {
+  const h = await getActiveHost();
+  if (!h) return null;
+  return {
+    uri: h.url + '/raw?path=' + encodeURIComponent(filePath),
+    headers: { Authorization: 'Bearer ' + h.token },
+  };
+}
