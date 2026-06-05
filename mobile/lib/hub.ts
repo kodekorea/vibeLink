@@ -154,24 +154,48 @@ export async function closeSession(id: string): Promise<void> {
   });
 }
 
-// 이미지 원본 바이트를 인증해서 받아 data URI로 반환.
-// (RN <Image>의 http+headers 경로는 Android에서 불안정 — data URI면 네트워크/cleartext/헤더 이슈 없음)
-export async function imageDataUri(filePath: string): Promise<string | null> {
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
+  }
+  // RN 전역 btoa가 없을 수 있어 폴백 포함
+  const g = globalThis as unknown as { btoa?: (s: string) => string };
+  if (g.btoa) return g.btoa(bin);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let out = '';
+  for (let i = 0; i < bin.length; i += 3) {
+    const a = bin.charCodeAt(i), b = bin.charCodeAt(i + 1), c = bin.charCodeAt(i + 2);
+    out += chars[a >> 2] + chars[((a & 3) << 4) | (b >> 4)]
+      + (i + 1 < bin.length ? chars[((b & 15) << 2) | (c >> 6)] : '=')
+      + (i + 2 < bin.length ? chars[c & 63] : '=');
+  }
+  return out;
+}
+
+const MIME_BY_EXT: Record<string, string> = {
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+  webp: 'image/webp', bmp: 'image/bmp', svg: 'image/svg+xml',
+};
+
+// 이미지 원본 바이트를 인증해서 받아 data URI로 반환. 실패 시 {error}.
+// arrayBuffer→base64 수동 변환(FileReader/Blob 경로가 Expo에서 불안정한 경우 대비).
+export async function imageDataUri(filePath: string): Promise<{ uri?: string; error?: string }> {
   const h = await getActiveHost();
-  if (!h) return null;
+  if (!h) return { error: '연결된 호스트 없음' };
   try {
     const r = await fetch(h.url + '/raw?path=' + encodeURIComponent(filePath), {
       headers: { Authorization: 'Bearer ' + h.token },
     });
-    if (!r.ok) return null;
-    const blob = await r.blob();
-    return await new Promise<string | null>((resolve) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(typeof fr.result === 'string' ? fr.result : null);
-      fr.onerror = () => resolve(null);
-      fr.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
+    if (!r.ok) return { error: 'HTTP ' + r.status };
+    const ext = (filePath.split('.').pop() || '').toLowerCase();
+    const mime = r.headers.get('content-type') || MIME_BY_EXT[ext] || 'image/png';
+    const buf = await r.arrayBuffer();
+    if (!buf || buf.byteLength === 0) return { error: '빈 파일' };
+    const b64 = bytesToBase64(new Uint8Array(buf));
+    return { uri: `data:${mime};base64,${b64}` };
+  } catch (e) {
+    return { error: String(e) };
   }
 }

@@ -15,6 +15,7 @@ interface FileView {
   content?: string;
   truncated?: boolean;
   uri?: string | null;
+  imgError?: string;
 }
 
 const IMG = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'];
@@ -64,8 +65,8 @@ export default function Files() {
     setLoading(true);
     try {
       if (IMG.includes(ext)) {
-        const uri = await imageDataUri(e.path);
-        setFile({ name: e.name, kind: 'image', uri });
+        const res = await imageDataUri(e.path);
+        setFile({ name: e.name, kind: 'image', uri: res.uri, imgError: res.error });
       } else if (ext === '.pdf') {
         setFile({ name: e.name, kind: 'pdf' });
       } else {
@@ -91,7 +92,7 @@ export default function Files() {
             <ScrollView style={styles.flex} contentContainerStyle={styles.imageWrap} maximumZoomScale={4} minimumZoomScale={1}>
               <Image source={{ uri: file.uri }} style={styles.image} resizeMode="contain" />
             </ScrollView>
-          ) : <View style={styles.center}><Text style={styles.err}>이미지를 불러올 수 없어요</Text></View>
+          ) : <View style={styles.center}><Text style={styles.err}>이미지를 불러올 수 없어요{file.imgError ? '\n(' + file.imgError + ')' : ''}</Text></View>
         ) : file.kind === 'md' ? (
           <ScrollView style={styles.flex} contentContainerStyle={{ padding: 16 }}>
             <Markdown style={mdStyles as any}>{file.content || ''}</Markdown>

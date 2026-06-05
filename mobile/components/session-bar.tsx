@@ -6,7 +6,7 @@ import {
   listSessions, closeSession, getActiveSessionId, setActiveSessionId,
   onSessionChange, onHostChange, type Session,
 } from '@/lib/hub';
-import { color, radius, font } from '@/lib/theme';
+import { color, font } from '@/lib/theme';
 
 export function SessionBar({ onActive, showNew, onNew }: {
   onActive: (s: Session | null) => void;
@@ -66,10 +66,11 @@ export function SessionBar({ onActive, showNew, onNew }: {
         {sessions.map(s => {
           const on = s.id === activeId;
           return (
-            <Pressable key={s.id} onPress={() => pick(s)} style={[styles.chip, on && styles.active]}>
+            <Pressable key={s.id} onPress={() => pick(s)} style={[styles.tab, on ? styles.tabOn : styles.tabOff]}>
+              {on ? <View style={styles.accent} /> : null}
               <Text style={[styles.txt, on && styles.txtOn]} numberOfLines={1}>{s.label}</Text>
-              <Pressable onPress={() => remove(s)} hitSlop={10} style={[styles.x, on && styles.xOn]}>
-                <Text style={[styles.xTxt, on && styles.txtOn]}>×</Text>
+              <Pressable onPress={() => remove(s)} hitSlop={10} style={styles.x}>
+                <Text style={[styles.xTxt, on && styles.xTxtOn]}>×</Text>
               </Pressable>
             </Pressable>
           );
@@ -84,17 +85,20 @@ export function SessionBar({ onActive, showNew, onNew }: {
 }
 
 const styles = StyleSheet.create({
-  nav: { backgroundColor: color.canvas, borderBottomWidth: 1, borderBottomColor: color.hairline },
-  row: { height: 52 },
-  rowContent: { gap: 8, paddingHorizontal: 12, alignItems: 'center' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 36, paddingLeft: 14, paddingRight: 8, backgroundColor: color.surfaceCard, borderRadius: radius.pill, borderWidth: 1, borderColor: color.hairline },
-  active: { backgroundColor: color.primary, borderColor: 'transparent' },
-  txt: { color: color.bodyStrong, fontSize: 14, fontFamily: font.bodyMedium, maxWidth: 180 },
-  txtOn: { color: color.onPrimary },
-  x: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.06)' },
-  xOn: { backgroundColor: 'rgba(255,255,255,0.22)' },
-  xTxt: { color: color.muted, fontSize: 15, lineHeight: 16 },
-  plus: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceCard, borderWidth: 1, borderColor: color.hairline },
+  nav: { backgroundColor: color.surfaceCreamStrong, borderBottomWidth: 1, borderBottomColor: color.hairline },
+  row: { height: 46 },
+  rowContent: { gap: 2, paddingHorizontal: 8, alignItems: 'flex-end' },
+  // 탭: 위만 둥글고 아래는 평평. 활성 탭은 콘텐츠 색(크림)으로 아래선을 덮어 이어짐.
+  tab: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 38, minWidth: 96, maxWidth: 200, paddingLeft: 12, paddingRight: 6, borderTopLeftRadius: 12, borderTopRightRadius: 12, overflow: 'hidden' },
+  tabOff: { backgroundColor: color.surfaceCard },
+  tabOn: { backgroundColor: color.canvas, marginBottom: -1, borderWidth: 1, borderBottomWidth: 0, borderColor: color.hairline },
+  accent: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: color.primary },
+  txt: { flexShrink: 1, color: color.muted, fontSize: 13, fontFamily: font.bodyMedium },
+  txtOn: { color: color.ink },
+  x: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
+  xTxt: { color: color.mutedSoft, fontSize: 16, lineHeight: 17 },
+  xTxtOn: { color: color.muted },
+  plus: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceCard, marginLeft: 4, marginBottom: 2 },
   plusTxt: { color: color.primary, fontSize: 20, lineHeight: 22 },
-  empty: { color: color.mutedSoft, fontSize: 13, paddingHorizontal: 6 },
+  empty: { color: color.muted, fontSize: 13, paddingHorizontal: 8, paddingBottom: 8 },
 });
