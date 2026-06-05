@@ -6,6 +6,7 @@ import { useFonts, CormorantGaramond_500Medium } from '@expo-google-fonts/cormor
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono';
 import { setupNotifications } from '@/lib/notify';
+import { loadPrefs } from '@/lib/prefs';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -17,15 +18,17 @@ export default function RootLayout() {
     JetBrainsMono_400Regular,
   });
   const [timedOut, setTimedOut] = useState(false);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
 
   useEffect(() => { setupNotifications(); }, []);
+  useEffect(() => { loadPrefs().then(() => setPrefsLoaded(true)); }, []);
   // 최대 3초 후엔 폰트 상태와 무관하게 진행(시스템 폰트로 폴백) — 빈 화면 무한 로딩 방지.
   useEffect(() => {
     const t = setTimeout(() => setTimedOut(true), 3000);
     return () => clearTimeout(t);
   }, []);
 
-  const ready = loaded || !!error || timedOut;
+  const ready = (loaded || !!error || timedOut) && prefsLoaded;
   useEffect(() => { if (ready) SplashScreen.hideAsync().catch(() => {}); }, [ready]);
 
   if (!ready) return null;

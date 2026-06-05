@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getActiveHost, onHostChange, getActiveSessionId, onSessionChange, consumeNewSession, type Host, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
 import { notifyLocal } from '@/lib/notify';
-import { color } from '@/lib/theme';
+import { usePrefs } from '@/lib/prefs';
+import { t } from '@/lib/i18n';
 
 const NOTIFY_INJECT = `(function(){
   function hook(){ try {
@@ -20,6 +21,7 @@ const NOTIFY_INJECT = `(function(){
 
 export default function Terminal() {
   const insets = useSafeAreaInsets();
+  const { c, lang } = usePrefs();
   const [host, setHost] = useState<Host | null>(null);
   const webRef = useRef<WebView>(null);
   const [sid, setSid] = useState<string | null>(getActiveSessionId());
@@ -46,7 +48,7 @@ export default function Terminal() {
   async function onMessage(e: { nativeEvent: { data: string } }) {
     try {
       const m = JSON.parse(e.nativeEvent.data);
-      if (m.t === 'notify') await notifyLocal('MTB: ' + (m.label || '세션'), '완료 / 입력 대기');
+      if (m.t === 'notify') await notifyLocal('MTB: ' + (m.label || t('endSession')), t('completionAlarm'));
     } catch (err) { /* ignore */ }
   }
 
@@ -55,7 +57,7 @@ export default function Terminal() {
   const cookieInject = "document.cookie='mtb_jwt=" + host.token + ";path=/';true;";
 
   return (
-    <View style={{ flex: 1, backgroundColor: color.canvas, paddingBottom: insets.bottom }}>
+    <View style={{ flex: 1, backgroundColor: c.canvas, paddingBottom: insets.bottom }}>
       <SessionBar
         showNew
         onActive={(s: Session | null) => setSid(s ? s.id : null)}
@@ -65,11 +67,11 @@ export default function Terminal() {
         <WebView
           ref={webRef}
           key={host.id + ':' + (sid || '')}
-          source={{ uri: host.url + '?embed=1' + (sid ? '&session=' + encodeURIComponent(sid) : '') }}
+          source={{ uri: host.url + '?embed=1' + (sid ? '&session=' + encodeURIComponent(sid) : '') + '&lang=' + lang }}
           injectedJavaScriptBeforeContentLoaded={cookieInject}
           injectedJavaScript={NOTIFY_INJECT}
           onMessage={onMessage}
-          style={{ flex: 1, backgroundColor: color.canvas }}
+          style={{ flex: 1, backgroundColor: c.canvas }}
           keyboardDisplayRequiresUserAction={false}
         />
       </View>

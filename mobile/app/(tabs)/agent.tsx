@@ -3,7 +3,9 @@ import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Tex
 import { router } from 'expo-router';
 import { apiGet, requestNewSession, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
-import { color, radius, font } from '@/lib/theme';
+import { radius, font } from '@/lib/theme';
+import { usePrefs, type Palette } from '@/lib/prefs';
+import { t } from '@/lib/i18n';
 
 interface Ev { kind: string; text?: string; tool?: string; file?: string; isError?: boolean; }
 
@@ -14,6 +16,8 @@ function base(p?: string): string {
 }
 
 export default function Agent() {
+  const { c } = usePrefs();
+  const styles = makeStyles(c);
   const [events, setEvents] = useState<Ev[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -32,7 +36,7 @@ export default function Agent() {
       setEvents(r.events);
       setTimeout(scrollToBottom, 120);
     } catch (e) {
-      setError('세션을 불러오지 못했어요 (claude 세션이 있어야 함)');
+      setError(t('loadSessionFail'));
       setEvents([]);
     }
     setLoading(false);
@@ -64,7 +68,7 @@ export default function Agent() {
         onNew={() => { requestNewSession(); router.navigate('/terminal'); }}
         onActive={(s: Session | null) => { if (s) { setPath(s.cwd); load(s.cwd); } else { setPath(null); setEvents([]); } }} />
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color={color.primary} /></View>
+        <View style={styles.center}><ActivityIndicator color={c.primary} /></View>
       ) : error ? (
         <View style={styles.center}><Text style={styles.err}>{error}</Text></View>
       ) : (
@@ -75,7 +79,7 @@ export default function Agent() {
             keyExtractor={(_, i) => String(i)}
             renderItem={renderItem}
             contentContainerStyle={{ padding: 12, gap: 8 }}
-            refreshControl={<RefreshControl refreshing={loading} onRefresh={() => path && load(path)} tintColor={color.muted} />}
+            refreshControl={<RefreshControl refreshing={loading} onRefresh={() => path && load(path)} tintColor={c.muted} />}
           />
           {events.length > 0 ? (
             <Pressable style={styles.fab} onPress={scrollToBottom} hitSlop={8}>
@@ -88,19 +92,19 @@ export default function Agent() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: color.canvas },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.canvas },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  err: { color: color.error, padding: 24, textAlign: 'center' },
+  err: { color: c.error, padding: 24, textAlign: 'center' },
   bubble: { borderRadius: radius.lg, borderCurve: 'continuous', padding: 12, maxWidth: '92%' },
-  user: { backgroundColor: color.primary, alignSelf: 'flex-end' },
-  userTxt: { color: color.onPrimary, fontSize: 14, fontFamily: font.body },
-  asst: { backgroundColor: color.surfaceCard, alignSelf: 'flex-start' },
-  asstTxt: { color: color.ink, fontSize: 14, fontFamily: font.body },
-  think: { color: color.mutedSoft, fontSize: 12, fontStyle: 'italic', paddingHorizontal: 4 },
-  tool: { color: color.muted, fontSize: 12, paddingHorizontal: 4 },
-  result: { color: color.mutedSoft, fontSize: 11, paddingHorizontal: 8, fontFamily: font.code },
-  resultErr: { color: color.error },
-  fab: { position: 'absolute', right: 16, bottom: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: color.primary, alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)' },
-  fabTxt: { color: color.onPrimary, fontSize: 22, lineHeight: 26 },
+  user: { backgroundColor: c.primary, alignSelf: 'flex-end' },
+  userTxt: { color: c.onPrimary, fontSize: 14, fontFamily: font.body },
+  asst: { backgroundColor: c.surfaceCard, alignSelf: 'flex-start' },
+  asstTxt: { color: c.ink, fontSize: 14, fontFamily: font.body },
+  think: { color: c.mutedSoft, fontSize: 12, fontStyle: 'italic', paddingHorizontal: 4 },
+  tool: { color: c.muted, fontSize: 12, paddingHorizontal: 4 },
+  result: { color: c.mutedSoft, fontSize: 11, paddingHorizontal: 8, fontFamily: font.code },
+  resultErr: { color: c.error },
+  fab: { position: 'absolute', right: 16, bottom: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.5)' },
+  fabTxt: { color: c.onPrimary, fontSize: 22, lineHeight: 26 },
 });

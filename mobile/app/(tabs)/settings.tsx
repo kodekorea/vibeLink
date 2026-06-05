@@ -4,10 +4,14 @@ import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listHosts, getActiveHost, setActiveHost, removeHost, type Host } from '@/lib/hub';
 import { notificationsAvailable } from '@/lib/notify';
-import { color, radius, font } from '@/lib/theme';
+import { radius, font } from '@/lib/theme';
+import { usePrefs, setTheme, setLang, type Palette, type ThemeName, type Lang } from '@/lib/prefs';
+import { t } from '@/lib/i18n';
 
 export default function Settings() {
   const insets = useSafeAreaInsets();
+  const { c, theme, lang } = usePrefs();
+  const styles = makeStyles(c);
   const [hosts, setHosts] = useState<Host[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -23,40 +27,67 @@ export default function Settings() {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ padding: 20, paddingTop: insets.top + 16, gap: 16 }}>
-      <Text style={styles.section}>연결된 PC (호스트)</Text>
-      {hosts.length === 0 ? <Text style={styles.empty}>없음</Text> : null}
+      <Text style={styles.section}>{t('connectedPc')}</Text>
+      {hosts.length === 0 ? <Text style={styles.empty}>{t('none')}</Text> : null}
       {hosts.map(h => (
         <View key={h.id} style={[styles.card, h.id === activeId && styles.cardActive]}>
           <Pressable style={styles.cardMain} onPress={() => pick(h.id)}>
             <Text style={styles.hLabel}>{h.id === activeId ? '● ' : '○ '}{h.label}</Text>
             <Text selectable style={styles.hUrl} numberOfLines={1}>{h.url}</Text>
           </Pressable>
-          <Pressable onPress={() => remove(h.id)} hitSlop={10}><Text style={styles.del}>삭제</Text></Pressable>
+          <Pressable onPress={() => remove(h.id)} hitSlop={10}><Text style={styles.del}>{t('delete')}</Text></Pressable>
         </View>
       ))}
       <Pressable style={styles.add} onPress={() => router.push('/')}>
-        <Text style={styles.addTxt}>＋ PC 추가 (QR 스캔)</Text>
+        <Text style={styles.addTxt}>{t('addPc')}</Text>
       </Pressable>
+
+      <Text style={styles.section}>{t('appearance')}</Text>
+      <View style={styles.cardCol}>
+        <Text style={styles.label}>{t('theme')}</Text>
+        <View style={styles.seg}>
+          {([['light', t('light')], ['dark', t('dark')]] as [ThemeName, string][]).map(([k, lbl]) => (
+            <Pressable key={k} onPress={() => setTheme(k)} style={[styles.segItem, theme === k && styles.segItemOn]}>
+              <Text style={[styles.segTxt, theme === k && styles.segTxtOn]}>{lbl}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={[styles.label, { marginTop: 6 }]}>{t('language')}</Text>
+        <View style={styles.seg}>
+          {([['en', 'English'], ['ko', '한국어']] as [Lang, string][]).map(([k, lbl]) => (
+            <Pressable key={k} onPress={() => setLang(k)} style={[styles.segItem, lang === k && styles.segItemOn]}>
+              <Text style={[styles.segTxt, lang === k && styles.segTxtOn]}>{lbl}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
       <View style={styles.card}>
-        <Text style={styles.label}>완료 알림</Text>
-        <Text style={styles.value}>{notificationsAvailable ? '사용 가능' : 'Expo Go에서는 꺼짐 (dev build 필요)'}</Text>
+        <Text style={styles.label}>{t('completionAlarm')}</Text>
+        <Text style={styles.value}>{notificationsAvailable ? t('available') : t('expoGoOff')}</Text>
       </View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: color.canvas },
-  section: { color: color.muted, fontSize: 13, fontFamily: font.bodySemibold },
-  empty: { color: color.mutedSoft, fontSize: 13 },
-  card: { backgroundColor: color.surfaceCard, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, gap: 6, flexDirection: 'row', alignItems: 'center' },
-  cardActive: { borderWidth: 1, borderColor: color.primary },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.canvas },
+  section: { color: c.muted, fontSize: 13, fontFamily: font.bodySemibold },
+  empty: { color: c.mutedSoft, fontSize: 13 },
+  card: { backgroundColor: c.surfaceCard, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, gap: 6, flexDirection: 'row', alignItems: 'center' },
+  cardCol: { backgroundColor: c.surfaceCard, borderRadius: radius.lg, borderCurve: 'continuous', padding: 14, gap: 8 },
+  cardActive: { borderWidth: 1, borderColor: c.primary },
   cardMain: { flex: 1, gap: 4 },
-  hLabel: { color: color.ink, fontSize: 15, fontFamily: font.bodyMedium },
-  hUrl: { color: color.mutedSoft, fontSize: 12 },
-  del: { color: color.error, fontSize: 14 },
-  add: { backgroundColor: color.primary, borderRadius: radius.md, borderCurve: 'continuous', padding: 14, alignItems: 'center' },
-  addTxt: { color: color.onPrimary, fontSize: 15, fontFamily: font.bodySemibold },
-  label: { color: color.muted, fontSize: 12 },
-  value: { color: color.ink, fontSize: 15 },
+  hLabel: { color: c.ink, fontSize: 15, fontFamily: font.bodyMedium },
+  hUrl: { color: c.mutedSoft, fontSize: 12 },
+  del: { color: c.error, fontSize: 14 },
+  add: { backgroundColor: c.primary, borderRadius: radius.md, borderCurve: 'continuous', padding: 14, alignItems: 'center' },
+  addTxt: { color: c.onPrimary, fontSize: 15, fontFamily: font.bodySemibold },
+  label: { color: c.muted, fontSize: 12 },
+  value: { color: c.ink, fontSize: 15 },
+  seg: { flexDirection: 'row', gap: 6, backgroundColor: c.canvas, borderRadius: radius.md, borderCurve: 'continuous', padding: 4 },
+  segItem: { flex: 1, paddingVertical: 9, borderRadius: radius.sm, borderCurve: 'continuous', alignItems: 'center' },
+  segItemOn: { backgroundColor: c.primary },
+  segTxt: { color: c.body, fontSize: 14, fontFamily: font.bodyMedium },
+  segTxtOn: { color: c.onPrimary, fontFamily: font.bodySemibold },
 });

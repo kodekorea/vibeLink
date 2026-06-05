@@ -3,7 +3,9 @@ import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, V
 import { router } from 'expo-router';
 import { apiGet, requestNewSession, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
-import { color, font } from '@/lib/theme';
+import { font } from '@/lib/theme';
+import { usePrefs, type Palette } from '@/lib/prefs';
+import { t } from '@/lib/i18n';
 
 interface Change { file: string; kind: 'edit' | 'write' | 'multiedit'; edits?: { old: string; new: string }[]; content?: string; }
 
@@ -13,6 +15,8 @@ function base(p: string): string {
 }
 
 export default function Changes() {
+  const { c } = usePrefs();
+  const styles = makeStyles(c);
   const [changes, setChanges] = useState<Change[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,7 +30,7 @@ export default function Changes() {
       const r = await apiGet<{ changes: Change[] }>('/agent/changes?path=' + encodeURIComponent(p));
       setChanges(r.changes);
     } catch (e) {
-      setError('세션을 불러오지 못했어요');
+      setError(t('loadFail'));
       setChanges([]);
     }
     setLoading(false);
@@ -45,7 +49,7 @@ export default function Changes() {
     return (
       <View style={styles.viewerRoot}>
         <View style={styles.bar2}>
-          <Pressable onPress={() => setSel(null)} hitSlop={10}><Text style={styles.link}>← 목록</Text></Pressable>
+          <Pressable onPress={() => setSel(null)} hitSlop={10}><Text style={styles.link}>{t('list')}</Text></Pressable>
           <Text style={styles.viewerTitle} numberOfLines={1}>{base(sel.file)}</Text>
         </View>
         <ScrollView style={styles.flex}>
@@ -70,11 +74,11 @@ export default function Changes() {
         onNew={() => { requestNewSession(); router.navigate('/terminal'); }}
         onActive={(s: Session | null) => { if (s) load(s.cwd); else { setChanges([]); } }} />
       {loading ? (
-        <View style={styles.center}><ActivityIndicator color={color.primary} /></View>
+        <View style={styles.center}><ActivityIndicator color={c.primary} /></View>
       ) : error ? (
         <View style={styles.center}><Text style={styles.err}>{error}</Text></View>
       ) : changes.length === 0 ? (
-        <View style={styles.center}><Text style={styles.empty}>이 세션에서 Claude가 바꾼 파일이 없어요</Text></View>
+        <View style={styles.center}><Text style={styles.empty}>{t('noChanges')}</Text></View>
       ) : (
         <FlatList
           data={changes}
@@ -94,21 +98,21 @@ export default function Changes() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: color.canvas },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: c.canvas },
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  err: { color: color.error, padding: 24, textAlign: 'center' },
-  empty: { color: color.muted, padding: 24, textAlign: 'center' },
-  viewerRoot: { flex: 1, backgroundColor: color.surfaceDark },
-  bar2: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: color.surfaceDarkElevated },
-  viewerTitle: { color: color.onDark, fontSize: 14, flex: 1 },
-  link: { color: color.primary, fontSize: 15 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: color.hairline },
-  kind: { color: color.primary, fontSize: 16, width: 20, textAlign: 'center' },
-  fname: { color: color.ink, fontSize: 15, fontFamily: font.bodyMedium },
-  fdir: { color: color.mutedSoft, fontSize: 11 },
+  err: { color: c.error, padding: 24, textAlign: 'center' },
+  empty: { color: c.muted, padding: 24, textAlign: 'center' },
+  viewerRoot: { flex: 1, backgroundColor: c.surfaceDark },
+  bar2: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: c.surfaceDarkElevated },
+  viewerTitle: { color: c.onDark, fontSize: 14, flex: 1 },
+  link: { color: c.primary, fontSize: 15 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.hairline },
+  kind: { color: c.primary, fontSize: 16, width: 20, textAlign: 'center' },
+  fname: { color: c.ink, fontSize: 15, fontFamily: font.bodyMedium },
+  fdir: { color: c.mutedSoft, fontSize: 11 },
   code: { fontSize: 12, fontFamily: font.code },
-  add: { color: color.success },
-  del: { color: color.error },
+  add: { color: c.success },
+  del: { color: c.error },
 });

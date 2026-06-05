@@ -6,7 +6,8 @@ import {
   listSessions, closeSession, getActiveSessionId, setActiveSessionId,
   onSessionChange, onHostChange, type Session,
 } from '@/lib/hub';
-import { color } from '@/lib/theme';
+import { usePrefs, type Palette } from '@/lib/prefs';
+import { t } from '@/lib/i18n';
 
 export function SessionBar({ onActive, showNew, onNew }: {
   onActive: (s: Session | null) => void;
@@ -14,6 +15,8 @@ export function SessionBar({ onActive, showNew, onNew }: {
   onNew?: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { c } = usePrefs();
+  const styles = makeStyles(c);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeId, setActiveId] = useState<string | null>(getActiveSessionId());
   const lastActive = useRef<string | null | undefined>(undefined);
@@ -51,9 +54,9 @@ export function SessionBar({ onActive, showNew, onNew }: {
   function pick(s: Session) { setActiveSessionId(s.id); setActiveId(s.id); lastActive.current = s.id; onActive(s); }
 
   function remove(s: Session) {
-    Alert.alert('세션 종료', s.label + ' 세션을 종료할까요?', [
-      { text: '취소', style: 'cancel' },
-      { text: '종료', style: 'destructive', onPress: async () => { try { await closeSession(s.id); } catch { /* */ } refresh(); } },
+    Alert.alert(t('endSession'), t('endSessionQ')(s.label), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('end'), style: 'destructive', onPress: async () => { try { await closeSession(s.id); } catch { /* */ } refresh(); } },
     ]);
   }
 
@@ -75,7 +78,7 @@ export function SessionBar({ onActive, showNew, onNew }: {
             </Pressable>
           );
         })}
-        {sessions.length === 0 ? <Text style={styles.empty}>실행 중인 세션 없음 — 터미널 탭에서 ＋</Text> : null}
+        {sessions.length === 0 ? <Text style={styles.empty}>{t('noSession')}</Text> : null}
         {showNew ? (
           <Pressable onPress={() => onNew?.()} style={styles.plus} hitSlop={6}><Text style={styles.plusTxt}>＋</Text></Pressable>
         ) : null}
@@ -84,23 +87,23 @@ export function SessionBar({ onActive, showNew, onNew }: {
   );
 }
 
-const styles = StyleSheet.create({
-  nav: { backgroundColor: color.surfaceDarkSoft, borderBottomWidth: 1, borderBottomColor: color.hairline },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  nav: { backgroundColor: c.surfaceDarkElevated, borderBottomWidth: 1, borderBottomColor: c.hairline },
   row: { height: 46 },
   rowContent: { gap: 4, paddingHorizontal: 8, alignItems: 'flex-end' },
   // 탭: 위만 둥글고 아래는 평평. 활성 탭은 콘텐츠 색(크림)으로 아래선을 덮어 이어짐.
   tab: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 38, minWidth: 96, maxWidth: 200, paddingLeft: 12, paddingRight: 6, borderTopLeftRadius: 12, borderTopRightRadius: 12, overflow: 'hidden' },
-  tabOff: { backgroundColor: color.surfaceCard },
-  tabOn: { backgroundColor: color.canvas, marginBottom: -1, borderWidth: 1, borderBottomWidth: 0, borderColor: color.hairline },
-  accent: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: color.primary },
+  tabOff: { backgroundColor: c.surfaceCard },
+  tabOn: { backgroundColor: c.canvas, marginBottom: -1, borderWidth: 1, borderBottomWidth: 0, borderColor: c.hairline },
+  accent: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: c.primary },
   // 커스텀 폰트(Inter)가 로드 안 된 순간 안드로이드에서 글자가 투명해지는 문제를 피하려고
   // 탭 라벨은 시스템 폰트 + fontWeight를 쓴다(폰트 로딩 상태와 무관하게 항상 보임).
-  txt: { flexShrink: 1, color: color.bodyStrong, fontSize: 13, fontWeight: '600' },
-  txtOn: { color: color.ink, fontWeight: '700' },
+  txt: { flexShrink: 1, color: c.bodyStrong, fontSize: 13, fontWeight: '600' },
+  txtOn: { color: c.ink, fontWeight: '700' },
   x: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
-  xTxt: { color: color.mutedSoft, fontSize: 16, lineHeight: 17 },
-  xTxtOn: { color: color.muted },
-  plus: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceCard, marginLeft: 4, marginBottom: 2 },
-  plusTxt: { color: color.primary, fontSize: 20, lineHeight: 22 },
-  empty: { color: color.muted, fontSize: 13, paddingHorizontal: 8, paddingBottom: 8 },
+  xTxt: { color: c.mutedSoft, fontSize: 16, lineHeight: 17 },
+  xTxtOn: { color: c.muted },
+  plus: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceCard, marginLeft: 4, marginBottom: 2 },
+  plusTxt: { color: c.primary, fontSize: 20, lineHeight: 22 },
+  empty: { color: c.muted, fontSize: 13, paddingHorizontal: 8, paddingBottom: 8 },
 });
