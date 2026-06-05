@@ -123,6 +123,11 @@ export async function loadSelectedProject(): Promise<void> {
 // ── 공유 세션 상태 (모든 탭이 같은 활성 세션을 본다) ──
 export interface Session { id: string; label: string; cwd: string; }
 
+// 다른 탭에서 '+' 누르면 터미널 탭으로 이동해 새 세션 모달을 연다(이 플래그로 전달).
+let pendingNew = false;
+export function requestNewSession(): void { pendingNew = true; }
+export function consumeNewSession(): boolean { const v = pendingNew; pendingNew = false; return v; }
+
 let activeSessionId: string | null = null;
 const sessionListeners = new Set<() => void>();
 

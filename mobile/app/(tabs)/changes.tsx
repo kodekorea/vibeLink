@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { apiGet, type Session } from '@/lib/hub';
+import { router } from 'expo-router';
+import { apiGet, requestNewSession, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
 import { color, font } from '@/lib/theme';
 
@@ -64,7 +65,10 @@ export default function Changes() {
 
   return (
     <View style={styles.root}>
-      <SessionBar onActive={(s: Session | null) => { if (s) load(s.cwd); else { setChanges([]); } }} />
+      <SessionBar
+        showNew
+        onNew={() => { requestNewSession(); router.navigate('/terminal'); }}
+        onActive={(s: Session | null) => { if (s) load(s.cwd); else { setChanges([]); } }} />
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={color.primary} /></View>
       ) : error ? (

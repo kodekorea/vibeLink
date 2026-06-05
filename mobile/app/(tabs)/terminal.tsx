@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getActiveHost, onHostChange, getActiveSessionId, onSessionChange, type Host, type Session } from '@/lib/hub';
+import { getActiveHost, onHostChange, getActiveSessionId, onSessionChange, consumeNewSession, type Host, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
 import { notifyLocal } from '@/lib/notify';
 import { color } from '@/lib/theme';
@@ -37,6 +37,12 @@ export default function Terminal() {
     return off;
   }, []);
 
+  const openNew = useCallback(() => webRef.current?.injectJavaScript('window.__mtbNew && window.__mtbNew(); true;'), []);
+  // 다른 탭에서 '+'로 넘어왔으면 포커스 시 새 세션 모달을 연다.
+  useFocusEffect(useCallback(() => {
+    if (consumeNewSession()) setTimeout(openNew, 600);
+  }, [openNew]));
+
   async function onMessage(e: { nativeEvent: { data: string } }) {
     try {
       const m = JSON.parse(e.nativeEvent.data);
@@ -53,7 +59,7 @@ export default function Terminal() {
       <SessionBar
         showNew
         onActive={(s: Session | null) => setSid(s ? s.id : null)}
-        onNew={() => webRef.current?.injectJavaScript('window.__mtbNew && window.__mtbNew(); true;')}
+        onNew={openNew}
       />
       <View style={{ flex: 1 }}>
         <WebView

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import Markdown from 'react-native-markdown-display';
-import { apiGet, imageDataUri, type Session } from '@/lib/hub';
+import { apiGet, imageDataUri, requestNewSession, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
 import { color, font } from '@/lib/theme';
 
@@ -138,7 +139,10 @@ export default function Files() {
 
   return (
     <View style={styles.root}>
-      <SessionBar onActive={(s: Session | null) => load(s ? s.cwd : null)} />
+      <SessionBar
+        showNew
+        onNew={() => { requestNewSession(); router.navigate('/terminal'); }}
+        onActive={(s: Session | null) => load(s ? s.cwd : null)} />
       <View style={styles.bar}>
         {cwd ? (
           <Pressable onPress={() => load(parentOf(cwd))} hitSlop={10}><Text style={styles.link}>⬆ 상위</Text></Pressable>
