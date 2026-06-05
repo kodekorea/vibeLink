@@ -103,7 +103,7 @@ function showWindow() {
 ipcMain.handle('mtb:getState', () => state());
 ipcMain.handle('mtb:start', () => { startHub(); return state(); });
 ipcMain.handle('mtb:stop', () => { stopHub(); return state(); });
-ipcMain.handle('mtb:save', (_e, s) => {
+ipcMain.handle('mtb:save', async (_e, s) => {
   const cur = readSettings();
   writeSettings(Object.assign({}, cur, {
     port: Number(s.port) || 47801,
@@ -113,6 +113,13 @@ ipcMain.handle('mtb:save', (_e, s) => {
     ngrokToken: (s.ngrokToken || '').trim(),
     ngrokDomain: (s.ngrokDomain || '').trim(),
   }));
+  // 실행 중이면 새 설정(암호/포트/claude옵션 등)을 반영하려고 자동 재시작.
+  if (hubProc) {
+    log('[settings] saved — restarting hub to apply');
+    stopHub();
+    await new Promise(r => setTimeout(r, 800)); // 포트 해제 대기
+    startHub();
+  }
   return state();
 });
 ipcMain.handle('mtb:openQr', () => shell.openExternal('http://127.0.0.1:' + settings().port + '/qr.html'));
