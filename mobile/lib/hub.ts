@@ -205,6 +205,12 @@ export async function imageDataUri(filePath: string): Promise<{ uri?: string; er
   }
 }
 
+// PC에서 LISTEN 중인 dev 서버 포트 목록.
+export async function listPorts(): Promise<number[]> {
+  try { const r = await apiGet<{ ports: number[] }>('/ports'); return r.ports || []; }
+  catch { return []; }
+}
+
 // dev 웹서버 프리뷰용 베이스: 활성 호스트가 http://<ip>:<port> 형태면 그 ip로 'http://<ip>'를 돌려준다.
 // (같은 와이파이/LAN/Tailscale 직접접속일 때 동작. https 터널이면 null → LAN 안내)
 export async function previewBase(): Promise<string | null> {

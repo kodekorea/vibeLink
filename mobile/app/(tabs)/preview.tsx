@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
-import { previewBase, screenDataUri } from '@/lib/hub';
+import { previewBase, screenDataUri, listPorts } from '@/lib/hub';
 import { usePrefs, type Palette } from '@/lib/prefs';
 import { t } from '@/lib/i18n';
-
-const PRESETS = ['3000', '5173', '8080', '4321'];
 
 export default function Preview() {
   const insets = useSafeAreaInsets();
@@ -18,7 +17,11 @@ export default function Preview() {
   const [port, setPort] = useState('3000');
   const [webUri, setWebUri] = useState<string | null>(null);
   const [webErr, setWebErr] = useState('');
+  const [ports, setPorts] = useState<number[]>([]);
   const webRef = useRef<WebView>(null);
+
+  const loadPorts = useCallback(() => { listPorts().then(setPorts).catch(() => {}); }, []);
+  useFocusEffect(useCallback(() => { loadPorts(); }, [loadPorts]));
 
   async function openWeb(p: string) {
     setWebErr('');
@@ -66,17 +69,20 @@ export default function Preview() {
           <View style={styles.bar}>
             <TextInput style={styles.port} value={port} onChangeText={setPort} keyboardType="number-pad" placeholder={t('port')} placeholderTextColor={c.mutedSoft} />
             <Pressable style={styles.btn} onPress={() => openWeb(port)}><Text style={styles.btnTxt}>{t('open')}</Text></Pressable>
-            {webUri ? <Pressable style={styles.btnGhost} onPress={() => webRef.current?.reload()}><Text style={styles.btnGhostTxt}>↻</Text></Pressable> : null}
+            <Pressable style={styles.btnGhost} onPress={loadPorts}><Text style={styles.btnGhostTxt}>↻</Text></Pressable>
+            {webUri ? <Pressable style={styles.btnGhost} onPress={() => webRef.current?.reload()}><Text style={styles.btnGhostTxt}>⟳</Text></Pressable> : null}
           </View>
           <View style={styles.chips}>
-            {PRESETS.map(p => (
-              <Pressable key={p} onPress={() => { setPort(p); openWeb(p); }} style={styles.chip}><Text style={styles.chipTxt}>{p}</Text></Pressable>
+            {(ports.length ? ports.map(String) : ['3000', '5173', '8080', '4321']).map(p => (
+              <Pressable key={p} onPress={() => { setPort(p); openWeb(p); }} style={[styles.chip, port === p && webUri && styles.chipOn]}>
+                <Text style={[styles.chipTxt, port === p && webUri && styles.chipTxtOn]}>{ports.length ? '● ' : ''}{p}</Text>
+              </Pressable>
             ))}
           </View>
           {webErr ? <Text style={styles.err}>{webErr}</Text> : null}
           {webUri ? (
             <WebView ref={webRef} source={{ uri: webUri }} style={styles.flex} />
-          ) : <View style={styles.center}><Text style={styles.hint}>{t('port')} → {t('open')}</Text></View>}
+          ) : <View style={styles.center}><Text style={styles.hint}>{ports.length ? '' : t('port') + ' → ' + t('open')}</Text></View>}
         </View>
       ) : (
         <View style={styles.flex}>
@@ -87,9 +93,12 @@ export default function Preview() {
           </View>
           {shotErr ? <Text style={styles.err}>{shotErr}</Text> : null}
           {shot ? (
-            <View style={[styles.flex, styles.shotWrap]}>
-              <Image source={{ uri: shot }} style={styles.shot} resizeMode="contain" />
-            </View>
+            <WebView
+              style={[styles.flex, styles.shotWrap]}
+              originWhitelist={['*']}
+              scalesPageToFit={false}
+              source={{ html: '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=6,user-scalable=yes"><style>html,body{margin:0;height:100%;background:#181715;display:flex;align-items:center;justify-content:center}img{max-width:100%;height:auto}</style></head><body><img src="' + shot + '"></body></html>' }}
+            />
           ) : <View style={styles.center}><Text style={styles.hint}>{t('screen')}</Text></View>}
         </View>
       )}
@@ -118,7 +127,8 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   btnOnTxt: { color: c.onPrimary },
   chips: { flexDirection: 'row', gap: 6, paddingHorizontal: 10, paddingBottom: 6, flexWrap: 'wrap' },
   chip: { backgroundColor: c.surfaceCard, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: c.hairline },
+  chipOn: { backgroundColor: c.primary, borderColor: 'transparent' },
   chipTxt: { color: c.body, fontSize: 13 },
+  chipTxtOn: { color: c.onPrimary },
   shotWrap: { backgroundColor: c.surfaceDark },
-  shot: { flex: 1, width: '100%' },
 });
