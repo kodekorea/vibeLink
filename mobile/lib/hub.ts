@@ -154,12 +154,24 @@ export async function closeSession(id: string): Promise<void> {
   });
 }
 
-// 파일 원본(이미지 등)을 RN <Image>/WebView에서 인증과 함께 불러올 소스.
-export async function rawSource(filePath: string): Promise<{ uri: string; headers: Record<string, string> } | null> {
+// 이미지 원본 바이트를 인증해서 받아 data URI로 반환.
+// (RN <Image>의 http+headers 경로는 Android에서 불안정 — data URI면 네트워크/cleartext/헤더 이슈 없음)
+export async function imageDataUri(filePath: string): Promise<string | null> {
   const h = await getActiveHost();
   if (!h) return null;
-  return {
-    uri: h.url + '/raw?path=' + encodeURIComponent(filePath),
-    headers: { Authorization: 'Bearer ' + h.token },
-  };
+  try {
+    const r = await fetch(h.url + '/raw?path=' + encodeURIComponent(filePath), {
+      headers: { Authorization: 'Bearer ' + h.token },
+    });
+    if (!r.ok) return null;
+    const blob = await r.blob();
+    return await new Promise<string | null>((resolve) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(typeof fr.result === 'string' ? fr.result : null);
+      fr.onerror = () => resolve(null);
+      fr.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
 }

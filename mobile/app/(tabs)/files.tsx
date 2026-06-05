@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Markdown from 'react-native-markdown-display';
-import { apiGet, rawSource, type Session } from '@/lib/hub';
+import { apiGet, imageDataUri, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
 import { color, font } from '@/lib/theme';
 
@@ -13,7 +14,7 @@ interface FileView {
   kind: Kind;
   content?: string;
   truncated?: boolean;
-  source?: { uri: string; headers: Record<string, string> } | null;
+  uri?: string | null;
 }
 
 const IMG = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'];
@@ -34,6 +35,7 @@ function fmtSize(n: number): string {
 }
 
 export default function Files() {
+  const insets = useSafeAreaInsets();
   const [cwd, setCwd] = useState<string | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,8 +64,8 @@ export default function Files() {
     setLoading(true);
     try {
       if (IMG.includes(ext)) {
-        const src = await rawSource(e.path);
-        setFile({ name: e.name, kind: 'image', source: src });
+        const uri = await imageDataUri(e.path);
+        setFile({ name: e.name, kind: 'image', uri });
       } else if (ext === '.pdf') {
         setFile({ name: e.name, kind: 'pdf' });
       } else {
@@ -80,14 +82,14 @@ export default function Files() {
     const dark = file.kind === 'image' || file.kind === 'text';
     return (
       <View style={[styles.viewerRoot, !dark && styles.viewerRootLight]}>
-        <View style={[styles.viewerBar, !dark && styles.viewerBarLight]}>
-          <Pressable onPress={() => setFile(null)} hitSlop={10}><Text style={styles.link}>← 닫기</Text></Pressable>
+        <View style={[styles.viewerBar, { paddingTop: insets.top + 10 }, !dark && styles.viewerBarLight]}>
+          <Pressable onPress={() => setFile(null)} hitSlop={12} style={styles.closeBtn}><Text style={styles.link}>← 닫기</Text></Pressable>
           <Text style={[styles.viewerTitle, !dark && styles.viewerTitleLight]} numberOfLines={1}>{file.name}</Text>
         </View>
         {file.kind === 'image' ? (
-          file.source ? (
+          file.uri ? (
             <ScrollView style={styles.flex} contentContainerStyle={styles.imageWrap} maximumZoomScale={4} minimumZoomScale={1}>
-              <Image source={file.source} style={styles.image} resizeMode="contain" />
+              <Image source={{ uri: file.uri }} style={styles.image} resizeMode="contain" />
             </ScrollView>
           ) : <View style={styles.center}><Text style={styles.err}>이미지를 불러올 수 없어요</Text></View>
         ) : file.kind === 'md' ? (
@@ -152,7 +154,8 @@ const styles = StyleSheet.create({
   rowName: { color: color.ink, fontSize: 15, flex: 1, fontFamily: font.bodyMedium },
   rowSize: { color: color.mutedSoft, fontSize: 12 },
   viewerRoot: { flex: 1, backgroundColor: color.surfaceDark },
-  viewerBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: color.surfaceDarkElevated },
+  viewerBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingBottom: 10, backgroundColor: color.surfaceDarkElevated },
+  closeBtn: { paddingVertical: 4, paddingRight: 4 },
   viewerTitle: { color: color.onDark, fontSize: 12, flex: 1 },
   code: { color: color.onDark, fontSize: 12, fontFamily: font.code },
   viewerRootLight: { backgroundColor: color.canvas },
