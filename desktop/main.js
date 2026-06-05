@@ -41,7 +41,15 @@ function loadDotEnv() {
 
 function readSettings() { try { return JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf8')); } catch { return {}; } }
 function writeSettings(s) { fs.mkdirSync(path.dirname(SETTINGS_PATH), { recursive: true }); fs.writeFileSync(SETTINGS_PATH, JSON.stringify(s, null, 2)); }
-function settings() { const s = readSettings(); return { port: Number(s.port || process.env.MTB_PORT || 47801), password: s.password || 'changeme1234' }; }
+function settings() {
+  const s = readSettings();
+  return {
+    port: Number(s.port || process.env.MTB_PORT || 47801),
+    password: s.password || 'changeme1234',
+    ngrokToken: s.ngrokToken || '',
+    ngrokDomain: s.ngrokDomain || '',
+  };
+}
 function hubDir() { return app.isPackaged ? path.join(process.resourcesPath, 'hub') : path.join(__dirname, '..', 'hub'); }
 function log(s) { logs.push(s); if (logs.length > 200) logs.shift(); }
 
@@ -50,9 +58,13 @@ function startHub() {
   const cfg = settings();
   const dot = loadDotEnv();
   const env = Object.assign({}, process.env, dot.vars, { MTB_PORT: String(cfg.port), MTB_PASSWORD: cfg.password });
+  // 설정창에 입력한 ngrok 토큰/도메인이 우선(.env보다). 사용자는 설정창에서 키만 붙여넣으면 됨.
+  if (cfg.ngrokToken) env.NGROK_AUTHTOKEN = cfg.ngrokToken;
+  if (cfg.ngrokDomain) env.NGROK_DOMAIN = cfg.ngrokDomain;
   // ngrok 토큰이 있으면 자동으로 ngrok 고정 도메인 모드 사용(집 밖 고정 접속).
   if (env.NGROK_AUTHTOKEN && !env.MTB_TUNNEL) env.MTB_TUNNEL = 'ngrok';
-  if (dot.file) log('[env] loaded ' + dot.file + (env.NGROK_AUTHTOKEN ? ' (ngrok)' : ''));
+  if (dot.file) log('[env] loaded ' + dot.file);
+  log('[tunnel] ' + (env.MTB_TUNNEL === 'ngrok' ? ('ngrok' + (env.NGROK_DOMAIN ? ' (' + env.NGROK_DOMAIN + ')' : '')) : 'quick (ngrok 토큰 없음)'));
   hubProc = spawn('node', ['--import', 'tsx', 'src/index.ts'], { cwd: hubDir(), env });
   hubProc.stdout.on('data', d => { const s = d.toString(); const m = s.match(/https:\/\/[^\s"]+/); if (m) { hubUrl = m[0]; pushState(); } log(s); });
   hubProc.stderr.on('data', d => log(d.toString()));
@@ -86,9 +98,19 @@ function showWindow() {
 ipcMain.handle('mtb:getState', () => state());
 ipcMain.handle('mtb:start', () => { startHub(); return state(); });
 ipcMain.handle('mtb:stop', () => { stopHub(); return state(); });
-ipcMain.handle('mtb:save', (_e, s) => { const cur = readSettings(); writeSettings(Object.assign({}, cur, { port: Number(s.port) || 47801, password: s.password || 'changeme1234' })); return state(); });
+ipcMain.handle('mtb:save', (_e, s) => {
+  const cur = readSettings();
+  writeSettings(Object.assign({}, cur, {
+    port: Number(s.port) || 47801,
+    password: s.password || 'changeme1234',
+    ngrokToken: (s.ngrokToken || '').trim(),
+    ngrokDomain: (s.ngrokDomain || '').trim(),
+  }));
+  return state();
+});
 ipcMain.handle('mtb:openQr', () => shell.openExternal('http://127.0.0.1:' + settings().port + '/qr.html'));
 ipcMain.handle('mtb:openProjects', () => { const p = path.join(os.homedir(), '.mtb', 'projects.json'); if (!fs.existsSync(p)) { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, '[]'); } shell.openPath(p); });
+ipcMain.handle('mtb:openExternal', (_e, url) => { if (/^https:\/\//.test(String(url))) shell.openExternal(url); });
 
 app.whenReady().then(() => {
   if (SMOKE) return runSmoke();
