@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getActiveHost, onHostChange, getActiveTerminalId, onTerminalChange, setActiveSessionId, setActiveTerminalId, consumeNewSession, type Host, type Session } from '@/lib/hub';
+import { getActiveHost, onHostChange, getActiveTerminalId, onTerminalChange, setActiveSessionId, setActiveTerminalId, consumeNewSession, terminalAgent, type Host, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
 import { TerminalBar } from '@/components/terminal-bar';
 import { notifyLocal } from '@/lib/notify';
@@ -26,6 +26,7 @@ export default function Terminal() {
   const [host, setHost] = useState<Host | null>(null);
   const webRef = useRef<WebView>(null);
   const [sid, setSid] = useState<string | null>(getActiveTerminalId());
+  const [tagent, setTagent] = useState<string>('');
 
   useEffect(() => {
     let alive = true;
@@ -39,6 +40,14 @@ export default function Terminal() {
     const off = onTerminalChange(() => setSid(getActiveTerminalId()));
     return off;
   }, []);
+
+  // 활성 터미널의 에이전트를 PWA에 알려 스크롤 방식(휠 vs PageUp/Down)을 정하게 한다.
+  useEffect(() => {
+    let alive = true;
+    if (sid) terminalAgent(sid).then(a => { if (alive) setTagent(a); });
+    else setTagent('');
+    return () => { alive = false; };
+  }, [sid]);
 
   const openNew = useCallback(() => webRef.current?.injectJavaScript('window.__mtbNew && window.__mtbNew(); true;'), []);
   // 다른 탭에서 '+'로 넘어왔으면 포커스 시 새 세션 모달을 연다.
@@ -70,8 +79,8 @@ export default function Terminal() {
       <View style={{ flex: 1 }}>
         <WebView
           ref={webRef}
-          key={host.id + ':' + (sid || '') + ':' + theme}
-          source={{ uri: host.url + '?embed=1' + (sid ? '&session=' + encodeURIComponent(sid) : '') + '&lang=' + lang + '&theme=' + theme + '&safe=' + Math.round(insets.bottom) }}
+          key={host.id + ':' + (sid || '') + ':' + theme + ':' + tagent}
+          source={{ uri: host.url + '?embed=1' + (sid ? '&session=' + encodeURIComponent(sid) : '') + '&lang=' + lang + '&theme=' + theme + (tagent ? '&agent=' + tagent : '') + '&safe=' + Math.round(insets.bottom) }}
           injectedJavaScriptBeforeContentLoaded={cookieInject}
           injectedJavaScript={NOTIFY_INJECT}
           onMessage={onMessage}

@@ -176,6 +176,18 @@ export async function listSessions(): Promise<Session[]> {
   return r.sessions;
 }
 
+// 특정 터미널의 에이전트(claude/opencode/codex/shell). PWA가 스크롤 방식을 정하는 데 쓴다.
+export async function terminalAgent(terminalId: string): Promise<string> {
+  if (!terminalId) return '';
+  try {
+    for (const s of await listSessions()) {
+      const t = s.terminals?.find(x => x.id === terminalId);
+      if (t) return t.agent || '';
+    }
+  } catch { /* */ }
+  return '';
+}
+
 export async function closeSession(id: string): Promise<void> {
   const h = await getActiveHost();
   if (!h) return;

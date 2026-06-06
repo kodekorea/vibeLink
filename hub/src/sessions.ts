@@ -33,9 +33,9 @@ const AGENT_CMD: Record<string, string> = {
   codex: 'codex',
 };
 // 런모드 = 권한 건너뛰기(위험) 플래그. 에이전트별로 명령이 다르다.
+// 주의: opencode TUI(`opencode [project]`)엔 스킵 플래그가 없다(권한은 opencode 설정에서) → 미등록.
 const DANGER_FLAGS: Record<string, string> = {
   claude: '--dangerously-skip-permissions',
-  opencode: '--dangerously-skip-permissions',
   codex: '--dangerously-bypass-approvals-and-sandbox',
 };
 
@@ -157,8 +157,12 @@ export class SessionManager {
   private spawnTerminal(sessionId: string, kind: TerminalKind, label: string, agent: string, env: string, cols: number, rows: number): string {
     const session = this.sessions.get(sessionId)!;
     const rt = this.resolveRuntime({ agent, env }, session.cwd);
+    // COLORFGBG: TUI(opencode/termenv 등)가 OSC 질의 대신 이 env로 다크/라이트를 판단하는 경우 대비.
+    const ptyEnv = Object.assign({}, process.env, {
+      COLORFGBG: process.env.MTB_CLAUDE_THEME === 'dark' ? '15;0' : '0;15',
+    });
     const pty = this.spawn(rt.file, rt.args, {
-      name: 'xterm-256color', cols, rows, cwd: rt.cwd, env: process.env,
+      name: 'xterm-256color', cols, rows, cwd: rt.cwd, env: ptyEnv,
     });
     const id = 't' + (++this.tCounter);
     const term: Terminal = { id, sessionId, label, kind, agent, env, pty, buffer: '', cols, rows };

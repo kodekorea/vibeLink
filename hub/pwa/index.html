@@ -124,6 +124,8 @@ const $ = s => document.querySelector(s);
 const EMBED = new URLSearchParams(location.search).has('embed');
 const WANT_SESSION = new URLSearchParams(location.search).get('session') || '';
 const QLANG = new URLSearchParams(location.search).get('lang') || '';
+const QAGENT = new URLSearchParams(location.search).get('agent') || '';
+let pgAccum = 0;   // opencode 스크롤(PageUp/Down) 누적
 const SAFE_BOTTOM = parseInt(new URLSearchParams(location.search).get('safe') || '0', 10) || 0;
 let ws, term, fit, sessions = [], active = '';
 
@@ -240,6 +242,14 @@ function setupTerm(){
   }
   function refreshDbg(act){ if(!dbgOn)return; dbg.textContent='buffer: '+bufType()+'\nmouse: '+trackMode()+(mouseActive()?' (active)':'')+'\naction: '+(act||'-'); }
   function termScroll(dir){ // dir>0 = 과거(위), dir<0 = 최신(아래)
+    if (QAGENT === 'opencode') {
+      // opencode TUI는 휠을 안 쓰고 PageUp/PageDown 키로 메시지를 스크롤한다. 드래그를 누적해 페이지 단위 전송.
+      pgAccum += dir;
+      const STEP = 3;  // 약 3행 드래그마다 페이지 키 1번
+      while (pgAccum >= STEP) { sendWs({ type:'input', sessionId: active, data: '\x1b[5~' }); pgAccum -= STEP; refreshDbg('pgUp'); }
+      while (pgAccum <= -STEP) { sendWs({ type:'input', sessionId: active, data: '\x1b[6~' }); pgAccum += STEP; refreshDbg('pgDn'); }
+      return;
+    }
     if (mouseActive()) {
       // 1순위: xterm 인코더(활성 모드/인코딩에 맞춰 claude=SGR, opencode=기본 형식으로 전송)
       if (sendWheel(dir)) { refreshDbg('wheel '+(dir>0?'up':'down')); return; }

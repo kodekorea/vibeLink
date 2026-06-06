@@ -146,7 +146,7 @@ test('런모드(danger): 에이전트별 권한 건너뛰기 플래그 추가', 
   sm.resize(a.terminalId, 80, 24); sm.resize(b.terminalId, 80, 24); sm.resize(c.terminalId, 80, 24);
   assert.deepEqual(made[0].writes, ['claude --dangerously-skip-permissions\r']);
   assert.deepEqual(made[1].writes, ['codex --dangerously-bypass-approvals-and-sandbox\r']);
-  assert.deepEqual(made[2].writes, ['opencode --dangerously-skip-permissions\r']);
+  assert.deepEqual(made[2].writes, ['opencode\r']);   // opencode TUI엔 스킵 플래그 없음
 });
 
 test('기본 에이전트 설정: setDefaultAgent → createSession이 그 에이전트로 띄움', () => {
