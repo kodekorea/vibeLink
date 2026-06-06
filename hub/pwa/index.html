@@ -35,6 +35,8 @@
   #plus:hover{background:var(--line)}
   #term{flex:1 1 auto;min-height:0;position:relative;padding:2px 4px}
   #term .xterm-viewport{overflow-y:auto !important;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
+  /* 모바일에서 손가락이 실제 닿는 캔버스(.xterm-screen) 레이어에도 세로 팬을 허용 */
+  #term .xterm-screen,#term .xterm-screen canvas{touch-action:pan-y}
   #toBottom{position:absolute;right:14px;bottom:14px;z-index:5;display:none;width:44px;height:44px;border-radius:22px;background:var(--accent);color:#fff;border:none;font-size:20px;box-shadow:0 3px 12px rgba(204,120,92,.35)}
   #toBottom.show{display:block}
   #keybar{display:flex;gap:7px;padding:8px 10px;background:var(--panel);overflow-x:auto;flex:0 0 auto;border-top:1px solid var(--line)}
@@ -174,6 +176,9 @@ function setupTerm(){
     lineHeight: 1.15,
     fontFamily: '"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace',
     theme: termTheme(),
+    // 입력은 아래 '명령 입력' 박스(#line)로만 받는다. 터미널을 탭해도
+    // 경쟁하는 소프트 키보드가 뜨지 않도록 xterm 자체 입력을 끈다(출력 전용).
+    disableStdin: true,
   });
   fit = new FitAddon.FitAddon();
   term.loadAddon(fit);

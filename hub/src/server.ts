@@ -93,6 +93,21 @@ function bearer(req: http.IncomingMessage): string {
   return h.startsWith('Bearer ') ? h.slice(7).trim() : '';
 }
 // 현재 LISTEN 중인 TCP 포트 목록(중복 제거, 정렬). netstat 파싱. hub 자기 포트는 제외.
+// 웹 dev 서버로 흔한 포트만 노출 — DB/윈도우 서비스 등 무의미한 LISTEN 포트를 거른다.
+// 그 외 포트는 프리뷰 화면의 직접 입력칸으로 열 수 있음.
+const DEV_PORTS = new Set<number>([
+  3000, 3001, 3002, 3003, // Next.js / CRA / Node
+  4173, 4174,             // Vite preview
+  4200,                   // Angular
+  5000, 5001,             // Flask / .NET / 일반
+  5173, 5174, 5175,       // Vite dev
+  8000, 8001,             // Django / 일반 http
+  8080, 8081,             // 일반 웹 / webpack
+  8888,                   // Jupyter / 일반
+  9000, 9001,             // 일반 dev
+  19006,                  // Expo web
+]);
+
 function listeningPorts(selfPort: number): Promise<number[]> {
   return new Promise((resolve, reject) => {
     import('child_process').then((cp) => {
@@ -108,8 +123,8 @@ function listeningPorts(selfPort: number): Promise<number[]> {
           const m = parts[1].match(/:(\d+)$/);
           if (!m) continue;
           const port = Number(m[1]);
-          // 너무 낮은 시스템 포트, hub 자기 포트, 임시 포트(>49151)는 제외 — dev 서버 후보만.
-          if (port < 1024 || port === selfPort || port > 49151) continue;
+          // hub 자기 포트 제외 + 흔한 dev 서버 포트만(화이트리스트). 그 외는 직접 입력으로 열기.
+          if (port === selfPort || !DEV_PORTS.has(port)) continue;
           set.add(port);
         }
         resolve(Array.from(set).sort((a, b) => a - b));
@@ -299,6 +314,37 @@ export class HubServer {
         '.webp': 'image/webp', '.bmp': 'image/bmp', '.svg': 'image/svg+xml', '.pdf': 'application/pdf',
       } as Record<string, string>)[ext] || 'application/octet-stream';
       res.writeHead(200, { 'Content-Type': mime });
+      fs.createReadStream(fp).pipe(res);
+      return;
+    }
+
+    // 파일 다운로드 — 폰의 시스템 브라우저가 저장하도록 attachment로 내려준다.
+    // 브라우저는 헤더를 못 실으므로 쿼리 토큰(?token=)도 허용한다.
+    if (meth === 'GET' && pathOnly === '/download') {
+      const u = new URL(url, 'http://x');
+      const tok = u.searchParams.get('token') || parseCookies(req)['mtb_jwt'] || bearer(req);
+      if (!this.store.verifyJwt(tok)) { res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('unauthenticated'); return; }
+      const p = u.searchParams.get('path');
+      if (!p) { res.writeHead(400); res.end('path required'); return; }
+      const fp = decodeURIComponent(p);
+      let st: fs.Stats;
+      try { st = fs.statSync(fp); } catch { res.writeHead(404); res.end('not found'); return; }
+      if (st.isDirectory()) { res.writeHead(400); res.end('is a directory'); return; }
+      const name = path.basename(fp);
+      const ext = path.extname(fp).toLowerCase();
+      const mime = ({
+        '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
+        '.webp': 'image/webp', '.bmp': 'image/bmp', '.svg': 'image/svg+xml', '.pdf': 'application/pdf',
+        '.txt': 'text/plain; charset=utf-8', '.md': 'text/markdown; charset=utf-8', '.json': 'application/json',
+      } as Record<string, string>)[ext] || 'application/octet-stream';
+      // RFC 5987: 비ASCII(한글) 파일명도 안전하게. filename(폴백) + filename*(UTF-8).
+      const asciiName = name.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_') || ('download' + ext);
+      res.writeHead(200, {
+        'Content-Type': mime,
+        'Content-Length': String(st.size),
+        'Content-Disposition': `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(name)}`,
+        'Cache-Control': 'no-store',
+      });
       fs.createReadStream(fp).pipe(res);
       return;
     }

@@ -205,6 +205,14 @@ export async function imageDataUri(filePath: string): Promise<{ uri?: string; er
   }
 }
 
+// 파일 다운로드 URL (시스템 브라우저로 열어 저장). 브라우저는 헤더를 못 실으므로
+// 토큰을 쿼리로 붙인다 — Linking.openURL(await downloadUrl(path)).
+export async function downloadUrl(filePath: string): Promise<string | null> {
+  const h = await getActiveHost();
+  if (!h) return null;
+  return h.url + '/download?path=' + encodeURIComponent(filePath) + '&token=' + encodeURIComponent(h.token);
+}
+
 // PC에서 LISTEN 중인 dev 서버 포트 목록.
 export async function listPorts(): Promise<number[]> {
   try { const r = await apiGet<{ ports: number[] }>('/ports'); return r.ports || []; }

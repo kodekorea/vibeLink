@@ -16,6 +16,7 @@ const EN = {
   loadFail: 'Could not load', noChanges: "No files changed by Claude in this session", truncated: '… (truncated)',
   // files
   browseFail: 'Failed to load: ', readFail: 'Read failed: ', imgFail: 'Could not load image',
+  download: 'Download', downloadStarted: 'Download started in browser', downloadFail: 'Could not start download',
   pdfMsg: 'PDF preview not supported yet.\nOpen it from the terminal by path.',
   // settings
   connectedPc: 'Connected PCs (hosts)', none: 'None', addPc: '＋ Add PC (scan QR)',
@@ -38,6 +39,7 @@ const KO: Dict = {
   loadSessionFail: '세션을 불러오지 못했어요 (claude 세션이 있어야 함)',
   loadFail: '불러오지 못했어요', noChanges: '이 세션에서 Claude가 바꾼 파일이 없어요', truncated: '… (잘림)',
   browseFail: '불러오기 실패: ', readFail: '읽기 실패: ', imgFail: '이미지를 불러올 수 없어요',
+  download: '다운로드', downloadStarted: '브라우저에서 다운로드를 시작했어요', downloadFail: '다운로드를 시작할 수 없어요',
   pdfMsg: 'PDF 미리보기는 아직 지원 안 해요.\n터미널에서 경로로 열어보세요.',
   connectedPc: '연결된 PC (호스트)', none: '없음', addPc: '＋ PC 추가 (QR 스캔)',
   completionAlarm: '완료 알림', available: '사용 가능', expoGoOff: 'Expo Go에서는 꺼짐 (dev build 필요)',

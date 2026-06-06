@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import * as Linking from 'expo-linking';
 import Markdown from 'react-native-markdown-display';
-import { apiGet, imageDataUri, requestNewSession, type Session } from '@/lib/hub';
+import { apiGet, downloadUrl, imageDataUri, requestNewSession, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
 import { font } from '@/lib/theme';
 import { usePrefs, type Palette } from '@/lib/prefs';
@@ -14,6 +15,7 @@ interface Entry { name: string; path: string; dir: boolean; size: number; }
 type Kind = 'image' | 'md' | 'text' | 'pdf';
 interface FileView {
   name: string;
+  path: string;
   kind: Kind;
   content?: string;
   truncated?: boolean;
@@ -97,17 +99,28 @@ export default function Files() {
     try {
       if (IMG.includes(ext)) {
         const res = await imageDataUri(e.path);
-        setFile({ name: e.name, kind: 'image', uri: res.uri, imgError: res.error });
+        setFile({ name: e.name, path: e.path, kind: 'image', uri: res.uri, imgError: res.error });
       } else if (ext === '.pdf') {
-        setFile({ name: e.name, kind: 'pdf' });
+        setFile({ name: e.name, path: e.path, kind: 'pdf' });
       } else {
         const r = await apiGet<{ content: string; truncated: boolean; size: number }>('/file?path=' + encodeURIComponent(e.path));
-        setFile({ name: e.name, kind: ext === '.md' ? 'md' : 'text', content: r.content, truncated: r.truncated });
+        setFile({ name: e.name, path: e.path, kind: ext === '.md' ? 'md' : 'text', content: r.content, truncated: r.truncated });
       }
     } catch (err) {
-      setFile({ name: e.name, kind: 'text', content: t('readFail') + String(err) });
+      setFile({ name: e.name, path: e.path, kind: 'text', content: t('readFail') + String(err) });
     }
     setLoading(false);
+  }
+
+  async function downloadFile() {
+    if (!file) return;
+    try {
+      const u = await downloadUrl(file.path);
+      if (!u) { Alert.alert(t('downloadFail')); return; }
+      await Linking.openURL(u);   // 시스템 브라우저가 다운로드 → 폰 Downloads 폴더
+    } catch (err) {
+      Alert.alert(t('downloadFail'), String(err));
+    }
   }
 
   if (file) {
@@ -118,6 +131,7 @@ export default function Files() {
         <View style={[styles.viewerBar, { paddingTop: insets.top + 10 }, !dark && styles.viewerBarLight]}>
           <Pressable onPress={() => setFile(null)} hitSlop={12} style={styles.closeBtn}><Text style={styles.link}>← {t('close')}</Text></Pressable>
           <Text style={[styles.viewerTitle, !dark && styles.viewerTitleLight]} numberOfLines={1}>{file.name}</Text>
+          <Pressable onPress={downloadFile} hitSlop={12} style={styles.dlBtn}><Text style={styles.link}>⬇ {t('download')}</Text></Pressable>
         </View>
         {file.kind === 'image' ? (
           file.uri ? (
@@ -192,6 +206,7 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   viewerRoot: { flex: 1, backgroundColor: c.surfaceDark },
   viewerBar: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingBottom: 10, backgroundColor: c.surfaceDarkElevated },
   closeBtn: { paddingVertical: 4, paddingRight: 4 },
+  dlBtn: { paddingVertical: 4, paddingLeft: 8 },
   viewerTitle: { color: c.onDark, fontSize: 12, flex: 1 },
   code: { color: c.ink, fontSize: 12, fontFamily: font.code },
   viewerRootLight: { backgroundColor: c.canvas },

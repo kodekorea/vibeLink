@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
@@ -80,13 +80,18 @@ export default function Preview() {
             {webUri ? <Pressable style={styles.btnGhost} onPress={() => webRef.current?.reload()}><Text style={styles.btnGhostTxt}>⟳</Text></Pressable> : null}
           </View>
           {ports.length > 0 ? (
-            <View style={styles.chips}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.chipsRow}
+              contentContainerStyle={styles.chips}
+            >
               {ports.map(String).map(p => (
                 <Pressable key={p} onPress={() => { setPort(p); openWeb(p); }} style={[styles.chip, port === p && webUri && styles.chipOn]}>
                   <Text style={[styles.chipTxt, port === p && webUri && styles.chipTxtOn]}>● {p}</Text>
                 </Pressable>
               ))}
-            </View>
+            </ScrollView>
           ) : (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>감지된 로컬 포트가 없습니다 (PC에서 서버 실행 필요)</Text>
@@ -162,7 +167,8 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   btnGhostTxt: { color: c.body, fontWeight: '600' },
   btnOn: { backgroundColor: c.primary, borderColor: 'transparent' },
   btnOnTxt: { color: c.onPrimary },
-  chips: { flexDirection: 'row', gap: 6, paddingHorizontal: 10, paddingBottom: 6, flexWrap: 'wrap' },
+  chipsRow: { flexGrow: 0, flexShrink: 0 },
+  chips: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingBottom: 6 },
   chip: { backgroundColor: c.surfaceCard, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: c.hairline },
   chipOn: { backgroundColor: c.primary, borderColor: 'transparent' },
   chipTxt: { color: c.body, fontSize: 13 },
