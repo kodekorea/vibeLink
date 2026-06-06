@@ -205,23 +205,41 @@ test('write는 해당 터미널 pty로 전달', () => {
   assert.deepEqual(made[0].writes, ['ls\r']);
 });
 
-test('터미널 벨(\\x07) → notify(세션 라벨 포함)', () => {
+const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+test('완료 알림: 긴 작업 버스트 후 조용해지면 알림(세션 라벨 포함)', async () => {
   const { spawn, made } = fakeSpawn();
   const msgs: any[] = [];
-  const sm = new SessionManager(spawn, m => msgs.push(m), 'powershell.exe', '');
+  const sm = new SessionManager(spawn, m => msgs.push(m), 'powershell.exe', 'claude', { notifyQuietMs: 30, notifyMinBusyMs: 60 });
   const { terminalId } = sm.createSession({ label: 'projA', path: 'C:\\a' });
-  made[0].emit('done\x07');
+  // 스피너처럼 한동안 계속 출력(=작업 중)
+  const start = Date.now();
+  while (Date.now() - start < 130) { made[0].emit('.'); await delay(10); }
+  await delay(60); // 조용 → idle 판정
   const n = msgs.find(m => m.type === 'notify');
-  assert.ok(n, 'notify가 방송돼야 함');
+  assert.ok(n, '긴 작업 후 알림이 와야 함');
   assert.equal(n.sessionId, terminalId);
   assert.equal(n.label, 'projA');
 });
 
-test('notify는 디바운스 윈도 내 중복 방송 안 함', () => {
+test('완료 알림: 짧은 응답(짧은 버스트)은 알림 안 함', async () => {
   const { spawn, made } = fakeSpawn();
   const msgs: any[] = [];
-  const sm = new SessionManager(spawn, m => msgs.push(m), 'powershell.exe', '');
+  const sm = new SessionManager(spawn, m => msgs.push(m), 'powershell.exe', 'claude', { notifyQuietMs: 30, notifyMinBusyMs: 300 });
   sm.createSession({ label: 'p', path: 'C:\\p' });
-  made[0].emit('\x07'); made[0].emit('\x07');
-  assert.equal(msgs.filter(m => m.type === 'notify').length, 1);
+  made[0].emit('ok');            // 짧게 한 번
+  await delay(70);               // 조용 → idle, busy<300ms
+  assert.equal(msgs.filter(m => m.type === 'notify').length, 0);
+});
+
+test('완료 알림: 셸 터미널은 길게 출력해도 알림 안 함', async () => {
+  const { spawn, made } = fakeSpawn();
+  const msgs: any[] = [];
+  const sm = new SessionManager(spawn, m => msgs.push(m), 'powershell.exe', 'claude', { notifyQuietMs: 30, notifyMinBusyMs: 60 });
+  const { sessionId } = sm.createSession({ label: 'p', path: 'C:\\p' });
+  sm.createTerminal(sessionId);  // shell (made[1])
+  const start = Date.now();
+  while (Date.now() - start < 130) { made[1].emit('building...'); await delay(10); }
+  await delay(60);
+  assert.equal(msgs.filter(m => m.type === 'notify').length, 0); // 셸은 대상 아님
 });

@@ -15,7 +15,11 @@ export interface SessionTree { id: string; label: string; cwd: string; env: stri
 export type Send = (msg: object) => void;
 
 const MAX_BUFFER = 200 * 1024;
-const NOTIFY_DEBOUNCE_MS = 3000;
+// 완료 알림 기준(에이전트가 "오래 생각"하고 끝났을 때만):
+//  - 작업 중엔 스피너/상태가 계속 출력돼 데이터가 흐르고, 끝나면 조용해진다.
+//  - QUIET_MS 동안 조용 = 턴 종료. 직전 작업 구간이 MIN_BUSY_MS 이상이었으면 그때만 알림.
+const NOTIFY_QUIET_MS = 1500;   // 이만큼 출력 없으면 "끝남"으로 판정
+const NOTIFY_MIN_BUSY_MS = 10000; // 작업이 이 시간 이상 지속됐을 때만 알림(짧은 응답 무시)
 
 // 에이전트명 → 셸에 타이핑할 실행 커맨드. 명령명과 다른 경우만 등록한다.
 //  - opencode: 'opencode [project]'가 기본(default) 서브커맨드라 cwd에서 그냥 'opencode'면 TUI가 뜬다.
@@ -29,7 +33,8 @@ const AGENT_CMD: Record<string, string> = {
 interface Session { id: string; label: string; cwd: string; env: string; }
 interface Terminal {
   id: string; sessionId: string; label: string; kind: TerminalKind; agent: string; env: string;
-  pty: IPty; buffer: string; cols: number; rows: number; lastNotify: number;
+  pty: IPty; buffer: string; cols: number; rows: number;
+  busyStart?: number; lastData?: number; idleTimer?: ReturnType<typeof setTimeout>;
 }
 
 // 세션(프로젝트) > 터미널(PTY) 2계층. WS 메시지의 sessionId 필드는 터미널 id를 가리킨다(PWA 호환).
@@ -39,12 +44,19 @@ export class SessionManager {
   private sCounter = 0;
   private tCounter = 0;
 
+  private notifyQuietMs: number;
+  private notifyMinBusyMs: number;
+
   constructor(
     private spawn: PtySpawn,
     private broadcast: Send,
     private shell: string,        // env=powershell 기본 셸 (예: powershell.exe)
     private launchCmd: string,    // agent=claude 기본 실행 명령 (예: claude)
-  ) {}
+    opts?: { notifyQuietMs?: number; notifyMinBusyMs?: number },
+  ) {
+    this.notifyQuietMs = opts?.notifyQuietMs ?? (Number(process.env.MTB_NOTIFY_QUIET_MS) || NOTIFY_QUIET_MS);
+    this.notifyMinBusyMs = opts?.notifyMinBusyMs ?? (Number(process.env.MTB_NOTIFY_MIN_MS) || NOTIFY_MIN_BUSY_MS);
+  }
 
   // 런타임 스펙 → 실제 spawn 정보. env/agent별 분기는 여기 한 곳에서 확장한다.
   // (WSL 지원 = env 'wsl' 분기 추가, opencode/codex = agent 분기 추가)
@@ -102,15 +114,17 @@ export class SessionManager {
       name: 'xterm-256color', cols, rows, cwd: rt.cwd, env: process.env,
     });
     const id = 't' + (++this.tCounter);
-    const term: Terminal = { id, sessionId, label, kind, agent, env, pty, buffer: '', cols, rows, lastNotify: 0 };
+    const term: Terminal = { id, sessionId, label, kind, agent, env, pty, buffer: '', cols, rows };
     this.terminals.set(id, term);
 
     pty.onData(data => {
       this.append(term, data);
       this.broadcast({ type: 'terminal_data', sessionId: id, data });
-      if (data.indexOf('\x07') !== -1) this.maybeNotify(term);
+      // 에이전트 터미널(claude/codex/opencode)만 "오래 작업 후 완료" 감지. 셸은 제외.
+      if (term.kind === 'agent') this.trackBusy(term);
     });
     pty.onExit(() => {
+      if (term.idleTimer) clearTimeout(term.idleTimer);
       this.terminals.delete(id);
       this.broadcast({ type: 'terminal_exit', sessionId: id });
       if (!Array.from(this.terminals.values()).some(t => t.sessionId === sessionId)) {
@@ -183,12 +197,25 @@ export class SessionManager {
     this.broadcast({ type: 'session_list', sessions: this.terminalList() });
   }
 
-  private maybeNotify(t: Terminal): void {
+  // 출력이 흐르는 동안 작업 구간을 추적하고, 조용해지면(NOTIFY_QUIET_MS) 종료로 판정.
+  private trackBusy(t: Terminal): void {
     const now = Date.now();
-    if (now - t.lastNotify < NOTIFY_DEBOUNCE_MS) return;
-    t.lastNotify = now;
+    if (t.busyStart == null) t.busyStart = now;
+    t.lastData = now;
+    if (t.idleTimer) clearTimeout(t.idleTimer);
+    t.idleTimer = setTimeout(() => this.onIdle(t), this.notifyQuietMs);
+  }
+
+  // 작업이 조용해진 시점 — 직전 구간이 충분히 길었으면(오래 생각) 그때만 완료 알림.
+  private onIdle(t: Terminal): void {
+    t.idleTimer = undefined;
+    const start = t.busyStart;
+    t.busyStart = undefined;
+    if (start == null) return;
+    const busyMs = (t.lastData ?? start) - start;
+    if (busyMs < this.notifyMinBusyMs) return;   // 짧은 응답 → 알림 안 함
     const label = this.sessions.get(t.sessionId)?.label ?? t.label;
-    this.broadcast({ type: 'notify', sessionId: t.id, label });
+    this.broadcast({ type: 'notify', sessionId: t.id, label, busyMs });
   }
 
   private append(t: Terminal, data: string): void {
@@ -197,7 +224,10 @@ export class SessionManager {
   }
 
   dispose(): void {
-    for (const t of this.terminals.values()) { try { t.pty.kill(); } catch { /* */ } }
+    for (const t of this.terminals.values()) {
+      if (t.idleTimer) clearTimeout(t.idleTimer);
+      try { t.pty.kill(); } catch { /* */ }
+    }
     this.terminals.clear();
     this.sessions.clear();
   }
