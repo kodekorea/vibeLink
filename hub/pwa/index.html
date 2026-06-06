@@ -222,11 +222,28 @@ function setupTerm(){
   t.appendChild(dbg); let dbgOn=false;
   function trackMode(){ try { return (term.modes && term.modes.mouseTrackingMode) || 'none'; } catch(e){ return '?'; } }
   function bufType(){ try { return (term.buffer && term.buffer.active && term.buffer.active.type) || '?'; } catch(e){ return '?'; } }
-  function refreshDbg(act){ if(!dbgOn)return; dbg.textContent='buffer: '+bufType()+'\nmouse: '+trackMode()+'\naction: '+(act||'-'); }
+  // xterm 내부 마우스 서비스. 앱이 켠 마우스 모드+인코딩(SGR/기본/픽셀)을 그대로 알고 있어,
+  // 우리가 직접 시퀀스를 만들지 않고 휠 이벤트만 넘기면 올바른 형식으로 에이전트에 보낸다.
+  function mouseSvc(){ try { return term._core && term._core.coreMouseService; } catch(e){ return null; } }
+  function mouseActive(){ const s = mouseSvc(); if (s) { try { return !!s.areMouseEventsActive; } catch(e){} } return trackMode() !== 'none'; }
+  // xterm 인코더로 휠 리포트 전송. dir>0=휠 위(과거), dir<0=휠 아래(최신). 성공 시 true.
+  // claude는 SGR, opencode는 기본(legacy CSI M) 인코딩을 쓰는데 — 서비스가 활성 인코딩으로 알아서 맞춘다.
+  function sendWheel(dir){
+    const s = mouseSvc(); if (!s || !s.triggerMouseEvent) return false;
+    try {
+      // col/row는 0기준이며 화면 범위 안이어야 한다(0,0). button:4=휠, action:0=위,1=아래.
+      return s.triggerMouseEvent({ col:0, row:0, x:1, y:1, button:4, action: dir>0?0:1, ctrl:false, alt:false, shift:false });
+    } catch(e){ return false; }
+  }
+  function refreshDbg(act){ if(!dbgOn)return; dbg.textContent='buffer: '+bufType()+'\nmouse: '+trackMode()+(mouseActive()?' (active)':'')+'\naction: '+(act||'-'); }
   function termScroll(dir){ // dir>0 = 과거(위), dir<0 = 최신(아래)
-    const tk = trackMode();
-    if (tk && tk !== 'none') { const btn = dir>0 ? 64 : 65; sendWs({ type:'input', sessionId: active, data: '\x1b[<'+btn+';1;1M' }); refreshDbg('wheel '+(dir>0?'up':'down')); }
-    else if (term && term.scrollLines) { term.scrollLines(-dir); updateToBottom(); refreshDbg('scrollLines '+(-dir)); }
+    if (mouseActive()) {
+      // 1순위: xterm 인코더(활성 모드/인코딩에 맞춰 claude=SGR, opencode=기본 형식으로 전송)
+      if (sendWheel(dir)) { refreshDbg('wheel '+(dir>0?'up':'down')); return; }
+      // 폴백: 내부 API를 못 쓰면 기존 SGR 하드코딩 휠 리포트(claude 경로 유지)
+      const btn = dir>0 ? 64 : 65; sendWs({ type:'input', sessionId: active, data: '\x1b[<'+btn+';1;1M' }); refreshDbg('wheel(sgr) '+(dir>0?'up':'down')); return;
+    }
+    if (term && term.scrollLines) { term.scrollLines(-dir); updateToBottom(); refreshDbg('scrollLines '+(-dir)); }
   }
   t.addEventListener('touchstart', e => {
     if (e.touches.length !== 1) { scrolling=false; return; }
