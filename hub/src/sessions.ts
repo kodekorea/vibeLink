@@ -39,7 +39,7 @@ const DANGER_FLAGS: Record<string, string> = {
   codex: '--dangerously-bypass-approvals-and-sandbox',
 };
 
-interface Session { id: string; label: string; cwd: string; env: string; theme?: string; }
+interface Session { id: string; label: string; cwd: string; env: string; }
 interface Terminal {
   id: string; sessionId: string; label: string; kind: TerminalKind; agent: string; env: string;
   pty: IPty; buffer: string; cols: number; rows: number;
@@ -130,12 +130,11 @@ export class SessionManager {
   }
 
   // 세션 생성 + 기본 에이전트 터미널 1개 자동 생성.
-  createSession(project: Project, spec?: Partial<RuntimeSpec> & { theme?: string }, cols = 80, rows = 24): { sessionId: string; terminalId: string } {
+  createSession(project: Project, spec?: Partial<RuntimeSpec>, cols = 80, rows = 24): { sessionId: string; terminalId: string } {
     const agent = spec?.agent ?? this.defaultAgent;
     const env = spec?.env ?? this.defaultEnv;
     const sessionId = 's' + (++this.sCounter);
-    // theme: 폰이 보는 테마(있으면) → 그 세션 터미널의 COLORFGBG로 → opencode 등이 다크/라이트 추종.
-    this.sessions.set(sessionId, { id: sessionId, label: project.label, cwd: project.path, env, theme: spec?.theme });
+    this.sessions.set(sessionId, { id: sessionId, label: project.label, cwd: project.path, env });
     const terminalId = this.spawnTerminal(sessionId, 'agent', agent, agent, env, cols, rows);
     this.broadcastList();
     return { sessionId, terminalId };
@@ -158,12 +157,8 @@ export class SessionManager {
   private spawnTerminal(sessionId: string, kind: TerminalKind, label: string, agent: string, env: string, cols: number, rows: number): string {
     const session = this.sessions.get(sessionId)!;
     const rt = this.resolveRuntime({ agent, env }, session.cwd);
-    // COLORFGBG: TUI(opencode/termenv 등)가 OSC 질의 대신 이 env로 다크/라이트를 판단하는 경우 대비.
-    // 세션 theme(폰이 보는 테마) 우선, 없으면 데스크톱 테마.
-    const dark = (session.theme || process.env.MTB_CLAUDE_THEME) === 'dark';
-    const ptyEnv = Object.assign({}, process.env, { COLORFGBG: dark ? '15;0' : '0;15' });
     const pty = this.spawn(rt.file, rt.args, {
-      name: 'xterm-256color', cols, rows, cwd: rt.cwd, env: ptyEnv,
+      name: 'xterm-256color', cols, rows, cwd: rt.cwd, env: process.env,
     });
     const id = 't' + (++this.tCounter);
     const term: Terminal = { id, sessionId, label, kind, agent, env, pty, buffer: '', cols, rows };

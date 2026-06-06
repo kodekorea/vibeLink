@@ -579,7 +579,7 @@ export class HubServer {
       const p = String(data['path'] ?? '');
       if (!p) { this.json(res, 400, { error: 'path required' }); return; }
       const label = String(data['label'] ?? (p.split(/[\\/]/).filter(Boolean).pop() || p));
-      const spec = { agent: data['agent'] ? String(data['agent']) : undefined, env: data['env'] ? String(data['env']) : undefined, theme: data['theme'] ? String(data['theme']) : undefined };
+      const spec = { agent: data['agent'] ? String(data['agent']) : undefined, env: data['env'] ? String(data['env']) : undefined };
       try {
         const { sessionId, terminalId } = this.sessions.createSession({ label, path: p }, spec);
         // id는 기존 호환(=기본 터미널 id). sessionId/terminalId도 함께 반환.

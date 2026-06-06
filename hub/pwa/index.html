@@ -188,14 +188,6 @@ function setupTerm(){
   doFit();
   term.onData(d => sendWs({ type:'input', sessionId: active, data: d }));
   term.onResize(({cols,rows}) => sendWs({ type:'resize', sessionId: active, cols, rows }));
-  // TUI(opencode/codex/claude 등)가 OSC 10/11로 전경·배경색을 물으면 현재 테마 색으로 응답.
-  // → 에이전트가 터미널 배경(=앱 테마)을 보고 다크/라이트를 자동으로 따라간다.
-  const oscColor = (code, hex) => { const h = String(hex||'').replace('#',''); if (h.length < 6) return ''; const d = s => s + s; return '\x1b]' + code + ';rgb:' + d(h.slice(0,2)) + '/' + d(h.slice(2,4)) + '/' + d(h.slice(4,6)) + '\x1b\\'; };
-  const answerOsc = (code, hex) => { const r = oscColor(code, hex); if (r) { try { sendWs({ type:'input', sessionId: active, data: r }); } catch (e) {} } };
-  try {
-    term.parser.registerOscHandler(11, d => { if (d === '?') { answerOsc(11, termTheme().background); return true; } return false; });
-    term.parser.registerOscHandler(10, d => { if (d === '?') { answerOsc(10, termTheme().foreground); return true; } return false; });
-  } catch (e) {}
   window.addEventListener('resize', applyViewport);
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', applyViewport);
@@ -582,7 +574,7 @@ async function addAndCreate(p){
 }
 async function createSession(p){
   $('#modal').classList.remove('show');
-  const r = await api('/sessions/create', { method:'POST', body: JSON.stringify({ path: p, theme: theme }) });
+  const r = await api('/sessions/create', { method:'POST', body: JSON.stringify({ path: p }) });
   try { const j = await r.json(); if (j && j.id) {
     active = j.terminalId || j.id; term.reset(); renderBar(); focusTerminal();
     doFit(); syncSize(); setTimeout(syncSize, 200);   // 새 에이전트를 올바른 크기로 부팅
