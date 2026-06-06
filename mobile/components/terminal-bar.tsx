@@ -57,7 +57,7 @@ export function TerminalBar() {
   }
 
   async function remove(term: TerminalInfo) {
-    if (term.kind === 'claude') return;
+    if (term.kind === 'agent') return;
     await closeTerminal(term.id);
     refresh();
   }
@@ -69,7 +69,7 @@ export function TerminalBar() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {terminals.map(term => {
           const on = term.id === activeTid;
-          const isClaude = term.kind === 'claude';
+          const isClaude = term.kind === 'agent';
           return (
             <Pressable key={term.id} onPress={() => setActiveTerminalId(term.id)}
               style={[styles.pill, { backgroundColor: on ? c.primary : c.surfaceCard, borderColor: on ? 'transparent' : c.hairline }]}>

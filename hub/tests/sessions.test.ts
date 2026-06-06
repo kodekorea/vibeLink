@@ -3,12 +3,12 @@ import assert from 'node:assert';
 import { SessionManager } from '../src/sessions';
 import type { IPty } from '../src/nodePty';
 
-interface Fake { pty: IPty; writes: string[]; emit: (d: string) => void; exit: () => void; opts: any; }
+interface Fake { pty: IPty; file: string; args: string[]; writes: string[]; emit: (d: string) => void; exit: () => void; opts: any; }
 
 // spawn 호출마다 새 fake pty를 만들고 기록한다(터미널 여러 개 검증용).
 function fakeSpawn() {
   const made: Fake[] = [];
-  const spawn = (_shell: string, _args: string[], opts: any): IPty => {
+  const spawn = (file: string, args: string[], opts: any): IPty => {
     let dataCb: (d: string) => void = () => {};
     let exitCb: (e: { exitCode: number }) => void = () => {};
     const writes: string[] = [];
@@ -20,7 +20,7 @@ function fakeSpawn() {
       resize() { /* noop */ },
       kill() { exitCb({ exitCode: 0 }); },
     };
-    made.push({ pty, writes, emit: (d) => dataCb(d), exit: () => exitCb({ exitCode: 0 }), opts });
+    made.push({ pty, file, args, writes, emit: (d) => dataCb(d), exit: () => exitCb({ exitCode: 0 }), opts });
     return pty;
   };
   return { spawn, made };
@@ -38,7 +38,7 @@ test('createSession: 세션 + claude 터미널 자동 생성 + launch 실행 + �
   const tree = sm.tree();
   assert.equal(tree.length, 1);
   assert.equal(tree[0].id, 's1');
-  assert.deepEqual(tree[0].terminals, [{ id: 't1', label: 'claude', kind: 'claude' }]);
+  assert.deepEqual(tree[0].terminals, [{ id: 't1', label: 'claude', kind: 'agent', agent: 'claude', env: 'powershell' }]);
   assert.ok(msgs.some(m => m.type === 'session_list'));
 });
 
@@ -51,7 +51,27 @@ test('createTerminal: 셸 추가 — claude 미실행, 같은 cwd, 라벨 shell 
   assert.deepEqual(made[1].writes, []);                 // 셸은 launch 안 함
   assert.equal(made[1].opts.cwd, 'C:\\p');
   const term = sm.tree()[0].terminals.find(t => t.id === 't2');
-  assert.deepEqual(term, { id: 't2', label: 'shell 1', kind: 'shell' });
+  assert.deepEqual(term, { id: 't2', label: 'shell 1', kind: 'shell', agent: 'shell', env: 'powershell' });
+});
+
+test('runtime spec: agent=opencode → opencode 실행, env=wsl → wsl.exe spawn (토대)', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
+  sm.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'opencode', env: 'wsl' });
+  assert.equal(made[0].file, 'wsl.exe');          // env=wsl → wsl.exe
+  assert.deepEqual(made[0].writes, ['opencode\r']); // agent=opencode → opencode 실행
+  const term = sm.tree()[0].terminals[0];
+  assert.equal(term.agent, 'opencode');
+  assert.equal(term.env, 'wsl');
+  assert.equal(term.kind, 'agent');
+});
+
+test('기본값: agent=claude, env=powershell (powershell.exe + claude)', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
+  sm.createSession({ label: 'p', path: 'C:\\p' });
+  assert.equal(made[0].file, 'powershell.exe');
+  assert.deepEqual(made[0].writes, ['claude\r']);
 });
 
 test('createTerminal: 없는 세션이면 null', () => {

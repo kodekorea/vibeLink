@@ -544,8 +544,9 @@ export class HubServer {
       const p = String(data['path'] ?? '');
       if (!p) { this.json(res, 400, { error: 'path required' }); return; }
       const label = String(data['label'] ?? (p.split(/[\\/]/).filter(Boolean).pop() || p));
+      const spec = { agent: data['agent'] ? String(data['agent']) : undefined, env: data['env'] ? String(data['env']) : undefined };
       try {
-        const { sessionId, terminalId } = this.sessions.createSession({ label, path: p });
+        const { sessionId, terminalId } = this.sessions.createSession({ label, path: p }, spec);
         // id는 기존 호환(=기본 터미널 id). sessionId/terminalId도 함께 반환.
         this.json(res, 200, { ok: true, id: terminalId, sessionId, terminalId });
       } catch (e) {
@@ -563,8 +564,9 @@ export class HubServer {
     if (url === '/terminals/create') {
       const sessionId = String(data['sessionId'] ?? '');
       if (!sessionId) { this.json(res, 400, { error: 'sessionId required' }); return; }
+      const spec = { agent: data['agent'] ? String(data['agent']) : undefined, env: data['env'] ? String(data['env']) : undefined };
       try {
-        const terminalId = this.sessions.createTerminal(sessionId);
+        const terminalId = this.sessions.createTerminal(sessionId, spec);
         if (!terminalId) { this.json(res, 404, { error: 'no such session' }); return; }
         this.json(res, 200, { ok: true, terminalId });
       } catch (e) {

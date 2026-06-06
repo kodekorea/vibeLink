@@ -121,13 +121,13 @@ export async function loadSelectedProject(): Promise<void> {
 }
 
 // ── 공유 세션/터미널 상태 (세션=프로젝트, 그 안에 터미널 여러 개) ──
-export type TerminalKind = 'claude' | 'shell';
-export interface TerminalInfo { id: string; label: string; kind: TerminalKind; }
-export interface Session { id: string; label: string; cwd: string; terminals: TerminalInfo[]; }
+export type TerminalKind = 'agent' | 'shell';
+export interface TerminalInfo { id: string; label: string; kind: TerminalKind; agent?: string; env?: string; }
+export interface Session { id: string; label: string; cwd: string; env?: string; terminals: TerminalInfo[]; }
 
-// 세션의 기본(claude) 터미널 id. 세션 선택 시 이 터미널을 활성으로.
+// 세션의 기본(에이전트) 터미널 id. 세션 선택 시 이 터미널을 활성으로.
 export function claudeTerminalId(s: Session): string | null {
-  return (s.terminals?.find(t => t.kind === 'claude') ?? s.terminals?.[0])?.id ?? null;
+  return (s.terminals?.find(t => t.kind === 'agent') ?? s.terminals?.[0])?.id ?? null;
 }
 
 // 다른 탭에서 '+' 누르면 터미널 탭으로 이동해 새 세션 모달을 연다(이 플래그로 전달).
