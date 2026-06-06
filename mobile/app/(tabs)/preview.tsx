@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
-import { previewBase, screenDataUri, listPorts } from '@/lib/hub';
+import { previewBase, screenDataUri, listPorts, listDisplays, type DisplayInfo } from '@/lib/hub';
 import { usePrefs, type Palette } from '@/lib/prefs';
 import { t } from '@/lib/i18n';
 
@@ -42,24 +42,37 @@ export default function Preview() {
   const [shotErr, setShotErr] = useState('');
   const [loadingShot, setLoadingShot] = useState(false);
   const [auto, setAuto] = useState(false);
+  const [displays, setDisplays] = useState<DisplayInfo[]>([]);
+  const [display, setDisplay] = useState<number | undefined>(undefined); // undefined = 전체
 
-  const capture = useCallback(async () => {
+  const capture = useCallback(async (d?: number) => {
     setLoadingShot(true);
-    const r = await screenDataUri();
+    const r = await screenDataUri(d);
     if (r.uri) { setShot(r.uri); setShotErr(''); }
     else setShotErr(t('screenFail') + (r.error ? ' (' + r.error + ')' : ''));
     setLoadingShot(false);
   }, []);
 
+  // 모니터 목록을 받아 주 모니터를 기본 선택(없으면 전체).
   useEffect(() => {
-    if (mode === 'screen' && !shot) capture();
+    if (mode !== 'screen' || displays.length) return;
+    listDisplays().then(ds => {
+      setDisplays(ds);
+      if (ds.length > 1) {
+        const prim = ds.find(x => x.primary) || ds[0];
+        setDisplay(prim.idx);
+        capture(prim.idx);
+      } else {
+        capture(undefined);
+      }
+    }).catch(() => capture(undefined));
   }, [mode]);
 
   useEffect(() => {
     if (mode !== 'screen' || !auto) return;
-    const id = setInterval(capture, 2000);
+    const id = setInterval(() => capture(display), 2000);
     return () => clearInterval(id);
-  }, [mode, auto, capture]);
+  }, [mode, auto, capture, display]);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -129,10 +142,27 @@ export default function Preview() {
       ) : (
         <View style={styles.flex}>
           <View style={styles.bar}>
-            <Pressable style={styles.btn} onPress={capture}><Text style={styles.btnTxt}>{t('refresh')}</Text></Pressable>
+            <Pressable style={styles.btn} onPress={() => capture(display)}><Text style={styles.btnTxt}>{t('refresh')}</Text></Pressable>
             <Pressable style={[styles.btnGhost, auto && styles.btnOn]} onPress={() => setAuto(a => !a)}><Text style={[styles.btnGhostTxt, auto && styles.btnOnTxt]}>{t('auto')}</Text></Pressable>
             {loadingShot ? <ActivityIndicator color={c.primary} style={{ marginLeft: 8 }} /> : null}
           </View>
+          {displays.length > 1 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.chipsRow}
+              contentContainerStyle={styles.chips}
+            >
+              <Pressable onPress={() => { setDisplay(undefined); capture(undefined); }} style={[styles.chip, display === undefined && styles.chipOn]}>
+                <Text style={[styles.chipTxt, display === undefined && styles.chipTxtOn]}>{t('allDisplays')}</Text>
+              </Pressable>
+              {displays.map((d, i) => (
+                <Pressable key={d.idx} onPress={() => { setDisplay(d.idx); capture(d.idx); }} style={[styles.chip, display === d.idx && styles.chipOn]}>
+                  <Text style={[styles.chipTxt, display === d.idx && styles.chipTxtOn]}>🖥 {i + 1}{d.primary ? '★' : ''} {d.w}×{d.h}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : null}
           {shotErr ? <Text style={styles.err}>{shotErr}</Text> : null}
           {shot ? (
             <WebView

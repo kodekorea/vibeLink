@@ -25,6 +25,7 @@ const EN = {
   endSession: 'End session', endSessionQ: (l: string) => `End session "${l}"?`, cancel: 'Cancel', end: 'End',
   // preview
   preview: 'Preview', web: 'Web', screen: 'Screen', port: 'Port', open: 'Open', refresh: 'Refresh', auto: 'Auto',
+  allDisplays: 'All', monitor: 'Monitor',
   previewLanHint: 'Web preview needs same Wi‑Fi (connect via LAN QR).', screenFail: 'Could not capture screen',
 };
 type Dict = typeof EN;
@@ -46,6 +47,7 @@ const KO: Dict = {
   delete: '삭제', appearance: '화면', theme: '테마', language: '언어', light: '라이트', dark: '다크',
   endSession: '세션 종료', endSessionQ: (l: string) => `${l} 세션을 종료할까요?`, cancel: '취소', end: '종료',
   preview: '프리뷰', web: '웹', screen: '화면', port: '포트', open: '열기', refresh: '새로고침', auto: '자동',
+  allDisplays: '전체', monitor: '모니터',
   previewLanHint: '웹 프리뷰는 같은 와이파이에서만 돼요 (LAN QR로 접속).', screenFail: '화면을 캡처할 수 없어요',
 };
 const DICTS = { en: EN, ko: KO };

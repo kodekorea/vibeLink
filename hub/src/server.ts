@@ -24,10 +24,14 @@ function cookieHeader(token: string): string {
 }
 // Windows 전용 화면 캡처 폴백: System.Drawing 으로 전체 가상 스크린을 PNG(base64)로 캡처.
 // screenshot-desktop 번들 캡처기가 실패하는 환경을 위한 무의존 대비책.
-function captureScreenPowerShell(): Promise<Buffer> {
+// idx가 주어지면 해당 모니터(Screen.AllScreens[idx])만, 없으면 전체 가상화면을 캡처.
+function captureScreenPowerShell(idx?: number): Promise<Buffer> {
+  const bounds = (typeof idx === 'number' && Number.isInteger(idx) && idx >= 0)
+    ? `$ss=[System.Windows.Forms.Screen]::AllScreens; if($ss.Count -le ${idx}){[Console]::Error.WriteLine('no such display');exit 1}; $b=$ss[${idx}].Bounds;`
+    : '$b=[System.Windows.Forms.SystemInformation]::VirtualScreen;';
   const ps = [
     'Add-Type -AssemblyName System.Windows.Forms,System.Drawing;',
-    '$b=[System.Windows.Forms.SystemInformation]::VirtualScreen;',
+    bounds,
     '$bmp=New-Object System.Drawing.Bitmap($b.Width,$b.Height);',
     '$g=[System.Drawing.Graphics]::FromImage($bmp);',
     '$g.CopyFromScreen($b.Location,[System.Drawing.Point]::Empty,$b.Size);',
@@ -48,6 +52,34 @@ function captureScreenPowerShell(): Promise<Buffer> {
           if (!b64) { reject(new Error('powershell capture: empty output')); return; }
           try { resolve(Buffer.from(b64, 'base64')); }
           catch (e) { reject(e); }
+        },
+      );
+      child.on('error', reject);
+    }).catch(reject);
+  });
+}
+
+// 연결된 모니터 목록 (Windows, 무의존 .NET). idx는 캡처 시 ?display= 로 그대로 사용.
+interface DisplayInfo { idx: number; name: string; primary: boolean; w: number; h: number; }
+function listDisplaysWindows(): Promise<DisplayInfo[]> {
+  const ps = [
+    'Add-Type -AssemblyName System.Windows.Forms;',
+    '$i=0;$o=@();',
+    'foreach($s in [System.Windows.Forms.Screen]::AllScreens){$b=$s.Bounds;$o+=[PSCustomObject]@{idx=$i;name=$s.DeviceName;primary=$s.Primary;w=$b.Width;h=$b.Height};$i++}',
+    'ConvertTo-Json -Compress -InputObject @($o)',
+  ].join('');
+  return new Promise<DisplayInfo[]>((resolve, reject) => {
+    import('child_process').then((cp) => {
+      const child = cp.execFile(
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-Command', ps],
+        { windowsHide: true, maxBuffer: 1024 * 1024 },
+        (err, stdout) => {
+          if (err && !stdout) { reject(err); return; }
+          try {
+            const parsed = JSON.parse(String(stdout).trim() || '[]');
+            resolve(Array.isArray(parsed) ? parsed : [parsed]);
+          } catch (e) { reject(e); }
         },
       );
       child.on('error', reject);
@@ -349,24 +381,43 @@ export class HubServer {
       return;
     }
 
-    // PC 화면 캡처(PNG) — OpenCV 새창·GUI 앱 등 무엇이든 폰에서 보기
-    if (meth === 'GET' && pathOnly === '/screen') {
+    // 연결된 모니터 목록 — 폰에서 캡처할 모니터를 고르게.
+    if (meth === 'GET' && pathOnly === '/displays') {
       if (!this.auth(req)) { res.writeHead(401); res.end(); return; }
       try {
+        let displays: DisplayInfo[] = [];
+        if (process.platform === 'win32') {
+          displays = await listDisplaysWindows();
+        } else {
+          const spec: string = 'screenshot-desktop';
+          const mod: any = await import(spec);
+          const ss = mod.default || mod;
+          const ds: any[] = await ss.listDisplays();
+          displays = ds.map((d, i) => ({ idx: d.id ?? i, name: d.name || ('Display ' + (i + 1)), primary: i === 0, w: d.width || 0, h: d.height || 0 }));
+        }
+        this.json(res, 200, { displays });
+      } catch {
+        this.json(res, 200, { displays: [] });
+      }
+      return;
+    }
+
+    // PC 화면 캡처(PNG) — OpenCV 새창·GUI 앱 등 무엇이든 폰에서 보기.
+    // ?display=<idx> 면 해당 모니터만, 없거나 all 이면 전체 가상화면.
+    if (meth === 'GET' && pathOnly === '/screen') {
+      if (!this.auth(req)) { res.writeHead(401); res.end(); return; }
+      const dispRaw = new URL(url, 'http://x').searchParams.get('display');
+      const dispIdx = (dispRaw && dispRaw !== 'all' && /^\d+$/.test(dispRaw)) ? Number(dispRaw) : undefined;
+      try {
         let img: Buffer | null = null;
-        // 1순위: screenshot-desktop (멀티플랫폼)
-        try {
+        if (process.platform === 'win32') {
+          // 이 환경에선 screenshot-desktop 번들 캡처기가 자주 깨져 PowerShell이 신뢰 가능 + 모니터별 캡처 지원.
+          img = await captureScreenPowerShell(dispIdx);
+        } else {
           const spec: string = 'screenshot-desktop';
           const mod: any = await import(spec);
           const screenshot = mod.default || mod;
-          img = await screenshot({ format: 'png' });
-        } catch (primaryErr) {
-          // 일부 Windows 환경에서 screenshot-desktop 번들 캡처기가 실패함 → PowerShell 폴백
-          if (process.platform === 'win32') {
-            img = await captureScreenPowerShell();
-          } else {
-            throw primaryErr;
-          }
+          img = dispIdx !== undefined ? await screenshot({ screen: dispIdx, format: 'png' }) : await screenshot({ format: 'png' });
         }
         if (!img || img.length === 0) throw new Error('empty capture');
         res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-store' });

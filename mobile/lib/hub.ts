@@ -228,12 +228,29 @@ export async function previewBase(): Promise<string | null> {
   return m ? 'http://' + m[1] : null;
 }
 
-// PC 화면 캡처를 data URI로 (인증 fetch → arrayBuffer → base64)
-export async function screenDataUri(): Promise<{ uri?: string; error?: string }> {
+// 연결된 모니터 목록 (모니터 선택용)
+export interface DisplayInfo { idx: number; name: string; primary: boolean; w: number; h: number; }
+export async function listDisplays(): Promise<DisplayInfo[]> {
+  const h = await getActiveHost();
+  if (!h) return [];
+  try {
+    const r = await fetch(h.url + '/displays', { headers: { Authorization: 'Bearer ' + h.token } });
+    if (!r.ok) return [];
+    const j = await r.json();
+    return Array.isArray(j.displays) ? j.displays : [];
+  } catch {
+    return [];
+  }
+}
+
+// PC 화면 캡처를 data URI로 (인증 fetch → arrayBuffer → base64).
+// display: 모니터 idx (undefined면 전체 가상화면)
+export async function screenDataUri(display?: number): Promise<{ uri?: string; error?: string }> {
   const h = await getActiveHost();
   if (!h) return { error: 'not connected' };
   try {
-    const r = await fetch(h.url + '/screen', { headers: { Authorization: 'Bearer ' + h.token } });
+    const q = display !== undefined ? '?display=' + display : '';
+    const r = await fetch(h.url + '/screen' + q, { headers: { Authorization: 'Bearer ' + h.token } });
     if (!r.ok) return { error: 'HTTP ' + r.status };
     const buf = await r.arrayBuffer();
     if (!buf || buf.byteLength === 0) return { error: 'empty' };
