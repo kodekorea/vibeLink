@@ -169,6 +169,9 @@ function start(){
 }
 
 let fontSize = Math.min(22, Math.max(9, parseInt(localStorage.getItem('mtb_font') || '14', 10) || 14));
+// 터치 기기(폰/태블릿)에서만 터미널을 출력 전용으로. 데스크톱은 터미널에 직접 입력 가능.
+const isTouch = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+  || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 function setupTerm(){
   term = new Terminal({
     scrollback: 5000,
@@ -176,9 +179,10 @@ function setupTerm(){
     lineHeight: 1.15,
     fontFamily: '"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace',
     theme: termTheme(),
-    // 입력은 아래 '명령 입력' 박스(#line)로만 받는다. 터미널을 탭해도
-    // 경쟁하는 소프트 키보드가 뜨지 않도록 xterm 자체 입력을 끈다(출력 전용).
-    disableStdin: true,
+    // 터치 기기에서만 입력을 아래 '명령 입력' 박스(#line)로 통일 — 터미널을 탭해도
+    // 경쟁하는 소프트 키보드가 뜨지 않게 xterm 자체 입력을 끈다(출력 전용).
+    // 데스크톱은 false라 터미널에 바로 타이핑 가능.
+    disableStdin: isTouch,
   });
   fit = new FitAddon.FitAddon();
   term.loadAddon(fit);
