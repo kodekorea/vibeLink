@@ -39,19 +39,6 @@ const DANGER_FLAGS: Record<string, string> = {
   codex: '--dangerously-bypass-approvals-and-sandbox',
 };
 
-// opencode는 자체 테마 설정이 없고 "콘솔(셸) 색"을 따라간다. 그래서 실행 직전에 셸 콘솔 색을
-// 앱 테마에 맞춰 바꾸는 명령을 앞에 붙인다. (env별 문법이 다름)
-function consoleThemePrefix(env: string, dark: boolean): string {
-  if (env === 'cmd') return dark ? 'color 07 & ' : 'color F0 & ';
-  if (env === 'gitbash' || env === 'wsl') {
-    const bg = dark ? '#181715' : '#faf9f5', fg = dark ? '#faf9f5' : '#141413';
-    return `printf '\\033]11;${bg}\\007\\033]10;${fg}\\007';`;
-  }
-  // powershell (기본): 콘솔 배경/전경색을 바꾸고 화면을 새 색으로 채운다.
-  const bg = dark ? 'Black' : 'White', fg = dark ? 'Gray' : 'Black';
-  return `$Host.UI.RawUI.BackgroundColor='${bg}';$Host.UI.RawUI.ForegroundColor='${fg}';Clear-Host;`;
-}
-
 interface Session { id: string; label: string; cwd: string; env: string; theme?: string; }
 interface Terminal {
   id: string; sessionId: string; label: string; kind: TerminalKind; agent: string; env: string;
@@ -117,7 +104,7 @@ export class SessionManager {
 
   // 런타임 스펙 → 실제 spawn 정보. env/agent별 분기는 여기 한 곳에서 확장한다.
   // (WSL 지원 = env 'wsl' 분기 추가, opencode/codex = agent 분기 추가)
-  private resolveRuntime(spec: RuntimeSpec, cwd: string, theme: string): { file: string; args: string[]; cwd: string; launch: string } {
+  private resolveRuntime(spec: RuntimeSpec, cwd: string): { file: string; args: string[]; cwd: string; launch: string } {
     // 환경(셸)
     let file = this.shell;
     let args: string[] = [];
@@ -138,8 +125,6 @@ export class SessionManager {
       const base = spec.agent === 'claude' ? this.launchCmd : (AGENT_CMD[spec.agent] ?? spec.agent);
       const flag = this.dangerMode ? (DANGER_FLAGS[spec.agent] ?? '') : '';
       launch = flag ? base + ' ' + flag : base;
-      // opencode는 콘솔 색을 따라가므로 실행 전에 콘솔 색을 테마에 맞춘다.
-      if (spec.agent === 'opencode') launch = consoleThemePrefix(spec.env, theme === 'dark') + launch;
     }
     return { file, args, cwd, launch };
   }
@@ -172,10 +157,10 @@ export class SessionManager {
 
   private spawnTerminal(sessionId: string, kind: TerminalKind, label: string, agent: string, env: string, cols: number, rows: number): string {
     const session = this.sessions.get(sessionId)!;
-    const theme = session.theme || process.env.MTB_CLAUDE_THEME || 'light';
-    const rt = this.resolveRuntime({ agent, env }, session.cwd, theme);
-    // COLORFGBG: TUI(termenv 등)가 OSC 질의 대신 이 env로 다크/라이트를 판단하는 경우 대비.
-    const dark = theme === 'dark';
+    const rt = this.resolveRuntime({ agent, env }, session.cwd);
+    // COLORFGBG: TUI(opencode/termenv 등)가 OSC 질의 대신 이 env로 다크/라이트를 판단하는 경우 대비.
+    // 세션 theme(폰이 보는 테마) 우선, 없으면 데스크톱 테마.
+    const dark = (session.theme || process.env.MTB_CLAUDE_THEME) === 'dark';
     const ptyEnv = Object.assign({}, process.env, { COLORFGBG: dark ? '15;0' : '0;15' });
     const pty = this.spawn(rt.file, rt.args, {
       name: 'xterm-256color', cols, rows, cwd: rt.cwd, env: ptyEnv,
