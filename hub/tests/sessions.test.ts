@@ -136,6 +136,19 @@ test('기본값: agent=claude, env=powershell (powershell.exe + claude)', () => 
   assert.deepEqual(made[0].writes, ['claude\r']);
 });
 
+test('런모드(danger): 에이전트별 권한 건너뛰기 플래그 추가', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
+  sm.setDanger(true);
+  const a = sm.createSession({ label: 'a', path: 'C:\\a' }, { agent: 'claude' });
+  const b = sm.createSession({ label: 'b', path: 'C:\\b' }, { agent: 'codex' });
+  const c = sm.createSession({ label: 'c', path: 'C:\\c' }, { agent: 'opencode' });
+  sm.resize(a.terminalId, 80, 24); sm.resize(b.terminalId, 80, 24); sm.resize(c.terminalId, 80, 24);
+  assert.deepEqual(made[0].writes, ['claude --dangerously-skip-permissions\r']);
+  assert.deepEqual(made[1].writes, ['codex --dangerously-bypass-approvals-and-sandbox\r']);
+  assert.deepEqual(made[2].writes, ['opencode --dangerously-skip-permissions\r']);
+});
+
 test('기본 에이전트 설정: setDefaultAgent → createSession이 그 에이전트로 띄움', () => {
   const { spawn, made } = fakeSpawn();
   const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');

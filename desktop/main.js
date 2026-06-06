@@ -50,7 +50,7 @@ function settings() {
     agent: oneOf(s.agent, ['claude', 'opencode', 'codex'], 'claude'),         // 기본 에이전트
     runEnv: oneOf(s.runEnv, ['powershell', 'cmd', 'gitbash', 'wsl'], 'powershell'), // 런모드(환경)
     theme: (s.theme || s.claudeTheme) === 'dark' ? 'dark' : 'light',          // 테마 (claudeTheme 호환)
-    claudeMode: s.claudeMode === 'skip' ? 'skip' : 'normal',                  // claude 권한 (advanced)
+    runMode: (s.runMode || s.claudeMode) === 'skip' ? 'skip' : 'normal',      // 런모드: normal | skip(권한 건너뛰기)
     tunnel: oneOf(s.tunnel, ['relay', 'quick', 'lan'], 'relay'),             // 기본=릴레이
     relayUrl: s.relayUrl || '',     // 예: wss://relay.kodekorea.kr
     relayKey: s.relayKey || '',
@@ -65,11 +65,12 @@ function startHub() {
   const cfg = settings();
   const dot = loadDotEnv();
   const env = Object.assign({}, process.env, dot.vars, { MTB_PORT: String(cfg.port), MTB_PASSWORD: cfg.password });
-  // claude 실행 모드: normal=`claude`, skip=`claude --dangerously-skip-permissions`
-  env.MTB_LAUNCH = cfg.claudeMode === 'skip' ? 'claude --dangerously-skip-permissions' : 'claude';
+  // 런모드(권한 건너뛰기)는 에이전트별 플래그를 hub가 붙인다 → MTB_LAUNCH는 베이스만.
+  env.MTB_LAUNCH = 'claude';
+  env.MTB_SKIP_PERMS = cfg.runMode === 'skip' ? '1' : '';
   env.MTB_CLAUDE_THEME = cfg.theme;
   env.MTB_DEFAULT_AGENT = cfg.agent;   // 새 세션 기본 에이전트
-  env.MTB_DEFAULT_ENV = cfg.runEnv;    // 새 세션 기본 환경(런모드)
+  env.MTB_DEFAULT_ENV = cfg.runEnv;    // 새 세션 기본 셸(환경)
   // 터널: 기본 릴레이. 사용자가 env를 직접 안 만져도 데스크톱이 릴레이 연결정보를 전달.
   env.MTB_TUNNEL = cfg.tunnel;
   if (cfg.tunnel === 'relay' && cfg.relayUrl) {
@@ -122,7 +123,7 @@ ipcMain.handle('mtb:save', async (_e, s) => {
     agent: oneOf(s.agent, ['claude', 'opencode', 'codex'], 'claude'),
     runEnv: oneOf(s.runEnv, ['powershell', 'cmd', 'gitbash', 'wsl'], 'powershell'),
     theme: s.theme === 'dark' ? 'dark' : 'light',
-    claudeMode: s.claudeMode === 'skip' ? 'skip' : 'normal',
+    runMode: s.runMode === 'skip' ? 'skip' : 'normal',
     tunnel: oneOf(s.tunnel, ['relay', 'quick', 'lan'], 'relay'),
     relayUrl: s.relayUrl || '',
     relayKey: s.relayKey || '',

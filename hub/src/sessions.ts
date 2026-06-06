@@ -32,6 +32,12 @@ const AGENT_CMD: Record<string, string> = {
   opencode: 'opencode',
   codex: 'codex',
 };
+// 런모드 = 권한 건너뛰기(위험) 플래그. 에이전트별로 명령이 다르다.
+const DANGER_FLAGS: Record<string, string> = {
+  claude: '--dangerously-skip-permissions',
+  opencode: '--dangerously-skip-permissions',
+  codex: '--dangerously-bypass-approvals-and-sandbox',
+};
 
 interface Session { id: string; label: string; cwd: string; env: string; }
 interface Terminal {
@@ -53,6 +59,7 @@ export class SessionManager {
   // 새 세션이 띄울 기본 에이전트/환경(사용자 설정). createSession에 spec이 없으면 이 값을 쓴다.
   private defaultAgent = 'claude';
   private defaultEnv = 'powershell';
+  private dangerMode = false;   // 런모드: 켜면 에이전트별 권한건너뛰기 플래그를 붙인다
 
   constructor(
     private spawn: PtySpawn,
@@ -85,12 +92,15 @@ export class SessionManager {
     if (a && (a === 'claude' || a === 'opencode' || a === 'codex')) this.defaultAgent = a;
     return this.defaultAgent;
   }
-  // 새 세션 기본 환경/런모드 (powershell/cmd/gitbash/wsl).
+  // 새 세션 기본 셸/환경 (powershell/cmd/gitbash/wsl).
   getDefaultEnv(): string { return this.defaultEnv; }
   setDefaultEnv(e: string): string {
     if (e && (e === 'powershell' || e === 'cmd' || e === 'gitbash' || e === 'wsl')) this.defaultEnv = e;
     return this.defaultEnv;
   }
+  // 런모드(권한 건너뛰기). 켜면 에이전트 명령에 위험 플래그를 붙인다.
+  setDanger(on: boolean): void { this.dangerMode = !!on; }
+  getDanger(): boolean { return this.dangerMode; }
 
   // 런타임 스펙 → 실제 spawn 정보. env/agent별 분기는 여기 한 곳에서 확장한다.
   // (WSL 지원 = env 'wsl' 분기 추가, opencode/codex = agent 분기 추가)
@@ -111,8 +121,11 @@ export class SessionManager {
     }
     // 에이전트(실행 명령) — 셸에 타이핑할 launch 커맨드. 매핑은 AGENT_CMD 한 곳에서.
     let launch = '';
-    if (spec.agent === 'claude') launch = this.launchCmd;
-    else if (spec.agent && spec.agent !== 'shell') launch = AGENT_CMD[spec.agent] ?? spec.agent;
+    if (spec.agent && spec.agent !== 'shell') {
+      const base = spec.agent === 'claude' ? this.launchCmd : (AGENT_CMD[spec.agent] ?? spec.agent);
+      const flag = this.dangerMode ? (DANGER_FLAGS[spec.agent] ?? '') : '';
+      launch = flag ? base + ' ' + flag : base;
+    }
     return { file, args, cwd, launch };
   }
 

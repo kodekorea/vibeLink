@@ -79,6 +79,7 @@ async function main(): Promise<void> {
   // 데스크톱/환경변수로 지정한 기본 에이전트·환경(런모드) — 파일보다 우선.
   if (process.env.MTB_DEFAULT_AGENT) sessions.setDefaultAgent(String(process.env.MTB_DEFAULT_AGENT));
   if (process.env.MTB_DEFAULT_ENV) sessions.setDefaultEnv(String(process.env.MTB_DEFAULT_ENV));
+  if (process.env.MTB_SKIP_PERMS) sessions.setDanger(true);   // 런모드: 권한 건너뛰기
   server = new HubServer(store, tunnel, projects, sessions, pwaDir);
   await server.listen(port);
   log(`서버 시작: http://127.0.0.1:${port}`);

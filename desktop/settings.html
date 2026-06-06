@@ -46,13 +46,19 @@
       <button data-v="opencode">opencode</button>
       <button data-v="codex">codex</button>
     </div>
-    <label>Run mode (environment)</label>
+    <label>Default shell</label>
     <div class="seg" id="runEnv">
       <button data-v="powershell">PowerShell</button>
       <button data-v="cmd">cmd</button>
       <button data-v="gitbash">Git Bash</button>
       <button data-v="wsl">WSL</button>
     </div>
+    <label>Run mode</label>
+    <div class="seg" id="runMode">
+      <button data-v="normal">normal</button>
+      <button data-v="skip">skip permissions</button>
+    </div>
+    <p class="hint">"skip permissions" appends the agent's dangerous flag (claude/opencode <code>--dangerously-skip-permissions</code>, codex <code>--dangerously-bypass-approvals-and-sandbox</code>).</p>
     <label>Theme</label>
     <div class="seg" id="theme">
       <button data-v="light">Light</button>
@@ -80,11 +86,6 @@
       <input id="relayKey" type="text">
       <label>Hub id</label>
       <input id="relayId" type="text" placeholder="myhub">
-      <label>Claude permissions</label>
-      <div class="seg" id="claudeMode">
-        <button data-v="normal">normal</button>
-        <button data-v="skip">skip (--dangerously-skip-permissions)</button>
-      </div>
       <label>Port</label>
       <input id="port" type="number">
     </div>
@@ -117,7 +118,7 @@ function render(s){
   seg('runEnv', s.runEnv||'powershell');
   seg('theme', s.theme||'light');
   seg('tunnel', s.tunnel||'relay');
-  seg('claudeMode', s.claudeMode||'normal');
+  seg('runMode', s.runMode||'normal');
   $('logs').textContent = (s.logs||[]).join('');
 }
 $('toggle').onclick = async()=>{ const s=await window.mtb.getState(); render(await (s.running?window.mtb.stop():window.mtb.start())); };
@@ -126,8 +127,8 @@ $('tsLink').onclick = (e)=>{ e.preventDefault(); window.mtb.openExternal('https:
 $('save').onclick = async()=>render(await window.mtb.save({
   password:$('password').value, port:$('port').value,
   agent:segVal('agent')||'claude', runEnv:segVal('runEnv')||'powershell', theme:segVal('theme')||'light',
+  runMode:segVal('runMode')||'normal',
   tunnel:segVal('tunnel')||'relay', relayUrl:$('relayUrl').value, relayKey:$('relayKey').value, relayId:$('relayId').value,
-  claudeMode:segVal('claudeMode')||'normal',
 }));
 window.mtb.onState(render);
 window.mtb.getState().then(render);
