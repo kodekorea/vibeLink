@@ -1,4 +1,5 @@
 import type { IPty, PtySpawn } from './nodePty';
+import { buildWslSpawn } from './wsl';
 
 export interface Project { label: string; path: string; }
 // 터미널 종류: 'agent' = 세션의 기본 에이전트 터미널(claude/opencode/codex 등, 고정·닫기불가),
@@ -51,9 +52,11 @@ export class SessionManager {
     let file = this.shell;
     let args: string[] = [];
     if (spec.env === 'wsl') {
-      // 기본 골격 — WSL 브랜치에서 distro/-e bash -lc/경로변환을 채운다.
-      file = 'wsl.exe';
-      args = [];
+      // wsl.exe --cd <WindowsPath> 로 세션 폴더에서 기본 배포판의 대화형 로그인 셸을 띄운다.
+      // launch(claude 등)는 아래 spawnTerminal에서 셸에 타이핑된다(powershell 경로와 동일 모델).
+      const w = buildWslSpawn(cwd);
+      file = w.file;
+      args = w.args;
     }
     // 에이전트(실행 명령) — 셸에 타이핑할 launch 커맨드. 매핑은 AGENT_CMD 한 곳에서.
     let launch = '';
