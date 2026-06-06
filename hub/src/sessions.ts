@@ -15,6 +15,15 @@ export type Send = (msg: object) => void;
 const MAX_BUFFER = 200 * 1024;
 const NOTIFY_DEBOUNCE_MS = 3000;
 
+// 에이전트명 → 셸에 타이핑할 실행 커맨드. 명령명과 다른 경우만 등록한다.
+//  - opencode: 'opencode [project]'가 기본(default) 서브커맨드라 cwd에서 그냥 'opencode'면 TUI가 뜬다.
+//  - codex:    OpenAI Codex CLI 스텁(미설치·미검증) — 일단 'codex'로 매핑해 선택만 가능하게.
+// 'claude'는 launchCmd(생성자 주입)를 쓰므로 여기 두지 않는다. 맵에 없으면 에이전트명을 그대로 실행.
+const AGENT_CMD: Record<string, string> = {
+  opencode: 'opencode',
+  codex: 'codex',
+};
+
 interface Session { id: string; label: string; cwd: string; env: string; }
 interface Terminal {
   id: string; sessionId: string; label: string; kind: TerminalKind; agent: string; env: string;
@@ -46,10 +55,10 @@ export class SessionManager {
       file = 'wsl.exe';
       args = [];
     }
-    // 에이전트(실행 명령) — 셸에 타이핑할 launch 커맨드
+    // 에이전트(실행 명령) — 셸에 타이핑할 launch 커맨드. 매핑은 AGENT_CMD 한 곳에서.
     let launch = '';
     if (spec.agent === 'claude') launch = this.launchCmd;
-    else if (spec.agent && spec.agent !== 'shell') launch = spec.agent; // opencode/codex 등은 명령명 그대로
+    else if (spec.agent && spec.agent !== 'shell') launch = AGENT_CMD[spec.agent] ?? spec.agent;
     return { file, args, cwd, launch };
   }
 

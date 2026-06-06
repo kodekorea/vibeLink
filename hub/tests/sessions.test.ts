@@ -66,6 +66,16 @@ test('runtime spec: agent=opencode → opencode 실행, env=wsl → wsl.exe spaw
   assert.equal(term.kind, 'agent');
 });
 
+test('agent 매핑: opencode/codex는 AGENT_CMD로 명령명 그대로 실행', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
+  sm.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'opencode' });
+  sm.createSession({ label: 'q', path: 'C:\\q' }, { agent: 'codex' });
+  assert.deepEqual(made[0].writes, ['opencode\r']); // cwd에서 bare opencode → TUI
+  assert.deepEqual(made[1].writes, ['codex\r']);     // codex 스텁
+  assert.equal(sm.tree()[0].terminals[0].agent, 'opencode');
+});
+
 test('기본값: agent=claude, env=powershell (powershell.exe + claude)', () => {
   const { spawn, made } = fakeSpawn();
   const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
