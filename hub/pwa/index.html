@@ -35,8 +35,9 @@
   #plus:hover{background:var(--line)}
   #term{flex:1 1 auto;min-height:0;position:relative;padding:2px 4px}
   #term .xterm-viewport{overflow-y:auto !important;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
-  /* 모바일에서 손가락이 실제 닿는 캔버스(.xterm-screen) 레이어에도 세로 팬을 허용 */
-  #term .xterm-screen,#term .xterm-screen canvas{touch-action:pan-y}
+  /* 모바일: 손가락이 닿는 캔버스(.xterm-screen) 레이어의 네이티브 제스처를 끄고
+     스크롤/스와이프를 JS(touchmove)에서 직접 구동 — Android WebView 씹힘 방지 */
+  #term .xterm-screen,#term .xterm-screen canvas{touch-action:none}
   #toBottom{position:absolute;right:14px;bottom:14px;z-index:5;display:none;width:44px;height:44px;border-radius:22px;background:var(--accent);color:#fff;border:none;font-size:20px;box-shadow:0 3px 12px rgba(204,120,92,.35)}
   #toBottom.show{display:block}
   #keybar{display:flex;gap:7px;padding:8px 10px;background:var(--panel);overflow-x:auto;flex:0 0 auto;border-top:1px solid var(--line)}
@@ -202,11 +203,30 @@ function setupTerm(){
   setupSnippets();
   setupAttach();
   applyViewport();
-  let sx=0, sy=0, st=0; const t = $('#term');
-  t.addEventListener('touchstart', e => { const k=e.changedTouches[0]; sx=k.clientX; sy=k.clientY; st=Date.now(); }, {passive:true});
+  // 세로 = 직접 스크롤(scrollTop), 가로 = 세션 스와이프. Android WebView에서 확정 처리.
+  let sx=0, sy=0, st=0, gmode=null, gtop=0; const t = $('#term');
+  const termVp = () => t.querySelector('.xterm-viewport');
+  t.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) { gmode = 'multi'; return; }
+    const k=e.changedTouches[0]; sx=k.clientX; sy=k.clientY; st=Date.now(); gmode=null;
+    const vp = termVp(); gtop = vp ? vp.scrollTop : 0;
+  }, {passive:true});
+  t.addEventListener('touchmove', e => {
+    if (gmode === 'multi' || e.touches.length !== 1) return;
+    const k=e.touches[0], dx=k.clientX-sx, dy=k.clientY-sy;
+    if (gmode === null) {
+      if (Math.abs(dy) > 6 && Math.abs(dy) >= Math.abs(dx)) gmode='scroll';
+      else if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) gmode='swipe';
+    }
+    if (gmode === 'scroll') {
+      const vp = termVp();
+      if (vp) { vp.scrollTop = gtop - dy; e.preventDefault(); updateToBottom(); }
+    }
+  }, {passive:false});
   t.addEventListener('touchend', e => {
     const k=e.changedTouches[0], dx=k.clientX-sx, dy=k.clientY-sy, dt=Date.now()-st;
-    if (dt<600 && Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.6) switchByDelta(dx<0?1:-1);
+    if (gmode !== 'scroll' && dt<600 && Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.6) switchByDelta(dx<0?1:-1);
+    gmode = null;
   }, {passive:true});
   // 레이아웃이 안정된 뒤 다시 맞춰 첫 화면에서 상단이 가리는 문제 방지
   setTimeout(applyViewport, 250);
