@@ -76,6 +76,9 @@ async function main(): Promise<void> {
       if (a && a.agent) sessions.setDefaultAgent(String(a.agent));
     }
   } catch { /* 무시 */ }
+  // 데스크톱/환경변수로 지정한 기본 에이전트·환경(런모드) — 파일보다 우선.
+  if (process.env.MTB_DEFAULT_AGENT) sessions.setDefaultAgent(String(process.env.MTB_DEFAULT_AGENT));
+  if (process.env.MTB_DEFAULT_ENV) sessions.setDefaultEnv(String(process.env.MTB_DEFAULT_ENV));
   server = new HubServer(store, tunnel, projects, sessions, pwaDir);
   await server.listen(port);
   log(`서버 시작: http://127.0.0.1:${port}`);
@@ -105,9 +108,11 @@ async function main(): Promise<void> {
       });
       relay.start();
       const hostUrl = relay.publicHostUrl;
-      if (hostUrl) log(`릴레이 접속 URL(폰 페어링): ${hostUrl}`);
+      if (hostUrl) { log(`릴레이 접속 URL(폰 페어링): ${hostUrl}`); server.setExternalUrl(hostUrl, 'relay'); }
       else log('릴레이 등록 중 — MTB_RELAY_PUBLIC_URL 설정 시 폰 URL을 안내합니다.');
     }
+  } else if (mode === 'lan' || mode === 'none') {
+    log('외부 터널 없음(LAN 전용) — 같은 와이파이에서 LAN QR로 접속하세요.');
   } else {
     try {
       if (mode === 'named' && name && url) await tunnel.start('named', port, name, url);

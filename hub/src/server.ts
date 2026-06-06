@@ -287,9 +287,9 @@ export class HubServer {
       return this.sendFile(res, path.join(this.pwaDir, staticMap[pathOnly]), mime);
     }
 
-    // QR (cloudflared 터널)
+    // QR (외부 접속 — 릴레이 또는 cloudflared 터널)
     if (meth === 'GET' && pathOnly === '/qr') {
-      const u = this.tunnel.url;
+      const u = this.externalUrl || this.tunnel.url;
       if (!u) { res.writeHead(503); res.end('tunnel not ready'); return; }
       const buf = await this.tunnel.qrPng(u);
       res.writeHead(200, { 'Content-Type': 'image/png' }); res.end(buf); return;
@@ -310,7 +310,7 @@ export class HubServer {
     }
     if (meth === 'GET' && pathOnly === '/qr.html') {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(this.qrPage(this.tunnel.url ?? '')); return;
+      res.end(this.qrPage()); return;
     }
 
     // 인증 확인
@@ -700,7 +700,14 @@ export class HubServer {
     res.writeHead(status, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(body));
   }
-  private qrPage(url: string): string {
+  // 외부 접속 URL(릴레이 등)을 알려주면 qr.html에서 우선 표시한다.
+  private externalUrl = '';
+  private externalKind = '';
+  setExternalUrl(url: string, kind: string): void { this.externalUrl = url; this.externalKind = kind; }
+
+  private qrPage(): string {
+    const url = this.externalUrl || this.tunnel.url || '';
+    const relay = this.externalKind === 'relay' && !!this.externalUrl;
     const lan = this.lanUrl();
     const ts = this.tailscaleUrl();
     const section = (title: string, tag: string, ok: boolean, img: string, urlText: string, help?: string) => `
@@ -722,12 +729,11 @@ export class HubServer {
       !!lan, '/qrlan', lan ?? '',
       'LAN IP를 찾지 못했어요.',
     );
-    const tunCard = section(
-      '외부 접속 — 임시 터널',
-      '설정 없이 집 밖 · 단 재시작마다 주소 바뀜',
-      !!url, '/qr', url,
-      '터널 준비 중...',
-    );
+    const extCard = relay
+      ? section('외부 접속 — 릴레이 (추천)', '집·밖 어디서나 · 주소 고정 · 셀프호스트', !!url, '/qr', url, '릴레이 연결 중...')
+      : section('외부 접속 — 임시 터널', '설정 없이 집 밖 · 단 재시작마다 주소 바뀜', !!url, '/qr', url, '터널 준비 중...');
+    // 릴레이 모드면 릴레이+LAN만 심플하게. 아니면 기존(Tailscale/LAN/터널).
+    const cards = relay ? `${extCard}${lanCard}` : `${tsCard}${lanCard}${extCard}`;
 
     return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>VibeLink Hub 접속</title>
@@ -745,9 +751,7 @@ a{color:#cc785c}
 </style></head><body>
 <h2>VibeLink 연결</h2>
 <p class="sub">앱으로 QR 스캔 → 암호 입력 → 끝</p>
-${tsCard}
-${lanCard}
-${tunCard}
+${cards}
 </body></html>`;
   }
 }

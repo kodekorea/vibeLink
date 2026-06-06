@@ -29,7 +29,7 @@
 </style></head>
 <body>
   <h1>VibeLink</h1>
-  <p class="sub">Run Claude sessions on this PC, control them from your phone.</p>
+  <p class="sub">Run AI coding sessions (Claude / codex / opencode) on this PC, control them from your phone.</p>
 
   <div class="status"><span class="dot" id="dot"></span><span id="statusText">Stopped</span></div>
   <div class="url" id="url"></div>
@@ -39,30 +39,56 @@
   </div>
 
   <div class="card">
-    <h2>Access from phone</h2>
-    <p class="hint"><b>Same Wi‑Fi:</b> just scan the LAN QR. <b>Anywhere:</b> install <a href="#" id="tsLink">Tailscale</a> on this PC and your phone (same account), then scan the Tailscale QR. No tokens needed.</p>
-    <button class="ghost" id="tsBtn" style="margin-top:8px">Get Tailscale</button>
-  </div>
-
-  <div class="card">
     <h2>Settings</h2>
-    <label>Pairing password</label>
-    <input id="password" type="text">
-    <label>Claude run mode</label>
-    <div class="seg" id="claudeMode">
-      <button data-v="normal">claude</button>
-      <button data-v="skip">skip permissions</button>
+    <label>Default agent</label>
+    <div class="seg" id="agent">
+      <button data-v="claude">Claude</button>
+      <button data-v="opencode">opencode</button>
+      <button data-v="codex">codex</button>
     </div>
-    <p class="hint">"skip permissions" runs <code>claude --dangerously-skip-permissions</code>.</p>
-    <label>Claude theme</label>
-    <div class="seg" id="claudeTheme">
+    <label>Run mode (environment)</label>
+    <div class="seg" id="runEnv">
+      <button data-v="powershell">PowerShell</button>
+      <button data-v="cmd">cmd</button>
+      <button data-v="gitbash">Git Bash</button>
+      <button data-v="wsl">WSL</button>
+    </div>
+    <label>Theme</label>
+    <div class="seg" id="theme">
       <button data-v="light">Light</button>
       <button data-v="dark">Dark</button>
     </div>
-    <label>Port</label>
-    <input id="port" type="number">
+    <label>Pairing password</label>
+    <input id="password" type="text">
+    <p class="hint">Phone pairs via the QR. New sessions launch the default agent in the run mode above.</p>
   </div>
 
+  <details>
+    <summary>Advanced (relay / tunnel / port)</summary>
+    <div class="card" style="margin-top:10px">
+      <h2>External access</h2>
+      <label>Mode</label>
+      <div class="seg" id="tunnel">
+        <button data-v="relay">Relay (recommended)</button>
+        <button data-v="quick">Cloudflare</button>
+        <button data-v="lan">LAN only</button>
+      </div>
+      <p class="hint"><b>Relay</b>: your own server (set below) — works anywhere, stable. <b>Cloudflare</b>: temporary tunnel (URL changes on restart). <b>LAN only</b>: same Wi‑Fi (or Tailscale). Install <a href="#" id="tsLink">Tailscale</a> for stable LAN-free access without a relay.</p>
+      <label>Relay URL (wss://...)</label>
+      <input id="relayUrl" type="text" placeholder="wss://relay.example.com">
+      <label>Relay key</label>
+      <input id="relayKey" type="text">
+      <label>Hub id</label>
+      <input id="relayId" type="text" placeholder="myhub">
+      <label>Claude permissions</label>
+      <div class="seg" id="claudeMode">
+        <button data-v="normal">normal</button>
+        <button data-v="skip">skip (--dangerously-skip-permissions)</button>
+      </div>
+      <label>Port</label>
+      <input id="port" type="number">
+    </div>
+  </details>
 
 
   <button class="primary" id="save" style="width:100%;margin-bottom:14px">Save</button>
@@ -75,25 +101,33 @@ function seg(id, val){ document.querySelectorAll('#'+id+' button').forEach(b=>b.
 function segVal(id){ const b=document.querySelector('#'+id+' button.sel'); return b?b.dataset.v:null; }
 document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{ b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); });
 
+function setVal(id, v){ if (document.activeElement!==$(id)) $(id).value = v; }
 function render(s){
   cur = s;
   $('dot').classList.toggle('on', !!s.running);
   $('statusText').textContent = s.running ? 'Running' : 'Stopped';
   $('toggle').textContent = s.running ? 'Stop' : 'Start';
   $('url').textContent = s.url || '';
-  if (document.activeElement!==$('password')) $('password').value = s.password||'';
-  if (document.activeElement!==$('port')) $('port').value = s.port||47801;
+  setVal('password', s.password||'');
+  setVal('port', s.port||47801);
+  setVal('relayUrl', s.relayUrl||'');
+  setVal('relayKey', s.relayKey||'');
+  setVal('relayId', s.relayId||'myhub');
+  seg('agent', s.agent||'claude');
+  seg('runEnv', s.runEnv||'powershell');
+  seg('theme', s.theme||'light');
+  seg('tunnel', s.tunnel||'relay');
   seg('claudeMode', s.claudeMode||'normal');
-  seg('claudeTheme', s.claudeTheme||'light');
   $('logs').textContent = (s.logs||[]).join('');
 }
 $('toggle').onclick = async()=>{ const s=await window.mtb.getState(); render(await (s.running?window.mtb.stop():window.mtb.start())); };
 $('qr').onclick = ()=>window.mtb.openQr();
-$('tsBtn').onclick = ()=>window.mtb.openExternal('https://tailscale.com/download');
 $('tsLink').onclick = (e)=>{ e.preventDefault(); window.mtb.openExternal('https://tailscale.com/download'); };
 $('save').onclick = async()=>render(await window.mtb.save({
   password:$('password').value, port:$('port').value,
-  claudeMode:segVal('claudeMode')||'normal', claudeTheme:segVal('claudeTheme')||'light',
+  agent:segVal('agent')||'claude', runEnv:segVal('runEnv')||'powershell', theme:segVal('theme')||'light',
+  tunnel:segVal('tunnel')||'relay', relayUrl:$('relayUrl').value, relayKey:$('relayKey').value, relayId:$('relayId').value,
+  claudeMode:segVal('claudeMode')||'normal',
 }));
 window.mtb.onState(render);
 window.mtb.getState().then(render);

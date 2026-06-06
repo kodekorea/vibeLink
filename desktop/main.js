@@ -43,11 +43,18 @@ function readSettings() { try { return JSON.parse(fs.readFileSync(SETTINGS_PATH,
 function writeSettings(s) { fs.mkdirSync(path.dirname(SETTINGS_PATH), { recursive: true }); fs.writeFileSync(SETTINGS_PATH, JSON.stringify(s, null, 2)); }
 function settings() {
   const s = readSettings();
+  const oneOf = (v, list, def) => list.includes(v) ? v : def;
   return {
     port: Number(s.port || process.env.MTB_PORT || 47801),
     password: s.password || 'changeme1234',
-    claudeMode: s.claudeMode === 'skip' ? 'skip' : 'normal', // normal | skip
-    claudeTheme: s.claudeTheme === 'dark' ? 'dark' : 'light', // light | dark
+    agent: oneOf(s.agent, ['claude', 'opencode', 'codex'], 'claude'),         // 기본 에이전트
+    runEnv: oneOf(s.runEnv, ['powershell', 'cmd', 'gitbash', 'wsl'], 'powershell'), // 런모드(환경)
+    theme: (s.theme || s.claudeTheme) === 'dark' ? 'dark' : 'light',          // 테마 (claudeTheme 호환)
+    claudeMode: s.claudeMode === 'skip' ? 'skip' : 'normal',                  // claude 권한 (advanced)
+    tunnel: oneOf(s.tunnel, ['relay', 'quick', 'lan'], 'relay'),             // 기본=릴레이
+    relayUrl: s.relayUrl || '',     // 예: wss://relay.kodekorea.kr
+    relayKey: s.relayKey || '',
+    relayId: s.relayId || 'myhub',
   };
 }
 function hubDir() { return app.isPackaged ? path.join(process.resourcesPath, 'hub') : path.join(__dirname, '..', 'hub'); }
@@ -60,9 +67,19 @@ function startHub() {
   const env = Object.assign({}, process.env, dot.vars, { MTB_PORT: String(cfg.port), MTB_PASSWORD: cfg.password });
   // claude 실행 모드: normal=`claude`, skip=`claude --dangerously-skip-permissions`
   env.MTB_LAUNCH = cfg.claudeMode === 'skip' ? 'claude --dangerously-skip-permissions' : 'claude';
-  env.MTB_CLAUDE_THEME = cfg.claudeTheme;
+  env.MTB_CLAUDE_THEME = cfg.theme;
+  env.MTB_DEFAULT_AGENT = cfg.agent;   // 새 세션 기본 에이전트
+  env.MTB_DEFAULT_ENV = cfg.runEnv;    // 새 세션 기본 환경(런모드)
+  // 터널: 기본 릴레이. 사용자가 env를 직접 안 만져도 데스크톱이 릴레이 연결정보를 전달.
+  env.MTB_TUNNEL = cfg.tunnel;
+  if (cfg.tunnel === 'relay' && cfg.relayUrl) {
+    env.MTB_RELAY_URL = cfg.relayUrl;
+    env.MTB_RELAY_KEY = cfg.relayKey;
+    env.MTB_RELAY_ID = cfg.relayId;
+    env.MTB_RELAY_PUBLIC_URL = cfg.relayUrl.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:');
+  }
   if (dot.file) log('[env] loaded ' + dot.file);
-  log('[tunnel] ' + (env.MTB_TUNNEL || 'quick'));
+  log('[tunnel] ' + env.MTB_TUNNEL);
   hubProc = spawn('node', ['--import', 'tsx', 'src/index.ts'], { cwd: hubDir(), env });
   hubProc.stdout.on('data', d => { const s = d.toString(); const m = s.match(/https:\/\/[^\s"]+/); if (m) { hubUrl = m[0]; pushState(); } log(s); });
   hubProc.stderr.on('data', d => log(d.toString()));
@@ -98,11 +115,18 @@ ipcMain.handle('mtb:start', () => { startHub(); return state(); });
 ipcMain.handle('mtb:stop', () => { stopHub(); return state(); });
 ipcMain.handle('mtb:save', async (_e, s) => {
   const cur = readSettings();
+  const oneOf = (v, list, def) => list.includes(v) ? v : def;
   writeSettings(Object.assign({}, cur, {
     port: Number(s.port) || 47801,
     password: s.password || 'changeme1234',
+    agent: oneOf(s.agent, ['claude', 'opencode', 'codex'], 'claude'),
+    runEnv: oneOf(s.runEnv, ['powershell', 'cmd', 'gitbash', 'wsl'], 'powershell'),
+    theme: s.theme === 'dark' ? 'dark' : 'light',
     claudeMode: s.claudeMode === 'skip' ? 'skip' : 'normal',
-    claudeTheme: s.claudeTheme === 'dark' ? 'dark' : 'light',
+    tunnel: oneOf(s.tunnel, ['relay', 'quick', 'lan'], 'relay'),
+    relayUrl: s.relayUrl || '',
+    relayKey: s.relayKey || '',
+    relayId: s.relayId || 'myhub',
   }));
   // 실행 중이면 새 설정(암호/포트/claude옵션 등)을 반영하려고 자동 재시작.
   if (hubProc) {

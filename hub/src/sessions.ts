@@ -50,8 +50,9 @@ export class SessionManager {
 
   private notifyQuietMs: number;
   private notifyMinBusyMs: number;
-  // 새 세션이 띄울 기본 에이전트(사용자 설정). createSession에 spec.agent가 없으면 이 값을 쓴다.
+  // 새 세션이 띄울 기본 에이전트/환경(사용자 설정). createSession에 spec이 없으면 이 값을 쓴다.
   private defaultAgent = 'claude';
+  private defaultEnv = 'powershell';
 
   constructor(
     private spawn: PtySpawn,
@@ -84,6 +85,12 @@ export class SessionManager {
     if (a && (a === 'claude' || a === 'opencode' || a === 'codex')) this.defaultAgent = a;
     return this.defaultAgent;
   }
+  // 새 세션 기본 환경/런모드 (powershell/cmd/gitbash/wsl).
+  getDefaultEnv(): string { return this.defaultEnv; }
+  setDefaultEnv(e: string): string {
+    if (e && (e === 'powershell' || e === 'cmd' || e === 'gitbash' || e === 'wsl')) this.defaultEnv = e;
+    return this.defaultEnv;
+  }
 
   // 런타임 스펙 → 실제 spawn 정보. env/agent별 분기는 여기 한 곳에서 확장한다.
   // (WSL 지원 = env 'wsl' 분기 추가, opencode/codex = agent 분기 추가)
@@ -112,7 +119,7 @@ export class SessionManager {
   // 세션 생성 + 기본 에이전트 터미널 1개 자동 생성.
   createSession(project: Project, spec?: Partial<RuntimeSpec>, cols = 80, rows = 24): { sessionId: string; terminalId: string } {
     const agent = spec?.agent ?? this.defaultAgent;
-    const env = spec?.env ?? 'powershell';
+    const env = spec?.env ?? this.defaultEnv;
     const sessionId = 's' + (++this.sCounter);
     this.sessions.set(sessionId, { id: sessionId, label: project.label, cwd: project.path, env });
     const terminalId = this.spawnTerminal(sessionId, 'agent', agent, agent, env, cols, rows);
