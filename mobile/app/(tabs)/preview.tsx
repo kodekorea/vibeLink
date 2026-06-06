@@ -3,9 +3,60 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
-import { previewBase, screenDataUri, listPorts, listDisplays, type DisplayInfo } from '@/lib/hub';
+import { previewBase, screenDataUri, listPorts, listDisplays, sendClick, type DisplayInfo } from '@/lib/hub';
 import { usePrefs, type Palette } from '@/lib/prefs';
 import { t } from '@/lib/i18n';
+
+// 화면 캡처 뷰어: 맞춤(fit) + 핀치 줌/팬 + 탭=클릭. window.__setSrc(uri)로 이미지 교체(줌 유지).
+function buildShotHtml(shot: string): string {
+  return `<!doctype html><html><head>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#181715;touch-action:none;-webkit-user-select:none;user-select:none}
+#stage{position:absolute;inset:0}
+#img{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;-webkit-user-drag:none}
+.btns{position:fixed;right:12px;bottom:12px;display:flex;flex-direction:column;gap:10px;z-index:10}
+.btns button{width:46px;height:46px;border-radius:23px;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:22px;padding:0}
+#ring{position:fixed;width:34px;height:34px;margin:-17px 0 0 -17px;border:2px solid #4ade80;border-radius:50%;opacity:0;pointer-events:none;z-index:9;transition:opacity .12s,transform .25s}
+</style></head><body>
+<div id="stage"><img id="img" src="${shot}"></div>
+<div class="btns"><button id="zin">＋</button><button id="zout">－</button><button id="fit">⤢</button></div>
+<div id="ring"></div>
+<script>(function(){
+var stage=document.getElementById('stage'),img=document.getElementById('img'),ring=document.getElementById('ring');
+var scale=1,tx=0,ty=0,fitScale=1,natW=1,natH=1;
+function apply(){img.style.transform='translate('+tx+'px,'+ty+'px) scale('+scale+')';}
+function fit(){var vw=innerWidth,vh=innerHeight;fitScale=Math.min(vw/natW,vh/natH)||1;scale=fitScale;tx=(vw-natW*scale)/2;ty=(vh-natH*scale)/2;apply();}
+img.onload=function(){var nw=img.naturalWidth||1,nh=img.naturalHeight||1;img.style.width=nw+'px';img.style.height=nh+'px';var ch=(nw!==natW||nh!==natH);natW=nw;natH=nh;if(ch)fit();else apply();};
+window.__setSrc=function(u){img.src=u;};
+function post(o){try{window.ReactNativeWebView.postMessage(JSON.stringify(o));}catch(e){}}
+function zoomAt(ns,cx,cy){ns=Math.min(8,Math.max(fitScale*0.5,ns));var k=ns/scale;tx=cx-(cx-tx)*k;ty=cy-(cy-ty)*k;scale=ns;apply();}
+document.getElementById('zin').onclick=function(){zoomAt(scale*1.3,innerWidth/2,innerHeight/2);};
+document.getElementById('zout').onclick=function(){zoomAt(scale/1.3,innerWidth/2,innerHeight/2);};
+document.getElementById('fit').onclick=fit;addEventListener('resize',fit);
+var pts={},sd=1,ss=1,smid=null,stx=0,sty=0,moved=false,st=0,panId=null,sx=0,sy=0;
+function ids(){return Object.keys(pts);}
+stage.addEventListener('touchstart',function(e){
+ for(var i=0;i<e.changedTouches.length;i++){var t=e.changedTouches[i];pts[t.identifier]={x:t.clientX,y:t.clientY};}
+ var k=ids();
+ if(k.length===1){panId=k[0];sx=pts[panId].x;sy=pts[panId].y;stx=tx;sty=ty;moved=false;st=Date.now();}
+ else if(k.length===2){var a=pts[k[0]],b=pts[k[1]];sd=Math.hypot(a.x-b.x,a.y-b.y)||1;ss=scale;smid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};stx=tx;sty=ty;moved=true;}
+},{passive:false});
+stage.addEventListener('touchmove',function(e){
+ e.preventDefault();
+ for(var i=0;i<e.changedTouches.length;i++){var t=e.changedTouches[i];if(pts[t.identifier])pts[t.identifier]={x:t.clientX,y:t.clientY};}
+ var k=ids();
+ if(k.length===2){var a=pts[k[0]],b=pts[k[1]];var d=Math.hypot(a.x-b.x,a.y-b.y)||1;var ns=Math.min(8,Math.max(fitScale*0.5,ss*d/sd));var kk=ns/ss;tx=smid.x-(smid.x-stx)*kk;ty=smid.y-(smid.y-sty)*kk;scale=ns;apply();moved=true;}
+ else if(k.length===1&&panId!=null&&pts[panId]){var p=pts[panId];tx=stx+(p.x-sx);ty=sty+(p.y-sy);if(Math.abs(p.x-sx)>8||Math.abs(p.y-sy)>8)moved=true;apply();}
+},{passive:false});
+stage.addEventListener('touchend',function(e){
+ var ended=e.changedTouches[0];
+ for(var i=0;i<e.changedTouches.length;i++)delete pts[e.changedTouches[i].identifier];
+ if(ids().length===0){if(!moved&&Date.now()-st<300&&ended)click(ended.clientX,ended.clientY);panId=null;}
+},{passive:false});
+function click(cx,cy){var ix=(cx-tx)/scale,iy=(cy-ty)/scale,xf=ix/natW,yf=iy/natH;if(xf<0||xf>1||yf<0||yf>1)return;ring.style.left=cx+'px';ring.style.top=cy+'px';ring.style.opacity='1';ring.style.transform='scale(1.6)';setTimeout(function(){ring.style.opacity='0';ring.style.transform='scale(1)';},250);post({t:'click',xf:xf,yf:yf});}
+})();</script></body></html>`;
+}
 
 export default function Preview() {
   const insets = useSafeAreaInsets();
@@ -44,6 +95,8 @@ export default function Preview() {
   const [auto, setAuto] = useState(false);
   const [displays, setDisplays] = useState<DisplayInfo[]>([]);
   const [display, setDisplay] = useState<number | undefined>(undefined); // undefined = 전체
+  const shotRef = useRef<WebView>(null);
+  const htmlRef = useRef<string | null>(null);
 
   const capture = useCallback(async (d?: number) => {
     setLoadingShot(true);
@@ -73,6 +126,13 @@ export default function Preview() {
     const id = setInterval(() => capture(display), 2000);
     return () => clearInterval(id);
   }, [mode, auto, capture, display]);
+
+  // 새 캡처가 오면 WebView 이미지를 교체(소스 재로드 없이 → 줌/팬 상태 유지).
+  useEffect(() => {
+    if (shot && shotRef.current) {
+      shotRef.current.injectJavaScript('window.__setSrc&&window.__setSrc(' + JSON.stringify(shot) + ');true;');
+    }
+  }, [shot]);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -166,10 +226,19 @@ export default function Preview() {
           {shotErr ? <Text style={styles.err}>{shotErr}</Text> : null}
           {shot ? (
             <WebView
+              ref={shotRef}
               style={[styles.flex, styles.shotWrap]}
               originWhitelist={['*']}
               scalesPageToFit={false}
-              source={{ html: '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=6,user-scalable=yes"><style>html,body{margin:0;height:100%;background:#181715;display:flex;align-items:center;justify-content:center}img{max-width:100%;height:auto}</style></head><body><img src="' + shot + '"></body></html>' }}
+              source={{ html: (htmlRef.current ??= buildShotHtml(shot)) }}
+              onMessage={(e) => {
+                try {
+                  const m = JSON.parse(e.nativeEvent.data);
+                  if (m && m.t === 'click') {
+                    sendClick(m.xf, m.yf, display).then(() => setTimeout(() => capture(display), 350));
+                  }
+                } catch { /* ignore */ }
+              }}
             />
           ) : <View style={styles.center}><Text style={styles.hint}>{t('screen')}</Text></View>}
         </View>

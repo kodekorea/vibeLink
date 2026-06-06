@@ -243,6 +243,19 @@ export async function listDisplays(): Promise<DisplayInfo[]> {
   }
 }
 
+// 캡처 위 탭한 지점(xf,yf: 0~1 비율)을 PC에서 좌클릭. display: 모니터 idx(undefined=전체)
+export async function sendClick(xf: number, yf: number, display?: number): Promise<boolean> {
+  const h = await getActiveHost();
+  if (!h) return false;
+  try {
+    const q = '?x=' + xf.toFixed(6) + '&y=' + yf.toFixed(6) + (display !== undefined ? '&display=' + display : '');
+    const r = await fetch(h.url + '/click' + q, { headers: { Authorization: 'Bearer ' + h.token } });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
 // PC 화면 캡처를 data URI로 (인증 fetch → arrayBuffer → base64).
 // display: 모니터 idx (undefined면 전체 가상화면)
 export async function screenDataUri(display?: number): Promise<{ uri?: string; error?: string }> {

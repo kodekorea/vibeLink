@@ -86,6 +86,36 @@ function listDisplaysWindows(): Promise<DisplayInfo[]> {
     }).catch(reject);
   });
 }
+
+// 화면 좌표(0~1 비율)에 좌클릭 주입 (Windows). idx면 해당 모니터, 없으면 전체 가상화면 기준.
+function clickScreenPowerShell(xf: number, yf: number, idx?: number): Promise<void> {
+  const cx = Math.min(1, Math.max(0, xf)).toFixed(6);
+  const cy = Math.min(1, Math.max(0, yf)).toFixed(6);
+  const bounds = (typeof idx === 'number' && Number.isInteger(idx) && idx >= 0)
+    ? `$ss=[System.Windows.Forms.Screen]::AllScreens; if($ss.Count -le ${idx}){exit 1}; $b=$ss[${idx}].Bounds;`
+    : '$b=[System.Windows.Forms.SystemInformation]::VirtualScreen;';
+  const ps = [
+    'Add-Type -AssemblyName System.Windows.Forms;',
+    'Add-Type -MemberDefinition \'[DllImport("user32.dll")]public static extern bool SetCursorPos(int x,int y);[DllImport("user32.dll")]public static extern void mouse_event(uint f,int dx,int dy,uint d,int e);\' -Name U -Namespace Win32;',
+    bounds,
+    `$x=[int]($b.X + ${cx} * $b.Width);`,
+    `$y=[int]($b.Y + ${cy} * $b.Height);`,
+    '[Win32.U]::SetCursorPos($x,$y);',
+    'Start-Sleep -Milliseconds 20;',
+    '[Win32.U]::mouse_event(0x2,0,0,0,0);[Win32.U]::mouse_event(0x4,0,0,0,0);',
+  ].join('');
+  return new Promise<void>((resolve, reject) => {
+    import('child_process').then((cp) => {
+      const child = cp.execFile(
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-STA', '-Command', ps],
+        { windowsHide: true },
+        (err) => { if (err) reject(err); else resolve(); },
+      );
+      child.on('error', reject);
+    }).catch(reject);
+  });
+}
 function remoteIp(req: http.IncomingMessage): string {
   return (req.socket as net.Socket).remoteAddress ?? '';
 }
@@ -425,6 +455,21 @@ export class HubServer {
       } catch (e) {
         res.writeHead(500, { 'Content-Type': 'text/plain' }); res.end(String(e));
       }
+      return;
+    }
+
+    // 화면 좌클릭 — 폰에서 캡처 위에 탭한 지점(0~1 비율)을 실제 PC 클릭으로.
+    if (meth === 'GET' && pathOnly === '/click') {
+      if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
+      if (process.platform !== 'win32') { this.json(res, 501, { error: 'click supported on windows only' }); return; }
+      const u = new URL(url, 'http://x');
+      const xf = Number(u.searchParams.get('x'));
+      const yf = Number(u.searchParams.get('y'));
+      if (!Number.isFinite(xf) || !Number.isFinite(yf)) { this.json(res, 400, { error: 'x,y (0..1) required' }); return; }
+      const dispRaw = u.searchParams.get('display');
+      const dispIdx = (dispRaw && dispRaw !== 'all' && /^\d+$/.test(dispRaw)) ? Number(dispRaw) : undefined;
+      try { await clickScreenPowerShell(xf, yf, dispIdx); this.json(res, 200, { ok: true }); }
+      catch (e) { this.json(res, 500, { error: String(e) }); }
       return;
     }
 
