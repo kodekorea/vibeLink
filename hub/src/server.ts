@@ -23,6 +23,12 @@ function cookieHeader(token: string): string {
   return `mtb_jwt=${token}; HttpOnly; SameSite=Strict; Max-Age=${7 * 24 * 3600}; Path=/`;
 }
 // Windows 전용 화면 캡처 폴백: System.Drawing 으로 전체 가상 스크린을 PNG(base64)로 캡처.
+// 고DPI(배율) 모니터에서 캡처가 좌상단 일부만 잡혀 잘리는 문제 방지 — 프로세스를
+// per-monitor-v2 DPI 인식으로 올려 물리 해상도 전체를 캡처/매핑한다. (구버전 OS는 SetProcessDPIAware 폴백)
+const DPI_AWARE_PS =
+  'Add-Type -MemberDefinition \'[DllImport("user32.dll")]public static extern bool SetProcessDpiAwarenessContext(System.IntPtr value);[DllImport("user32.dll")]public static extern bool SetProcessDPIAware();\' -Name Dpi -Namespace W32;'
+  + 'try{[W32.Dpi]::SetProcessDpiAwarenessContext([System.IntPtr](-4))|Out-Null}catch{try{[W32.Dpi]::SetProcessDPIAware()|Out-Null}catch{}};';
+
 // screenshot-desktop 번들 캡처기가 실패하는 환경을 위한 무의존 대비책.
 // idx가 주어지면 해당 모니터(Screen.AllScreens[idx])만, 없으면 전체 가상화면을 캡처.
 function captureScreenPowerShell(idx?: number): Promise<Buffer> {
@@ -30,6 +36,7 @@ function captureScreenPowerShell(idx?: number): Promise<Buffer> {
     ? `$ss=[System.Windows.Forms.Screen]::AllScreens; if($ss.Count -le ${idx}){[Console]::Error.WriteLine('no such display');exit 1}; $b=$ss[${idx}].Bounds;`
     : '$b=[System.Windows.Forms.SystemInformation]::VirtualScreen;';
   const ps = [
+    DPI_AWARE_PS,
     'Add-Type -AssemblyName System.Windows.Forms,System.Drawing;',
     bounds,
     '$bmp=New-Object System.Drawing.Bitmap($b.Width,$b.Height);',
@@ -63,6 +70,7 @@ function captureScreenPowerShell(idx?: number): Promise<Buffer> {
 interface DisplayInfo { idx: number; name: string; primary: boolean; w: number; h: number; }
 function listDisplaysWindows(): Promise<DisplayInfo[]> {
   const ps = [
+    DPI_AWARE_PS,
     'Add-Type -AssemblyName System.Windows.Forms;',
     '$i=0;$o=@();',
     'foreach($s in [System.Windows.Forms.Screen]::AllScreens){$b=$s.Bounds;$o+=[PSCustomObject]@{idx=$i;name=$s.DeviceName;primary=$s.Primary;w=$b.Width;h=$b.Height};$i++}',
@@ -95,6 +103,7 @@ function clickScreenPowerShell(xf: number, yf: number, idx?: number): Promise<vo
     ? `$ss=[System.Windows.Forms.Screen]::AllScreens; if($ss.Count -le ${idx}){exit 1}; $b=$ss[${idx}].Bounds;`
     : '$b=[System.Windows.Forms.SystemInformation]::VirtualScreen;';
   const ps = [
+    DPI_AWARE_PS,
     'Add-Type -AssemblyName System.Windows.Forms;',
     'Add-Type -MemberDefinition \'[DllImport("user32.dll")]public static extern bool SetCursorPos(int x,int y);[DllImport("user32.dll")]public static extern void mouse_event(uint f,int dx,int dy,uint d,int e);\' -Name U -Namespace Win32;',
     bounds,
