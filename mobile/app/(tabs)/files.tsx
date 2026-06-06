@@ -116,7 +116,16 @@ export default function Files() {
     if (!file) return;
     try {
       const u = await downloadUrl(file.path);
-      if (!u) { Alert.alert(t('downloadFail')); return; }
+      if (!u) { Alert.alert(t('downloadFail'), '연결/토큰 없음 (재페어링 필요)'); return; }
+      // 프리플라이트: 시스템 브라우저로 넘기기 전에 쿼리 토큰이 실제로 인증되는지 확인.
+      // 여기서 401이면 서버가 'no token'/'invalid token'을 구분해 주므로 원인을 바로 알린다.
+      // (브라우저가 ?token= 쿼리를 떨어뜨리는 경우 등은 이 fetch도 실패 → 명확한 메시지)
+      const probe = await fetch(u, { method: 'HEAD' });
+      if (probe.status === 401) {
+        const why = await probe.text().catch(() => '');
+        Alert.alert(t('downloadFail'), why || 'unauthenticated');
+        return;
+      }
       await Linking.openURL(u);   // 시스템 브라우저가 다운로드 → 폰 Downloads 폴더
     } catch (err) {
       Alert.alert(t('downloadFail'), String(err));

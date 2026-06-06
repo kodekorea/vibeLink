@@ -286,9 +286,12 @@ export async function imageDataUri(filePath: string): Promise<{ uri?: string; er
 
 // 파일 다운로드 URL (시스템 브라우저로 열어 저장). 브라우저는 헤더를 못 실으므로
 // 토큰을 쿼리로 붙인다 — Linking.openURL(await downloadUrl(path)).
+// JWT는 base64url(.) 만 쓰므로 encodeURIComponent로 깨지지 않고 그대로 왕복한다.
+// 토큰이 비어 있으면 서버가 'no token' 401을 주므로, 여기서 미리 막아 원인을 분명히 한다.
 export async function downloadUrl(filePath: string): Promise<string | null> {
   const h = await getActiveHost();
   if (!h) return null;
+  if (!h.token) return null;
   return h.url + '/download?path=' + encodeURIComponent(filePath) + '&token=' + encodeURIComponent(h.token);
 }
 
