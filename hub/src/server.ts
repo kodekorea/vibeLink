@@ -397,10 +397,27 @@ export class HubServer {
 
     // 파일 다운로드 — 폰의 시스템 브라우저가 저장하도록 attachment로 내려준다.
     // 브라우저는 헤더를 못 실으므로 쿼리 토큰(?token=)도 허용한다.
-    if (meth === 'GET' && pathOnly === '/download') {
+    // 토큰 출처(쿼리/쿠키/베어러)는 모두 같은 JWT 문자열이어야 한다.
+    // HEAD도 허용 — 폰이 시스템 브라우저로 넘기기 전에 토큰 인증만 싸게 프리플라이트한다.
+    if ((meth === 'GET' || meth === 'HEAD') && pathOnly === '/download') {
+      const isHead = meth === 'HEAD';
       const u = new URL(url, 'http://x');
-      const tok = u.searchParams.get('token') || parseCookies(req)['mtb_jwt'] || bearer(req);
-      if (!this.store.verifyJwt(tok)) { res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('unauthenticated'); return; }
+      // 쿼리 토큰은 URL 인코딩될 수 있으니 트림만; searchParams.get은 이미 디코드됨.
+      const tok = (u.searchParams.get('token') || parseCookies(req)['mtb_jwt'] || bearer(req) || '').trim();
+      if (!tok) {
+        // 토큰이 아예 안 왔음 — 보통 시스템 브라우저가 ?token= 쿼리를 떨어뜨렸거나
+        // downloadUrl이 토큰 없이 만들어진 경우. 진단을 위해 메시지를 구분한다.
+        res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('unauthenticated: no token (query/cookie/bearer all empty)');
+        return;
+      }
+      if (!this.store.verifyJwt(tok)) {
+        // 토큰은 왔는데 서명/만료/디바이스 바인딩(jti) 불일치 — 보통 허브 재시작으로
+        // devices 맵이 비워졌거나 재페어링이 필요한 경우.
+        res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('unauthenticated: invalid token (re-pair the device)');
+        return;
+      }
       const p = u.searchParams.get('path');
       if (!p) { res.writeHead(400); res.end('path required'); return; }
       const fp = decodeURIComponent(p);
@@ -422,6 +439,7 @@ export class HubServer {
         'Content-Disposition': `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(name)}`,
         'Cache-Control': 'no-store',
       });
+      if (isHead) { res.end(); return; }   // HEAD: 헤더만, 본문 없이.
       fs.createReadStream(fp).pipe(res);
       return;
     }
