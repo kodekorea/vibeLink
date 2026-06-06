@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { apiGet, requestNewSession, sessionAgent, type Session } from '@/lib/hub';
+import { apiGet, requestNewSession, sessionAgent, listSessions, getActiveSessionId, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
 import { radius, font } from '@/lib/theme';
 import { usePrefs, type Palette } from '@/lib/prefs';
@@ -36,6 +36,18 @@ export default function Agent() {
 
   function scrollToBottom() {
     try { listRef.current?.scrollToEnd({ animated: true }); } catch (e) { /* */ }
+  }
+
+  // 세션 새로고침: 활성 세션의 터미널(에이전트 목록)을 다시 받고 현재 기록을 reload.
+  // (같은 세션에 에이전트 터미널을 새로 추가했을 때 칩 목록을 갱신)
+  async function refreshSession() {
+    const id = getActiveSessionId();
+    if (!id) return;
+    try {
+      const s = (await listSessions()).find(x => x.id === id);
+      if (s) setAgents(agentsOf(s));
+    } catch (e) { /* */ }
+    if (path) load(path, agent);
   }
 
   async function load(p: string, ag?: string) {
@@ -84,7 +96,7 @@ export default function Agent() {
         showNew
         onNew={() => { requestNewSession(); router.navigate('/terminal'); }}
         onActive={(s: Session | null) => { if (s) { const ag = sessionAgent(s); setPath(s.cwd); setAgents(agentsOf(s)); setAgent(ag); load(s.cwd, ag); } else { setPath(null); setAgent(undefined); setAgents([]); setEvents([]); setUnsupported(''); } }} />
-      {agents.length > 1 ? (
+      {path && agents.length >= 1 ? (
         <View style={styles.switcher}>
           {agents.map(a => {
             const on = a === agent;
@@ -94,6 +106,8 @@ export default function Agent() {
               </Pressable>
             );
           })}
+          <View style={{ flex: 1 }} />
+          <Pressable onPress={refreshSession} hitSlop={8} style={styles.refresh}><Text style={styles.refreshTxt}>↻</Text></Pressable>
         </View>
       ) : null}
       {loading ? (
@@ -130,6 +144,8 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   chipOn: { backgroundColor: c.primary, borderColor: 'transparent' },
   chipTxt: { color: c.body, fontSize: 13, fontFamily: font.bodyMedium },
   chipTxtOn: { color: c.onPrimary, fontFamily: font.bodySemibold },
+  refresh: { width: 30, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceCard, borderWidth: 1, borderColor: c.hairline },
+  refreshTxt: { color: c.primary, fontSize: 16, lineHeight: 18 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   err: { color: c.error, padding: 24, textAlign: 'center' },
   empty: { color: c.muted, padding: 24, textAlign: 'center' },
