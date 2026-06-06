@@ -43,3 +43,5 @@ image copy*
 
 .agents/
 docs/
+# 하베스트 워크트리/세션 (커밋 금지)
+.claude/
