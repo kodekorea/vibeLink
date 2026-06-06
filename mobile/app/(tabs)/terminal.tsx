@@ -3,8 +3,9 @@ import { View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getActiveHost, onHostChange, getActiveSessionId, onSessionChange, consumeNewSession, type Host, type Session } from '@/lib/hub';
+import { getActiveHost, onHostChange, getActiveTerminalId, onTerminalChange, setActiveSessionId, setActiveTerminalId, consumeNewSession, type Host, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
+import { TerminalBar } from '@/components/terminal-bar';
 import { notifyLocal } from '@/lib/notify';
 import { usePrefs } from '@/lib/prefs';
 import { t } from '@/lib/i18n';
@@ -24,7 +25,7 @@ export default function Terminal() {
   const { c, lang } = usePrefs();
   const [host, setHost] = useState<Host | null>(null);
   const webRef = useRef<WebView>(null);
-  const [sid, setSid] = useState<string | null>(getActiveSessionId());
+  const [sid, setSid] = useState<string | null>(getActiveTerminalId());
 
   useEffect(() => {
     let alive = true;
@@ -35,7 +36,7 @@ export default function Terminal() {
   }, []);
 
   useEffect(() => {
-    const off = onSessionChange(() => setSid(getActiveSessionId()));
+    const off = onTerminalChange(() => setSid(getActiveTerminalId()));
     return off;
   }, []);
 
@@ -49,6 +50,8 @@ export default function Terminal() {
     try {
       const m = JSON.parse(e.nativeEvent.data);
       if (m.t === 'notify') await notifyLocal('MTB: ' + (m.label || t('endSession')), t('completionAlarm'));
+      // PWA 모달이 새 세션을 만들면 ids를 받아 활성 세션/터미널 동기화
+      else if (m.t === 'created' && m.terminalId) { if (m.sessionId) setActiveSessionId(m.sessionId); setActiveTerminalId(m.terminalId); }
     } catch (err) { /* ignore */ }
   }
 
@@ -60,9 +63,10 @@ export default function Terminal() {
     <View style={{ flex: 1, backgroundColor: c.canvas }}>
       <SessionBar
         showNew
-        onActive={(s: Session | null) => setSid(s ? s.id : null)}
+        onActive={(_s: Session | null) => { /* 활성 터미널은 onTerminalChange로 반영 */ }}
         onNew={openNew}
       />
+      <TerminalBar />
       <View style={{ flex: 1 }}>
         <WebView
           ref={webRef}

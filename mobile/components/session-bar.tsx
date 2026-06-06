@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   listSessions, closeSession, getActiveSessionId, setActiveSessionId,
-  onSessionChange, onHostChange, type Session,
+  setActiveTerminalId, claudeTerminalId, onSessionChange, onHostChange, type Session,
 } from '@/lib/hub';
 import { usePrefs, type Palette } from '@/lib/prefs';
 import { t } from '@/lib/i18n';
@@ -27,8 +27,10 @@ export function SessionBar({ onActive, showNew, onNew }: {
     setSessions(list);
     let id = getActiveSessionId();
     if (!id || !list.find(s => s.id === id)) {
-      id = list[0]?.id ?? null;
+      const first = list[0] ?? null;
+      id = first?.id ?? null;
       setActiveSessionId(id); // emits
+      setActiveTerminalId(first ? claudeTerminalId(first) : null);
     }
     setActiveId(id);
     // 활성 세션이 실제로 바뀐 경우에만 부모 재로드(폴링마다 재로드 방지)
@@ -51,7 +53,7 @@ export function SessionBar({ onActive, showNew, onNew }: {
     return () => { offS(); offH(); };
   }, [refresh]);
 
-  function pick(s: Session) { setActiveSessionId(s.id); setActiveId(s.id); lastActive.current = s.id; onActive(s); }
+  function pick(s: Session) { setActiveSessionId(s.id); setActiveTerminalId(claudeTerminalId(s)); setActiveId(s.id); lastActive.current = s.id; onActive(s); }
 
   function remove(s: Session) {
     Alert.alert(t('endSession'), t('endSessionQ')(s.label), [

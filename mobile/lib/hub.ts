@@ -120,16 +120,25 @@ export async function loadSelectedProject(): Promise<void> {
   if (v) _selByHost[activeId] = v;
 }
 
-// ── 공유 세션 상태 (모든 탭이 같은 활성 세션을 본다) ──
-export interface Session { id: string; label: string; cwd: string; }
+// ── 공유 세션/터미널 상태 (세션=프로젝트, 그 안에 터미널 여러 개) ──
+export type TerminalKind = 'claude' | 'shell';
+export interface TerminalInfo { id: string; label: string; kind: TerminalKind; }
+export interface Session { id: string; label: string; cwd: string; terminals: TerminalInfo[]; }
+
+// 세션의 기본(claude) 터미널 id. 세션 선택 시 이 터미널을 활성으로.
+export function claudeTerminalId(s: Session): string | null {
+  return (s.terminals?.find(t => t.kind === 'claude') ?? s.terminals?.[0])?.id ?? null;
+}
 
 // 다른 탭에서 '+' 누르면 터미널 탭으로 이동해 새 세션 모달을 연다(이 플래그로 전달).
 let pendingNew = false;
 export function requestNewSession(): void { pendingNew = true; }
 export function consumeNewSession(): boolean { const v = pendingNew; pendingNew = false; return v; }
 
-let activeSessionId: string | null = null;
+let activeSessionId: string | null = null;   // 세션(프로젝트)
+let activeTerminalId: string | null = null;  // 화면에 보이는 터미널(PTY)
 const sessionListeners = new Set<() => void>();
+const terminalListeners = new Set<() => void>();
 
 export function onSessionChange(cb: () => void): () => void {
   sessionListeners.add(cb);
@@ -137,11 +146,24 @@ export function onSessionChange(cb: () => void): () => void {
 }
 function emitSession() { for (const cb of sessionListeners) cb(); }
 
+export function onTerminalChange(cb: () => void): () => void {
+  terminalListeners.add(cb);
+  return () => terminalListeners.delete(cb);
+}
+function emitTerminal() { for (const cb of terminalListeners) cb(); }
+
 export function getActiveSessionId(): string | null { return activeSessionId; }
 export function setActiveSessionId(id: string | null): void {
   if (activeSessionId === id) return;
   activeSessionId = id;
   emitSession();
+}
+
+export function getActiveTerminalId(): string | null { return activeTerminalId; }
+export function setActiveTerminalId(id: string | null): void {
+  if (activeTerminalId === id) return;
+  activeTerminalId = id;
+  emitTerminal();
 }
 
 export async function listSessions(): Promise<Session[]> {
@@ -153,6 +175,35 @@ export async function closeSession(id: string): Promise<void> {
   const h = await getActiveHost();
   if (!h) return;
   await fetch(h.url + '/sessions/close', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + h.token },
+    body: JSON.stringify({ id }),
+  });
+}
+
+// 세션 안에 셸 터미널 추가 → 새 터미널 id
+export async function createTerminal(sessionId: string): Promise<string | null> {
+  const h = await getActiveHost();
+  if (!h) return null;
+  try {
+    const r = await fetch(h.url + '/terminals/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + h.token },
+      body: JSON.stringify({ sessionId }),
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j.terminalId ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// 터미널 닫기 (셸만; claude는 서버가 거부)
+export async function closeTerminal(id: string): Promise<void> {
+  const h = await getActiveHost();
+  if (!h) return;
+  await fetch(h.url + '/terminals/close', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + h.token },
     body: JSON.stringify({ id }),

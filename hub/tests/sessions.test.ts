@@ -3,98 +3,148 @@ import assert from 'node:assert';
 import { SessionManager } from '../src/sessions';
 import type { IPty } from '../src/nodePty';
 
-function fakePty() {
-  let dataCb: (d: string) => void = () => {};
-  let exitCb: (e: { exitCode: number }) => void = () => {};
-  const writes: string[] = [];
-  const pty: IPty = {
-    pid: 123,
-    onData(cb) { dataCb = cb; },
-    onExit(cb) { exitCb = cb; },
-    write(d) { writes.push(d); },
-    resize() { /* noop */ },
-    kill() { exitCb({ exitCode: 0 }); },
+interface Fake { pty: IPty; writes: string[]; emit: (d: string) => void; exit: () => void; opts: any; }
+
+// spawn 호출마다 새 fake pty를 만들고 기록한다(터미널 여러 개 검증용).
+function fakeSpawn() {
+  const made: Fake[] = [];
+  const spawn = (_shell: string, _args: string[], opts: any): IPty => {
+    let dataCb: (d: string) => void = () => {};
+    let exitCb: (e: { exitCode: number }) => void = () => {};
+    const writes: string[] = [];
+    const pty: IPty = {
+      pid: 100 + made.length,
+      onData(cb) { dataCb = cb; },
+      onExit(cb) { exitCb = cb; },
+      write(d) { writes.push(d); },
+      resize() { /* noop */ },
+      kill() { exitCb({ exitCode: 0 }); },
+    };
+    made.push({ pty, writes, emit: (d) => dataCb(d), exit: () => exitCb({ exitCode: 0 }), opts });
+    return pty;
   };
-  return { pty, writes, emit: (d: string) => dataCb(d), exit: () => exitCb({ exitCode: 0 }) };
+  return { spawn, made };
 }
 
-test('create: pty 생성 + launch 명령 입력 + 목록 등록 + session_list 방송', () => {
-  const f = fakePty();
+test('createSession: 세션 + claude 터미널 자동 생성 + launch 실행 + 방송', () => {
+  const { spawn, made } = fakeSpawn();
   const msgs: any[] = [];
-  const sm = new SessionManager(() => f.pty, m => msgs.push(m), 'powershell.exe', 'claude');
-  const id = sm.create({ label: 'projA', path: 'C:\\a' });
-  assert.equal(id, '1');
-  assert.deepEqual(f.writes, ['claude\r']);
-  assert.deepEqual(sm.list(), [{ id: '1', label: 'projA', cwd: 'C:\\a' }]);
+  const sm = new SessionManager(spawn, m => msgs.push(m), 'powershell.exe', 'claude');
+  const { sessionId, terminalId } = sm.createSession({ label: 'projA', path: 'C:\\a' });
+  assert.equal(sessionId, 's1');
+  assert.equal(terminalId, 't1');
+  assert.deepEqual(made[0].writes, ['claude\r']);      // claude 실행됨
+  assert.equal(made[0].opts.cwd, 'C:\\a');
+  const tree = sm.tree();
+  assert.equal(tree.length, 1);
+  assert.equal(tree[0].id, 's1');
+  assert.deepEqual(tree[0].terminals, [{ id: 't1', label: 'claude', kind: 'claude' }]);
   assert.ok(msgs.some(m => m.type === 'session_list'));
 });
 
-test('pty 데이터 → terminal_data 방송 + 버퍼 누적', () => {
-  const f = fakePty();
-  const msgs: any[] = [];
-  const sm = new SessionManager(() => f.pty, m => msgs.push(m), 'powershell.exe', '');
-  const id = sm.create({ label: 'p', path: 'C:\\p' });
-  f.emit('hello');
-  assert.ok(msgs.some(m => m.type === 'terminal_data' && m.sessionId === id && m.data === 'hello'));
+test('createTerminal: 셸 추가 — claude 미실행, 같은 cwd, 라벨 shell 1', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
+  const { sessionId } = sm.createSession({ label: 'p', path: 'C:\\p' });
+  const tid = sm.createTerminal(sessionId);
+  assert.equal(tid, 't2');
+  assert.deepEqual(made[1].writes, []);                 // 셸은 launch 안 함
+  assert.equal(made[1].opts.cwd, 'C:\\p');
+  const term = sm.tree()[0].terminals.find(t => t.id === 't2');
+  assert.deepEqual(term, { id: 't2', label: 'shell 1', kind: 'shell' });
 });
 
-test('resyncTo: 목록 + 누적 버퍼 리플레이', () => {
-  const f = fakePty();
-  const sm = new SessionManager(() => f.pty, () => {}, 'powershell.exe', '');
-  const id = sm.create({ label: 'p', path: 'C:\\p' });
-  f.emit('abc');
+test('createTerminal: 없는 세션이면 null', () => {
+  const { spawn } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
+  assert.equal(sm.createTerminal('nope'), null);
+});
+
+test('closeTerminal: 셸은 닫히고 claude는 거부', () => {
+  const { spawn } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
+  const { sessionId, terminalId } = sm.createSession({ label: 'p', path: 'C:\\p' });
+  const tid = sm.createTerminal(sessionId)!;
+  assert.equal(sm.closeTerminal(terminalId), false);    // claude 거부
+  assert.equal(sm.closeTerminal(tid), true);            // shell 닫힘
+  assert.deepEqual(sm.tree()[0].terminals.map(t => t.id), ['t1']);
+});
+
+test('closeSession: 소속 터미널 전부 종료 + 세션 제거', () => {
+  const { spawn } = fakeSpawn();
+  const msgs: any[] = [];
+  const sm = new SessionManager(spawn, m => msgs.push(m), 'powershell.exe', 'claude');
+  const { sessionId } = sm.createSession({ label: 'p', path: 'C:\\p' });
+  sm.createTerminal(sessionId);
+  assert.equal(sm.closeSession(sessionId), true);
+  assert.deepEqual(sm.tree(), []);
+  assert.ok(msgs.some(m => m.type === 'terminal_exit'));
+});
+
+test('마지막 터미널 종료 시 세션도 정리', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', '');
+  sm.createSession({ label: 'p', path: 'C:\\p' });
+  made[0].exit();
+  assert.deepEqual(sm.tree(), []);
+});
+
+test('pty 데이터 → terminal_data(sessionId=terminalId) + 버퍼 누적', () => {
+  const { spawn, made } = fakeSpawn();
+  const msgs: any[] = [];
+  const sm = new SessionManager(spawn, m => msgs.push(m), 'powershell.exe', '');
+  const { terminalId } = sm.createSession({ label: 'p', path: 'C:\\p' });
+  made[0].emit('hello');
+  assert.ok(msgs.some(m => m.type === 'terminal_data' && m.sessionId === terminalId && m.data === 'hello'));
+});
+
+test('resyncTo: 평면 목록 + 누적 버퍼 리플레이', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', '');
+  const { terminalId } = sm.createSession({ label: 'p', path: 'C:\\p' });
+  made[0].emit('abc');
   const sent: any[] = [];
   sm.resyncTo(m => sent.push(m));
   assert.ok(sent.some(m => m.type === 'session_list'));
-  assert.ok(sent.some(m => m.type === 'terminal_data' && m.sessionId === id && m.data === 'abc'));
+  assert.ok(sent.some(m => m.type === 'terminal_data' && m.sessionId === terminalId && m.data === 'abc'));
 });
 
-test('replayTo: 특정 세션 버퍼만 전송', () => {
-  const f = fakePty();
-  const sm = new SessionManager(() => f.pty, () => {}, 'powershell.exe', '');
-  const id = sm.create({ label: 'p', path: 'C:\\p' });
-  f.emit('xyz');
+test('replayTo: 특정 터미널 버퍼만 전송', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', '');
+  const { terminalId } = sm.createSession({ label: 'p', path: 'C:\\p' });
+  made[0].emit('xyz');
   const sent: any[] = [];
-  sm.replayTo(id, m => sent.push(m));
-  assert.deepEqual(sent, [{ type: 'terminal_data', sessionId: id, data: 'xyz' }]);
+  sm.replayTo(terminalId, m => sent.push(m));
+  assert.deepEqual(sent, [{ type: 'terminal_data', sessionId: terminalId, data: 'xyz' }]);
 });
 
-test('close → pty.kill → onExit → terminal_exit + 목록에서 제거', () => {
-  const f = fakePty();
+test('write는 해당 터미널 pty로 전달', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', '');
+  const { terminalId } = sm.createSession({ label: 'p', path: 'C:\\p' });
+  made[0].writes.length = 0;
+  sm.write(terminalId, 'ls\r');
+  assert.deepEqual(made[0].writes, ['ls\r']);
+});
+
+test('터미널 벨(\\x07) → notify(세션 라벨 포함)', () => {
+  const { spawn, made } = fakeSpawn();
   const msgs: any[] = [];
-  const sm = new SessionManager(() => f.pty, m => msgs.push(m), 'powershell.exe', '');
-  const id = sm.create({ label: 'p', path: 'C:\\p' });
-  assert.equal(sm.close(id), true);
-  assert.ok(msgs.some(m => m.type === 'terminal_exit' && m.sessionId === id));
-  assert.deepEqual(sm.list(), []);
-});
-
-test('write는 해당 세션 pty로 전달', () => {
-  const f = fakePty();
-  const sm = new SessionManager(() => f.pty, () => {}, 'powershell.exe', '');
-  const id = sm.create({ label: 'p', path: 'C:\\p' });
-  f.writes.length = 0;
-  sm.write(id, 'ls\r');
-  assert.deepEqual(f.writes, ['ls\r']);
-});
-
-test('터미널 벨(\\x07) → notify 방송(라벨 포함)', () => {
-  const f = fakePty();
-  const msgs: any[] = [];
-  const sm = new SessionManager(() => f.pty, m => msgs.push(m), 'powershell.exe', '');
-  const id = sm.create({ label: 'projA', path: 'C:\\a' });
-  f.emit('done\x07');
+  const sm = new SessionManager(spawn, m => msgs.push(m), 'powershell.exe', '');
+  const { terminalId } = sm.createSession({ label: 'projA', path: 'C:\\a' });
+  made[0].emit('done\x07');
   const n = msgs.find(m => m.type === 'notify');
   assert.ok(n, 'notify가 방송돼야 함');
-  assert.equal(n.sessionId, id);
+  assert.equal(n.sessionId, terminalId);
   assert.equal(n.label, 'projA');
 });
 
 test('notify는 디바운스 윈도 내 중복 방송 안 함', () => {
-  const f = fakePty();
+  const { spawn, made } = fakeSpawn();
   const msgs: any[] = [];
-  const sm = new SessionManager(() => f.pty, m => msgs.push(m), 'powershell.exe', '');
-  sm.create({ label: 'p', path: 'C:\\p' });
-  f.emit('\x07'); f.emit('\x07');
+  const sm = new SessionManager(spawn, m => msgs.push(m), 'powershell.exe', '');
+  sm.createSession({ label: 'p', path: 'C:\\p' });
+  made[0].emit('\x07'); made[0].emit('\x07');
   assert.equal(msgs.filter(m => m.type === 'notify').length, 1);
 });

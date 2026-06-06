@@ -330,7 +330,7 @@ export class HubServer {
     // 세션 목록
     if (meth === 'GET' && pathOnly === '/sessions') {
       if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
-      this.json(res, 200, { sessions: this.sessions.list() }); return;
+      this.json(res, 200, { sessions: this.sessions.tree() }); return;
     }
 
     // 프로젝트 즐겨찾기 목록
@@ -545,8 +545,9 @@ export class HubServer {
       if (!p) { this.json(res, 400, { error: 'path required' }); return; }
       const label = String(data['label'] ?? (p.split(/[\\/]/).filter(Boolean).pop() || p));
       try {
-        const id = this.sessions.create({ label, path: p });
-        this.json(res, 200, { ok: true, id });
+        const { sessionId, terminalId } = this.sessions.createSession({ label, path: p });
+        // id는 기존 호환(=기본 터미널 id). sessionId/terminalId도 함께 반환.
+        this.json(res, 200, { ok: true, id: terminalId, sessionId, terminalId });
       } catch (e) {
         this.json(res, 500, { error: String(e) });
       }
@@ -555,7 +556,27 @@ export class HubServer {
 
     if (url === '/sessions/close') {
       const id = String(data['id'] ?? '');
-      this.json(res, 200, { ok: this.sessions.close(id) }); return;
+      this.json(res, 200, { ok: this.sessions.closeSession(id) }); return;
+    }
+
+    // 세션 안에 추가 터미널(기본 셸 — claude 미실행)
+    if (url === '/terminals/create') {
+      const sessionId = String(data['sessionId'] ?? '');
+      if (!sessionId) { this.json(res, 400, { error: 'sessionId required' }); return; }
+      try {
+        const terminalId = this.sessions.createTerminal(sessionId);
+        if (!terminalId) { this.json(res, 404, { error: 'no such session' }); return; }
+        this.json(res, 200, { ok: true, terminalId });
+      } catch (e) {
+        this.json(res, 500, { error: String(e) });
+      }
+      return;
+    }
+
+    // 터미널 닫기 (셸만; claude는 거부)
+    if (url === '/terminals/close') {
+      const id = String(data['id'] ?? '');
+      this.json(res, 200, { ok: this.sessions.closeTerminal(id) }); return;
     }
 
     if (url === '/projects/add') {
