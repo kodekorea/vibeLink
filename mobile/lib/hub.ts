@@ -181,15 +181,18 @@ export async function closeSession(id: string): Promise<void> {
   });
 }
 
-// 세션 안에 셸 터미널 추가 → 새 터미널 id
-export async function createTerminal(sessionId: string): Promise<string | null> {
+// 세션 안에 터미널 추가 → 새 터미널 id. spec 없으면 셸(에이전트 미실행).
+export async function createTerminal(
+  sessionId: string,
+  spec?: { agent?: string; env?: string },
+): Promise<string | null> {
   const h = await getActiveHost();
   if (!h) return null;
   try {
     const r = await fetch(h.url + '/terminals/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + h.token },
-      body: JSON.stringify({ sessionId }),
+      body: JSON.stringify({ sessionId, agent: spec?.agent, env: spec?.env }),
     });
     if (!r.ok) return null;
     const j = await r.json();
@@ -231,6 +234,34 @@ export async function setNotifyMinSec(sec: number): Promise<boolean> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + h.token },
       body: JSON.stringify({ minMs: Math.round(sec * 1000) }),
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+// 새 세션 기본 에이전트 (사용자 설정) — claude/opencode/codex
+export async function getDefaultAgent(): Promise<string | null> {
+  const h = await getActiveHost();
+  if (!h) return null;
+  try {
+    const r = await fetch(h.url + '/settings/agent', { headers: { Authorization: 'Bearer ' + h.token } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return typeof j.agent === 'string' ? j.agent : null;
+  } catch {
+    return null;
+  }
+}
+export async function setDefaultAgent(agent: string): Promise<boolean> {
+  const h = await getActiveHost();
+  if (!h) return false;
+  try {
+    const r = await fetch(h.url + '/settings/agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + h.token },
+      body: JSON.stringify({ agent }),
     });
     return r.ok;
   } catch {

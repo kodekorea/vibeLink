@@ -50,6 +50,8 @@ export class SessionManager {
 
   private notifyQuietMs: number;
   private notifyMinBusyMs: number;
+  // 새 세션이 띄울 기본 에이전트(사용자 설정). createSession에 spec.agent가 없으면 이 값을 쓴다.
+  private defaultAgent = 'claude';
 
   constructor(
     private spawn: PtySpawn,
@@ -74,6 +76,13 @@ export class SessionManager {
       this.notifyQuietMs = Math.min(10000, Math.max(500, Math.round(opts.quietMs)));
     }
     return this.getNotify();
+  }
+
+  // 새 세션 기본 에이전트 (폰 설정에서 변경 + 시작 시 agent.json에서 복원).
+  getDefaultAgent(): string { return this.defaultAgent; }
+  setDefaultAgent(a: string): string {
+    if (a && (a === 'claude' || a === 'opencode' || a === 'codex')) this.defaultAgent = a;
+    return this.defaultAgent;
   }
 
   // 런타임 스펙 → 실제 spawn 정보. env/agent별 분기는 여기 한 곳에서 확장한다.
@@ -102,7 +111,7 @@ export class SessionManager {
 
   // 세션 생성 + 기본 에이전트 터미널 1개 자동 생성.
   createSession(project: Project, spec?: Partial<RuntimeSpec>, cols = 80, rows = 24): { sessionId: string; terminalId: string } {
-    const agent = spec?.agent ?? 'claude';
+    const agent = spec?.agent ?? this.defaultAgent;
     const env = spec?.env ?? 'powershell';
     const sessionId = 's' + (++this.sCounter);
     this.sessions.set(sessionId, { id: sessionId, label: project.label, cwd: project.path, env });

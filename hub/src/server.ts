@@ -339,6 +339,12 @@ export class HubServer {
       this.json(res, 200, this.sessions.getNotify()); return;
     }
 
+    // 새 세션 기본 에이전트 조회 (폰 설정에서 사용)
+    if (meth === 'GET' && pathOnly === '/settings/agent') {
+      if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
+      this.json(res, 200, { agent: this.sessions.getDefaultAgent() }); return;
+    }
+
     // 프로젝트 즐겨찾기 목록
     if (meth === 'GET' && pathOnly === '/projects') {
       if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
@@ -599,6 +605,17 @@ export class HubServer {
         fs.writeFileSync(path.join(dir, 'notify.json'), JSON.stringify(next));
       } catch { /* 저장 실패해도 런타임 값은 적용됨 */ }
       this.json(res, 200, next); return;
+    }
+
+    // 새 세션 기본 에이전트 변경 (폰 설정) — 즉시 적용 + ~/.vibelink/agent.json에 영속화
+    if (url === '/settings/agent') {
+      const agent = this.sessions.setDefaultAgent(String(data['agent'] ?? ''));
+      try {
+        const dir = path.join(os.homedir(), '.vibelink');
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, 'agent.json'), JSON.stringify({ agent }));
+      } catch { /* 저장 실패해도 런타임 값은 적용됨 */ }
+      this.json(res, 200, { agent }); return;
     }
 
     if (url === '/projects/add') {

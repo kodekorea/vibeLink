@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import {
   listSessions, createTerminal, closeTerminal,
@@ -8,6 +8,11 @@ import {
   type TerminalInfo, type Session,
 } from '@/lib/hub';
 import { usePrefs, type Palette } from '@/lib/prefs';
+import { t } from '@/lib/i18n';
+
+// 새 터미널 picker 선택지: 에이전트(셸/Claude/opencode/codex) × 환경(PowerShell/cmd/Git Bash/WSL).
+const AGENTS: [string, string][] = [['shell', 'Shell'], ['claude', 'Claude'], ['opencode', 'opencode'], ['codex', 'codex']];
+const ENVS: [string, string][] = [['powershell', 'PowerShell'], ['cmd', 'cmd'], ['gitbash', 'Git Bash'], ['wsl', 'WSL']];
 
 // 활성 세션의 터미널 줄(2단 바의 아래단). claude(고정) + 셸 터미널들 + ＋.
 export function TerminalBar() {
@@ -16,6 +21,9 @@ export function TerminalBar() {
   const [terminals, setTerminals] = useState<TerminalInfo[]>([]);
   const [activeTid, setActiveTid] = useState<string | null>(getActiveTerminalId());
   const [adding, setAdding] = useState(false);
+  const [picker, setPicker] = useState(false);
+  const [pAgent, setPAgent] = useState('shell');
+  const [pEnv, setPEnv] = useState('powershell');
 
   const refresh = useCallback(async () => {
     const sid = getActiveSessionId();
@@ -46,11 +54,12 @@ export function TerminalBar() {
     return () => { offT(); offS(); offH(); };
   }, [refresh]);
 
-  async function addShell() {
+  async function addTerminal() {
     const sid = getActiveSessionId();
     if (!sid || adding) return;
     setAdding(true);
-    const tid = await createTerminal(sid);
+    setPicker(false);
+    const tid = await createTerminal(sid, { agent: pAgent, env: pEnv });
     if (tid) setActiveTerminalId(tid);
     await refresh();
     setAdding(false);
@@ -84,10 +93,51 @@ export function TerminalBar() {
             </Pressable>
           );
         })}
-        <Pressable onPress={addShell} style={[styles.plus, { backgroundColor: c.surfaceCard, borderColor: c.hairline }]} hitSlop={6}>
+        <Pressable onPress={() => setPicker(true)} style={[styles.plus, { backgroundColor: c.surfaceCard, borderColor: c.hairline }]} hitSlop={6}>
           <Text style={[styles.plusTxt, { color: c.primary }]}>＋</Text>
         </Pressable>
       </ScrollView>
+
+      <Modal visible={picker} transparent animationType="fade" onRequestClose={() => setPicker(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setPicker(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <Text style={styles.sheetTitle}>{t('newTerminal')}</Text>
+
+            <Text style={styles.sheetLabel}>{t('agentLabel')}</Text>
+            <View style={styles.segWrap}>
+              {AGENTS.map(([k, lbl]) => {
+                const on = pAgent === k;
+                return (
+                  <Pressable key={k} onPress={() => setPAgent(k)} style={[styles.segItem, on && { backgroundColor: c.primary }]}>
+                    <Text style={[styles.segTxt, { color: on ? c.onPrimary : c.body }]}>{k === 'shell' ? t('shell') : lbl}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <Text style={styles.sheetLabel}>{t('environment')}</Text>
+            <View style={styles.segWrap}>
+              {ENVS.map(([k, lbl]) => {
+                const on = pEnv === k;
+                return (
+                  <Pressable key={k} onPress={() => setPEnv(k)} style={[styles.segItem, on && { backgroundColor: c.primary }]}>
+                    <Text style={[styles.segTxt, { color: on ? c.onPrimary : c.body }]}>{lbl}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View style={styles.sheetActions}>
+              <Pressable onPress={() => setPicker(false)} style={[styles.actBtn, { backgroundColor: c.surfaceCard, borderColor: c.hairline, borderWidth: 1 }]}>
+                <Text style={[styles.actTxt, { color: c.body }]}>{t('cancel')}</Text>
+              </Pressable>
+              <Pressable onPress={addTerminal} disabled={adding} style={[styles.actBtn, { backgroundColor: c.primary, opacity: adding ? 0.6 : 1 }]}>
+                <Text style={[styles.actTxt, { color: c.onPrimary }]}>{t('add')}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -101,4 +151,14 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   xTxt: { fontSize: 15, lineHeight: 16 },
   plus: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   plusTxt: { fontSize: 18, lineHeight: 20 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: c.canvas, borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 18, paddingBottom: 28, gap: 8 },
+  sheetTitle: { color: c.body, fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  sheetLabel: { color: c.mutedSoft, fontSize: 12, marginTop: 6 },
+  segWrap: { flexDirection: 'row', gap: 6, backgroundColor: c.surfaceCard, borderRadius: 10, padding: 4 },
+  segItem: { flex: 1, paddingVertical: 9, borderRadius: 7, alignItems: 'center' },
+  segTxt: { fontSize: 13, fontWeight: '600' },
+  sheetActions: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  actBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  actTxt: { fontSize: 15, fontWeight: '700' },
 });
