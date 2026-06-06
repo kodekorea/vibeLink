@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { apiGet, requestNewSession, type Session } from '@/lib/hub';
+import { apiGet, requestNewSession, sessionAgent, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
 import { radius, font } from '@/lib/theme';
 import { usePrefs, type Palette } from '@/lib/prefs';
@@ -21,20 +21,29 @@ export default function Agent() {
   const [events, setEvents] = useState<Ev[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [unsupported, setUnsupported] = useState('');
   const [path, setPath] = useState<string | null>(null);
+  const [agent, setAgent] = useState<string | undefined>(undefined);
   const listRef = useRef<FlatList<Ev>>(null);
 
   function scrollToBottom() {
     try { listRef.current?.scrollToEnd({ animated: true }); } catch (e) { /* */ }
   }
 
-  async function load(p: string) {
+  async function load(p: string, ag?: string) {
     setLoading(true);
     setError('');
+    setUnsupported('');
     try {
-      const r = await apiGet<{ events: Ev[] }>('/agent/log?path=' + encodeURIComponent(p));
-      setEvents(r.events);
-      setTimeout(scrollToBottom, 120);
+      const q = '/agent/log?path=' + encodeURIComponent(p) + (ag ? '&agent=' + encodeURIComponent(ag) : '');
+      const r = await apiGet<{ events: Ev[]; supported?: boolean }>(q);
+      if (r.supported === false) {
+        setUnsupported(t('agentNoHistory')(ag || 'agent'));
+        setEvents([]);
+      } else {
+        setEvents(r.events);
+        setTimeout(scrollToBottom, 120);
+      }
     } catch (e) {
       setError(t('loadSessionFail'));
       setEvents([]);
@@ -66,9 +75,11 @@ export default function Agent() {
       <SessionBar
         showNew
         onNew={() => { requestNewSession(); router.navigate('/terminal'); }}
-        onActive={(s: Session | null) => { if (s) { setPath(s.cwd); load(s.cwd); } else { setPath(null); setEvents([]); } }} />
+        onActive={(s: Session | null) => { if (s) { const ag = sessionAgent(s); setPath(s.cwd); setAgent(ag); load(s.cwd, ag); } else { setPath(null); setAgent(undefined); setEvents([]); setUnsupported(''); } }} />
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={c.primary} /></View>
+      ) : unsupported ? (
+        <View style={styles.center}><Text style={styles.empty}>{unsupported}</Text></View>
       ) : error ? (
         <View style={styles.center}><Text style={styles.err}>{error}</Text></View>
       ) : (
@@ -79,7 +90,7 @@ export default function Agent() {
             keyExtractor={(_, i) => String(i)}
             renderItem={renderItem}
             contentContainerStyle={{ padding: 12, gap: 8 }}
-            refreshControl={<RefreshControl refreshing={loading} onRefresh={() => path && load(path)} tintColor={c.muted} />}
+            refreshControl={<RefreshControl refreshing={loading} onRefresh={() => path && load(path, agent)} tintColor={c.muted} />}
           />
           {events.length > 0 ? (
             <Pressable style={styles.fab} onPress={scrollToBottom} hitSlop={8}>
@@ -96,6 +107,7 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: c.canvas },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   err: { color: c.error, padding: 24, textAlign: 'center' },
+  empty: { color: c.muted, padding: 24, textAlign: 'center' },
   bubble: { borderRadius: radius.lg, borderCurve: 'continuous', padding: 12, maxWidth: '92%' },
   user: { backgroundColor: c.primary, alignSelf: 'flex-end' },
   userTxt: { color: c.onPrimary, fontSize: 14, fontFamily: font.body },

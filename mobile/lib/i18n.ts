@@ -12,6 +12,7 @@ const EN = {
   list: '← List',
   // agent
   loadSessionFail: 'Could not load session (needs a running claude session)',
+  agentNoHistory: (a: string) => `This agent (${a}) does not support viewing conversation history.`,
   // changes
   loadFail: 'Could not load', noChanges: "No files changed by Claude in this session", truncated: '… (truncated)',
   // files
@@ -39,6 +40,7 @@ const KO: Dict = {
   noSession: '실행 중인 세션 없음 — ＋로 시작', close: '닫기', up: '⬆ 상위', drives: '드라이브',
   list: '← 목록',
   loadSessionFail: '세션을 불러오지 못했어요 (claude 세션이 있어야 함)',
+  agentNoHistory: (a: string) => `이 에이전트(${a})는 대화 기록 보기를 지원하지 않아요.`,
   loadFail: '불러오지 못했어요', noChanges: '이 세션에서 Claude가 바꾼 파일이 없어요', truncated: '… (잘림)',
   browseFail: '불러오기 실패: ', readFail: '읽기 실패: ', imgFail: '이미지를 불러올 수 없어요',
   download: '다운로드', downloadStarted: '브라우저에서 다운로드를 시작했어요', downloadFail: '다운로드를 시작할 수 없어요',

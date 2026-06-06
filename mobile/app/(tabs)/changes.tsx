@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { apiGet, requestNewSession, type Session } from '@/lib/hub';
+import { apiGet, requestNewSession, sessionAgent, type Session } from '@/lib/hub';
 import { SessionBar } from '@/components/session-bar';
 import { font } from '@/lib/theme';
 import { usePrefs, type Palette } from '@/lib/prefs';
@@ -20,15 +20,23 @@ export default function Changes() {
   const [changes, setChanges] = useState<Change[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [unsupported, setUnsupported] = useState('');
   const [sel, setSel] = useState<Change | null>(null);
 
-  async function load(p: string) {
+  async function load(p: string, ag?: string) {
     setLoading(true);
     setError('');
+    setUnsupported('');
     setSel(null);
     try {
-      const r = await apiGet<{ changes: Change[] }>('/agent/changes?path=' + encodeURIComponent(p));
-      setChanges(r.changes);
+      const q = '/agent/changes?path=' + encodeURIComponent(p) + (ag ? '&agent=' + encodeURIComponent(ag) : '');
+      const r = await apiGet<{ changes: Change[]; supported?: boolean }>(q);
+      if (r.supported === false) {
+        setUnsupported(t('agentNoHistory')(ag || 'agent'));
+        setChanges([]);
+      } else {
+        setChanges(r.changes);
+      }
     } catch (e) {
       setError(t('loadFail'));
       setChanges([]);
@@ -72,9 +80,11 @@ export default function Changes() {
       <SessionBar
         showNew
         onNew={() => { requestNewSession(); router.navigate('/terminal'); }}
-        onActive={(s: Session | null) => { if (s) load(s.cwd); else { setChanges([]); } }} />
+        onActive={(s: Session | null) => { if (s) load(s.cwd, sessionAgent(s)); else { setChanges([]); setUnsupported(''); } }} />
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={c.primary} /></View>
+      ) : unsupported ? (
+        <View style={styles.center}><Text style={styles.empty}>{unsupported}</Text></View>
       ) : error ? (
         <View style={styles.center}><Text style={styles.err}>{error}</Text></View>
       ) : changes.length === 0 ? (
