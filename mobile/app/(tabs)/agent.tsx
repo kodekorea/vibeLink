@@ -15,6 +15,13 @@ function base(p?: string): string {
   return m[m.length - 1] || p;
 }
 
+// 한 세션에 떠 있는 에이전트들(중복 제거). 셸은 제외. chat에서 전환용.
+function agentsOf(s: Session): string[] {
+  const ags = (s.terminals || []).filter(x => x.kind === 'agent' && x.agent).map(x => x.agent as string);
+  const uniq = Array.from(new Set(ags));
+  return uniq.length ? uniq : [sessionAgent(s)].filter(Boolean) as string[];
+}
+
 export default function Agent() {
   const { c } = usePrefs();
   const styles = makeStyles(c);
@@ -24,6 +31,7 @@ export default function Agent() {
   const [unsupported, setUnsupported] = useState('');
   const [path, setPath] = useState<string | null>(null);
   const [agent, setAgent] = useState<string | undefined>(undefined);
+  const [agents, setAgents] = useState<string[]>([]);
   const listRef = useRef<FlatList<Ev>>(null);
 
   function scrollToBottom() {
@@ -75,7 +83,19 @@ export default function Agent() {
       <SessionBar
         showNew
         onNew={() => { requestNewSession(); router.navigate('/terminal'); }}
-        onActive={(s: Session | null) => { if (s) { const ag = sessionAgent(s); setPath(s.cwd); setAgent(ag); load(s.cwd, ag); } else { setPath(null); setAgent(undefined); setEvents([]); setUnsupported(''); } }} />
+        onActive={(s: Session | null) => { if (s) { const ag = sessionAgent(s); setPath(s.cwd); setAgents(agentsOf(s)); setAgent(ag); load(s.cwd, ag); } else { setPath(null); setAgent(undefined); setAgents([]); setEvents([]); setUnsupported(''); } }} />
+      {agents.length > 1 ? (
+        <View style={styles.switcher}>
+          {agents.map(a => {
+            const on = a === agent;
+            return (
+              <Pressable key={a} onPress={() => { setAgent(a); if (path) load(path, a); }} style={[styles.chip, on && styles.chipOn]}>
+                <Text style={[styles.chipTxt, on && styles.chipTxtOn]}>{a === 'claude' ? 'Claude' : a}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={c.primary} /></View>
       ) : unsupported ? (
@@ -105,6 +125,11 @@ export default function Agent() {
 
 const makeStyles = (c: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: c.canvas },
+  switcher: { flexDirection: 'row', gap: 6, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: c.surfaceSoft, borderBottomWidth: 1, borderBottomColor: c.hairline },
+  chip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14, backgroundColor: c.surfaceCard, borderWidth: 1, borderColor: c.hairline },
+  chipOn: { backgroundColor: c.primary, borderColor: 'transparent' },
+  chipTxt: { color: c.body, fontSize: 13, fontFamily: font.bodyMedium },
+  chipTxtOn: { color: c.onPrimary, fontFamily: font.bodySemibold },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   err: { color: c.error, padding: 24, textAlign: 'center' },
   empty: { color: c.muted, padding: 24, textAlign: 'center' },
