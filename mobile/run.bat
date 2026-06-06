@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title MTB Hub - Mobile (Expo)
+title VibeLink - Mobile (Expo)
 cd /d "%~dp0"
 if not exist node_modules goto install
 goto run

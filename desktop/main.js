@@ -6,7 +6,7 @@ const http = require('http');
 const { spawn } = require('child_process');
 
 const SMOKE = !!process.env.MTB_SMOKE;
-const SETTINGS_PATH = path.join(os.homedir(), '.mtb', 'desktop.json');
+const SETTINGS_PATH = path.join(os.homedir(), '.vibelink', 'desktop.json');
 
 let tray = null, win = null, hubProc = null, hubUrl = '', logs = [];
 
@@ -28,7 +28,7 @@ function parseDotEnv(text) {
 // .env 탐색 순서: ~/.mtb/.env(설치 후 권장) → 저장소 루트(.env, 개발) → desktop/.env → 패키지 리소스
 function loadDotEnv() {
   const candidates = [
-    path.join(os.homedir(), '.mtb', '.env'),
+    path.join(os.homedir(), '.vibelink', '.env'),
     path.join(__dirname, '..', '.env'),
     path.join(__dirname, '.env'),
     app.isPackaged ? path.join(process.resourcesPath, '.env') : null,
@@ -76,7 +76,7 @@ function pushState() { if (win && !win.isDestroyed()) win.webContents.send('mtb:
 function trayImage() { try { const img = nativeImage.createFromPath(path.join(__dirname, 'tray.png')); return img.isEmpty() ? nativeImage.createEmpty() : img; } catch { return nativeImage.createEmpty(); } }
 function updateTray() {
   if (!tray) return;
-  tray.setToolTip('MTB Hub' + (hubUrl ? ' - ' + hubUrl : (hubProc ? ' - starting' : ' - stopped')));
+  tray.setToolTip('VibeLink' + (hubUrl ? ' - ' + hubUrl : (hubProc ? ' - starting' : ' - stopped')));
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: hubProc ? 'Stop hub' : 'Start hub', click: () => hubProc ? stopHub() : startHub() },
     { label: 'Settings...', click: showWindow },
@@ -87,7 +87,7 @@ function updateTray() {
 }
 function showWindow() {
   if (win && !win.isDestroyed()) { win.show(); win.focus(); return; }
-  win = new BrowserWindow({ width: 480, height: 680, title: 'MTB Hub', webPreferences: { preload: path.join(__dirname, 'preload.js') } });
+  win = new BrowserWindow({ width: 480, height: 680, title: 'VibeLink', webPreferences: { preload: path.join(__dirname, 'preload.js') } });
   win.loadFile('settings.html');
   win.on('close', e => { if (!app.isQuitting) { e.preventDefault(); win.hide(); } });
   win.webContents.on('did-finish-load', pushState);
@@ -114,7 +114,7 @@ ipcMain.handle('mtb:save', async (_e, s) => {
   return state();
 });
 ipcMain.handle('mtb:openQr', () => shell.openExternal('http://127.0.0.1:' + settings().port + '/qr.html'));
-ipcMain.handle('mtb:openProjects', () => { const p = path.join(os.homedir(), '.mtb', 'projects.json'); if (!fs.existsSync(p)) { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, '[]'); } shell.openPath(p); });
+ipcMain.handle('mtb:openProjects', () => { const p = path.join(os.homedir(), '.vibelink', 'projects.json'); if (!fs.existsSync(p)) { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, '[]'); } shell.openPath(p); });
 ipcMain.handle('mtb:openExternal', (_e, url) => { if (/^https:\/\//.test(String(url))) shell.openExternal(url); });
 
 app.whenReady().then(() => {

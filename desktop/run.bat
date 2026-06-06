@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title MTB Hub - Desktop
+title VibeLink - Desktop
 cd /d "%~dp0"
 if not exist node_modules goto install
 goto run
@@ -9,7 +9,7 @@ echo First run: installing dependencies (Electron, can take a few minutes)...
 call npm install
 if errorlevel 1 goto fail
 :run
-echo Starting MTB Hub desktop app (tray). Quit from the tray icon.
+echo Starting VibeLink desktop app (tray). Quit from the tray icon.
 call npm start
 goto end
 :fail

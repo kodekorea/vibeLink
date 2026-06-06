@@ -1,6 +1,6 @@
 {
-  "name": "MTB Hub",
-  "short_name": "MTB",
+  "name": "VibeLink",
+  "short_name": "VibeLink",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b0b0b",

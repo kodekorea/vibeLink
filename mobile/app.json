@@ -1,17 +1,18 @@
 {
   "expo": {
-    "name": "MTB Hub",
-    "slug": "mtb-hub",
+    "name": "VibeLink",
+    "slug": "vibelink",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "scheme": "mtbhub",
+    "scheme": "vibelink",
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "package": "com.shain.mtbhub",
+      "package": "com.shain.vibelink",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#faf9f5",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -20,7 +21,8 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -41,14 +43,8 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "aa876a90-c815-4aa4-880f-ec8516fc8ae0"
+        "projectId": "646250ab-d001-41e5-aad9-6eeaab05533d"
       }
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/aa876a90-c815-4aa4-880f-ec8516fc8ae0"
     }
   }
 }

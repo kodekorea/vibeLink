@@ -496,7 +496,7 @@ export class HubServer {
     );
 
     return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>MTB Hub 접속</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>VibeLink Hub 접속</title>
 <style>
 body{font-family:-apple-system,"Segoe UI",sans-serif;margin:0;padding:24px 16px;background:#faf9f5;color:#141413;display:flex;flex-direction:column;align-items:center}
 h2{font-family:Georgia,serif;font-weight:500;margin:0 0 6px}
@@ -509,7 +509,7 @@ img{width:220px;height:220px;border:12px solid #fff;border-radius:10px}
 .muted{font-size:13px;color:#6c6a64;line-height:1.5}
 a{color:#cc785c}
 </style></head><body>
-<h2>MTB Hub 연결</h2>
+<h2>VibeLink 연결</h2>
 <p class="sub">앱으로 QR 스캔 → 암호 입력 → 끝</p>
 ${tsCard}
 ${lanCard}

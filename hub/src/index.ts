@@ -10,7 +10,7 @@ import { loadNodePty } from './nodePty';
 import { HubServer } from './server';
 
 function loadSecret(): string {
-  const p = path.join(os.homedir(), '.mtb', 'jwt_secret');
+  const p = path.join(os.homedir(), '.vibelink', 'jwt_secret');
   try { return fs.readFileSync(p, 'utf8'); } catch { /* 생성 */ }
   const s = crypto.randomBytes(32).toString('hex');
   fs.mkdirSync(path.dirname(p), { recursive: true });
@@ -45,7 +45,7 @@ async function main(): Promise<void> {
 
   const store = new AuthStore(loadSecret());
   const tunnel = new TunnelManager(__dirname, log);
-  const projects = new ProjectStore(path.join(os.homedir(), '.mtb', 'projects.json'));
+  const projects = new ProjectStore(path.join(os.homedir(), '.vibelink', 'projects.json'));
   const pty = loadNodePty();
   const pwaDir = path.join(__dirname, '..', 'pwa');
 

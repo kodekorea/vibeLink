@@ -1,16 +1,16 @@
 {
-  "name": "mtb-desktop",
+  "name": "vibelink-desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "MTB Hub desktop tray app (spawns hub/ as a child process)",
+  "description": "VibeLink desktop tray app (spawns hub/ as a child process)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder"
   },
   "build": {
-    "appId": "com.shain.mtbhub",
-    "productName": "MTB Hub",
+    "appId": "com.shain.vibelink",
+    "productName": "VibeLink",
     "files": ["main.js", "preload.js", "settings.html", "tray.png"],
     "extraResources": [
       { "from": "../hub", "to": "hub", "filter": ["src/**/*", "pwa/**/*", "package.json", "node_modules/**/*"] }
@@ -24,7 +24,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "MTB Hub"
+      "shortcutName": "VibeLink"
     }
   },
   "devDependencies": {

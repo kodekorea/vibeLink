@@ -1,0 +1,9 @@
+# Exclude local temporary build folders from EAS uploads
+node_modules/
+.expo/
+dist/
+web-build/
+android/.gradle/
+android/build/
+android/app/build/
+android/app/.cxx/
