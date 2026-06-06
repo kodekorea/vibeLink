@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { findLatestCodexTranscript, parseCodexTranscript } from './codex';
+import { loadOpencode } from './opencode';
 
 export interface ChatEvent {
   kind: 'user' | 'assistant' | 'thinking' | 'tool' | 'tool_result';
@@ -85,4 +87,41 @@ export function parseTranscript(text: string): { events: ChatEvent[]; changes: F
     }
   }
   return { events, changes };
+}
+
+// ── 에이전트 종류별 디스패처 ────────────────────────────────────────────────
+// 폰은 활성 세션의 agent('claude'|'codex'|'opencode'|'shell'|undefined)를 함께 보낸다.
+// claude 는 기존과 동일하게 동작하고, codex/opencode 는 각 파서로 위임한다.
+// supported=false 면 폰이 "이 에이전트는 대화 기록 보기를 지원하지 않아요" 폴백을 띄운다.
+export type AgentKind = 'claude' | 'codex' | 'opencode' | 'shell' | string | undefined;
+
+export interface AgentView { events: ChatEvent[]; changes: FileChange[]; supported: boolean; }
+
+export function loadAgentView(cwd: string, agent: AgentKind): AgentView {
+  if (agent === 'codex') {
+    const file = findLatestCodexTranscript(cwd);
+    if (!file) return { events: [], changes: [], supported: true }; // codex 인데 이 cwd 세션 없음
+    try {
+      const r = parseCodexTranscript(fs.readFileSync(file, 'utf8'));
+      return { ...r, supported: true };
+    } catch {
+      return { events: [], changes: [], supported: true };
+    }
+  }
+  if (agent === 'opencode') {
+    return loadOpencode(cwd);
+  }
+  if (agent === 'shell') {
+    // 순수 셸 터미널은 대화 기록 개념이 없다.
+    return { events: [], changes: [], supported: false };
+  }
+  // 기본값 = claude (agent 미지정 포함 — 기존 동작 유지).
+  const file = findLatestTranscript(cwd);
+  if (!file) return { events: [], changes: [], supported: true };
+  try {
+    const r = parseTranscript(fs.readFileSync(file, 'utf8'));
+    return { ...r, supported: true };
+  } catch {
+    return { events: [], changes: [], supported: true };
+  }
 }

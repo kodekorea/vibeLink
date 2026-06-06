@@ -130,6 +130,11 @@ export function claudeTerminalId(s: Session): string | null {
   return (s.terminals?.find(t => t.kind === 'agent') ?? s.terminals?.[0])?.id ?? null;
 }
 
+// 세션의 에이전트 종류(= 기본 'agent' 터미널의 agent). 'claude'|'codex'|'opencode'|'shell'|undefined.
+export function sessionAgent(s: Session): string | undefined {
+  return (s.terminals?.find(t => t.kind === 'agent') ?? s.terminals?.[0])?.agent;
+}
+
 // 다른 탭에서 '+' 누르면 터미널 탭으로 이동해 새 세션 모달을 연다(이 플래그로 전달).
 let pendingNew = false;
 export function requestNewSession(): void { pendingNew = true; }
