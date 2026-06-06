@@ -112,6 +112,17 @@ test('buildWslSpawn: distro 지정 시 -d 추가', () => {
     { file: 'wsl.exe', args: ['-d', 'Ubuntu-24.04', '--cd', 'C:\\p'] });
 });
 
+test('env=cmd → cmd.exe, env=gitbash → Git bash.exe (-i -l)', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
+  sm.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'shell', env: 'cmd' });
+  assert.equal(made[0].file, 'cmd.exe');
+  assert.deepEqual(made[0].writes, []);                 // shell → launch 없음
+  sm.createSession({ label: 'q', path: 'C:\\q' }, { agent: 'shell', env: 'gitbash' });
+  assert.match(made[1].file, /bash\.exe$/i);            // Git Bash 경로(System32 WSL 런처 아님)
+  assert.deepEqual(made[1].args, ['-i', '-l']);
+});
+
 test('기본값: agent=claude, env=powershell (powershell.exe + claude)', () => {
   const { spawn, made } = fakeSpawn();
   const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');

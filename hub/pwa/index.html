@@ -133,7 +133,7 @@ const SAFE_BOTTOM = parseInt(new URLSearchParams(location.search).get('safe') ||
 let ws, term, fit, sessions = [], active = '';
 // 새 세션에서 실행할 에이전트(=주 터미널 프로그램). 모달에서 선택, createSession 바디에 실어 보냄.
 let selectedAgent = 'claude';
-const AGENT_CHOICES = ['claude', 'opencode'];
+const AGENT_CHOICES = ['claude', 'opencode', 'codex'];
 
 // ── i18n (영어 기본, 글로벌). ?lang=ko 또는 localStorage mtb_lang로 전환 ──
 const STR = {
@@ -481,12 +481,12 @@ function switchByDelta(d){
 
 // 새 세션 환경(셸) 선택 — 모달에서 토글, createSession 본문에 env로 실린다.
 let newEnv = localStorage.getItem('mtb_env') || 'powershell';
-// PowerShell / WSL 세그먼트 토글. 모달 상단에 붙인다.
+// 환경 세그먼트 토글(PowerShell/cmd/Git Bash/WSL). 모달 상단에 붙인다.
 function buildEnvToggle(){
   const wrap = document.createElement('div'); wrap.className = 'env-row';
   const lbl = document.createElement('span'); lbl.className = 'env-lbl'; lbl.textContent = T('envLabel');
   const seg = document.createElement('div'); seg.className = 'env-seg';
-  const opts = [['powershell','PowerShell'], ['wsl','WSL']];
+  const opts = [['powershell','PowerShell'], ['cmd','cmd'], ['gitbash','Git Bash'], ['wsl','WSL']];
   for (const [val, text] of opts) {
     const b = document.createElement('button'); b.textContent = text;
     if (newEnv === val) b.classList.add('on');

@@ -1,5 +1,6 @@
 import type { IPty, PtySpawn } from './nodePty';
 import { buildWslSpawn } from './wsl';
+import { resolveEnvShell } from './shells';
 
 export interface Project { label: string; path: string; }
 // 터미널 종류: 'agent' = 세션의 기본 에이전트 터미널(claude/opencode/codex 등, 고정·닫기불가),
@@ -7,7 +8,7 @@ export interface Project { label: string; path: string; }
 export type TerminalKind = 'agent' | 'shell';
 // 런타임 선택: agent(실행 프로그램) × env(환경/셸). 기본 claude × powershell.
 //  - agent: 'claude' | 'opencode' | 'codex' | 'shell'(none)
-//  - env:   'powershell' | 'wsl'
+//  - env:   'powershell' | 'cmd' | 'gitbash' | 'wsl'
 export interface RuntimeSpec { agent: string; env: string; }
 export interface TerminalInfo { id: string; label: string; kind: TerminalKind; agent: string; env: string; }
 export interface SessionTree { id: string; label: string; cwd: string; env: string; terminals: TerminalInfo[]; }
@@ -57,6 +58,10 @@ export class SessionManager {
       const w = buildWslSpawn(cwd);
       file = w.file;
       args = w.args;
+    } else {
+      // cmd.exe / Git Bash. cwd는 node-pty의 cwd로 잡힌다(Windows 경로 그대로 OK).
+      const sh = resolveEnvShell(spec.env);
+      if (sh) { file = sh.file; args = sh.args; }
     }
     // 에이전트(실행 명령) — 셸에 타이핑할 launch 커맨드. 매핑은 AGENT_CMD 한 곳에서.
     let launch = '';
