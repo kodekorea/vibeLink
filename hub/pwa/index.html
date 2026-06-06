@@ -203,24 +203,41 @@ function setupTerm(){
   setupSnippets();
   setupAttach();
   applyViewport();
-  // 세로 스크롤을 xterm 공식 API(scrollLines)로 직접 구동. 캡처 단계로 가로채
-  // xterm이 터치를 먹기 전에 처리 → Android WebView 씹힘 해결. (좌우 스와이프는 제거)
-  let sy=0, scrolling=false, lastLines=0; const t = $('#term');
+  // 세로 드래그 스크롤. 앱이 마우스 추적을 켠 TUI(claude 등 대체버퍼)면 휠 리포트를
+  // 보내 앱이 스크롤하게 하고, 아니면 xterm 스크롤백(scrollLines)을 움직인다.
+  // 캡처 단계로 가로채 xterm이 터치를 먹기 전에 처리 → Android WebView 씹힘 해결. (좌우 스와이프 제거)
+  let sy=0, scrolling=false, lastLines=0, moved=false, taps=[]; const t = $('#term');
   const rowPx = () => Math.max(8, fontSize * 1.15);
+  // 디버그 배지 — 터미널을 3연속 탭하면 토글. 스크롤 감지 상태(버퍼/마우스모드/동작)를 폰에서 직접 확인.
+  const dbg = document.createElement('div'); dbg.id='dbg';
+  dbg.style.cssText='position:absolute;left:8px;top:8px;z-index:20;display:none;background:rgba(0,0,0,.72);color:#9fe6ff;font:11px/1.45 ui-monospace,monospace;padding:6px 9px;border-radius:6px;white-space:pre;pointer-events:none';
+  t.appendChild(dbg); let dbgOn=false;
+  function trackMode(){ try { return (term.modes && term.modes.mouseTrackingMode) || 'none'; } catch(e){ return '?'; } }
+  function bufType(){ try { return (term.buffer && term.buffer.active && term.buffer.active.type) || '?'; } catch(e){ return '?'; } }
+  function refreshDbg(act){ if(!dbgOn)return; dbg.textContent='buffer: '+bufType()+'\nmouse: '+trackMode()+'\naction: '+(act||'-'); }
+  function termScroll(dir){ // dir>0 = 과거(위), dir<0 = 최신(아래)
+    const tk = trackMode();
+    if (tk && tk !== 'none') { const btn = dir>0 ? 64 : 65; sendWs({ type:'input', sessionId: active, data: '\x1b[<'+btn+';1;1M' }); refreshDbg('wheel '+(dir>0?'up':'down')); }
+    else if (term && term.scrollLines) { term.scrollLines(-dir); updateToBottom(); refreshDbg('scrollLines '+(-dir)); }
+  }
   t.addEventListener('touchstart', e => {
     if (e.touches.length !== 1) { scrolling=false; return; }
-    sy = e.changedTouches[0].clientY; lastLines = 0; scrolling = true;
+    sy = e.changedTouches[0].clientY; lastLines = 0; scrolling = true; moved = false;
   }, {passive:true, capture:true});
   t.addEventListener('touchmove', e => {
     if (!scrolling || e.touches.length !== 1) return;
     const dy = e.touches[0].clientY - sy;
-    if (Math.abs(dy) < 4) return;
-    e.preventDefault(); e.stopPropagation();   // 네이티브 스크롤·xterm 선택 차단
-    const target = Math.round(-dy / rowPx());   // 손가락 아래로 끌면 과거(위) 표시
-    const delta = target - lastLines;
-    if (delta !== 0 && term && term.scrollLines) { term.scrollLines(delta); lastLines = target; updateToBottom(); }
+    if (Math.abs(dy) >= 4) moved = true;
+    const step = Math.round(dy / rowPx());      // 손가락 아래로(dy>0) → 과거(위)
+    let diff = step - lastLines;
+    if (diff !== 0) { e.preventDefault(); e.stopPropagation(); }
+    while (diff > 0) { termScroll(1); diff--; lastLines++; }
+    while (diff < 0) { termScroll(-1); diff++; lastLines--; }
   }, {passive:false, capture:true});
-  t.addEventListener('touchend', () => { scrolling = false; }, {passive:true, capture:true});
+  t.addEventListener('touchend', () => {
+    scrolling = false;
+    if (!moved) { const now=Date.now(); taps=taps.filter(x=>now-x<800); taps.push(now); if (taps.length>=3) { taps=[]; dbgOn=!dbgOn; dbg.style.display=dbgOn?'block':'none'; refreshDbg('toggled'); } }
+  }, {passive:true, capture:true});
   // 레이아웃이 안정된 뒤 다시 맞춰 첫 화면에서 상단이 가리는 문제 방지
   setTimeout(applyViewport, 250);
   setTimeout(applyViewport, 800);
