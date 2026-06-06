@@ -231,8 +231,11 @@ function setupTerm(){
   function sendWheel(dir){
     const s = mouseSvc(); if (!s || !s.triggerMouseEvent) return false;
     try {
-      // col/row는 0기준이며 화면 범위 안이어야 한다(0,0). button:4=휠, action:0=위,1=아래.
-      return s.triggerMouseEvent({ col:0, row:0, x:1, y:1, button:4, action: dir>0?0:1, ctrl:false, alt:false, shift:false });
+      // 휠을 화면 "중앙"에 보낸다 — Bubble Tea(opencode) 등은 커서 위치 컴포넌트로 이벤트를
+      // 라우팅하므로 row 0(헤더)이 아니라 메시지 영역(중앙)에 보내야 스크롤된다. button:4=휠, action:0=위/1=아래.
+      const cols = (term && term.cols) || 80, rows = (term && term.rows) || 24;
+      const col = Math.max(0, Math.floor(cols / 2)), row = Math.max(0, Math.floor(rows / 2));
+      return s.triggerMouseEvent({ col, row, x: col + 1, y: row + 1, button:4, action: dir>0?0:1, ctrl:false, alt:false, shift:false });
     } catch(e){ return false; }
   }
   function refreshDbg(act){ if(!dbgOn)return; dbg.textContent='buffer: '+bufType()+'\nmouse: '+trackMode()+(mouseActive()?' (active)':'')+'\naction: '+(act||'-'); }
