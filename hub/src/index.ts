@@ -8,6 +8,7 @@ import { ProjectStore } from './projects';
 import { SessionManager } from './sessions';
 import { loadNodePty } from './nodePty';
 import { HubServer } from './server';
+import { RelayClient } from './relayClient';
 
 function loadSecret(): string {
   const p = path.join(os.homedir(), '.vibelink', 'jwt_secret');
@@ -16,6 +17,17 @@ function loadSecret(): string {
   fs.mkdirSync(path.dirname(p), { recursive: true });
   fs.writeFileSync(p, s);
   return s;
+}
+
+// 릴레이용 안정적 hub id. MTB_RELAY_ID 우선, 없으면 jwt_secret 처럼 영구 생성/재사용.
+function loadRelayId(): string {
+  if (process.env.MTB_RELAY_ID) return process.env.MTB_RELAY_ID;
+  const p = path.join(os.homedir(), '.vibelink', 'relay_id');
+  try { return fs.readFileSync(p, 'utf8').trim(); } catch { /* 생성 */ }
+  const id = 'hub-' + crypto.randomBytes(5).toString('hex');
+  fs.mkdirSync(path.dirname(p), { recursive: true });
+  fs.writeFileSync(p, id);
+  return id;
 }
 
 // claude를 라이트 테마로 띄우도록 ~/.claude/settings.json의 theme를 보장(없으면 추가/갱신).
@@ -57,17 +69,41 @@ async function main(): Promise<void> {
   const lan = server.lanUrl();
   if (lan) { log(`같은 와이파이(추천): ${lan}`); log(`QR 페이지: http://127.0.0.1:${port}/qr.html`); }
 
-  // 터널 선택: MTB_TUNNEL=named|quick (기본: named env 있으면 named, 없으면 quick)
+  // 터널 선택: MTB_TUNNEL=relay|named|quick (기본: named env 있으면 named, 없으면 quick)
   const name = process.env.MTB_TUNNEL_NAME;
   const url = process.env.MTB_TUNNEL_URL;
   const mode = process.env.MTB_TUNNEL || (name && url ? 'named' : 'quick');
-  try {
-    if (mode === 'named' && name && url) await tunnel.start('named', port, name, url);
-    else await tunnel.start('quick', port);
-    tunnel.onReady(u => { log(`접속 URL: ${u}`); log(`QR: ${u}/qr.html`); });
-  } catch (e) { log(`터널 시작 실패(로컬은 동작): ${String(e)}`); }
 
-  process.on('SIGINT', () => { sessions.dispose(); tunnel.stop(); process.exit(0); });
+  let relay: RelayClient | undefined;
+  if (mode === 'relay') {
+    // 셀프 호스트 릴레이: 허브가 밖으로 다이얼 → NAT/방화벽 뒤에서도 동작.
+    const relayUrl = process.env.MTB_RELAY_URL;
+    if (!relayUrl) {
+      log('MTB_TUNNEL=relay 인데 MTB_RELAY_URL 미설정 — 릴레이 비활성(로컬/LAN은 동작).');
+    } else {
+      relay = new RelayClient({
+        relayUrl,
+        hubPath: process.env.MTB_RELAY_HUB_PATH,
+        id: loadRelayId(),
+        key: process.env.MTB_RELAY_KEY ?? '',
+        localPort: port,
+        publicUrl: process.env.MTB_RELAY_PUBLIC_URL,
+        log,
+      });
+      relay.start();
+      const hostUrl = relay.publicHostUrl;
+      if (hostUrl) log(`릴레이 접속 URL(폰 페어링): ${hostUrl}`);
+      else log('릴레이 등록 중 — MTB_RELAY_PUBLIC_URL 설정 시 폰 URL을 안내합니다.');
+    }
+  } else {
+    try {
+      if (mode === 'named' && name && url) await tunnel.start('named', port, name, url);
+      else await tunnel.start('quick', port);
+      tunnel.onReady(u => { log(`접속 URL: ${u}`); log(`QR: ${u}/qr.html`); });
+    } catch (e) { log(`터널 시작 실패(로컬은 동작): ${String(e)}`); }
+  }
+
+  process.on('SIGINT', () => { sessions.dispose(); relay?.stop(); tunnel.stop(); process.exit(0); });
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

@@ -1,0 +1,19 @@
+{
+  "name": "vibelink-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hosted public relay for VibeLink hubs (outbound-registration multiplexed WS pipe).",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc -p . --noEmit"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/ws": "^8.5.10",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}
