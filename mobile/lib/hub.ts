@@ -210,6 +210,34 @@ export async function closeTerminal(id: string): Promise<void> {
   });
 }
 
+// 완료 알림 임계값 (초) — "이만큼 이상 작업하고 끝났을 때만 알림"
+export async function getNotifyMinSec(): Promise<number | null> {
+  const h = await getActiveHost();
+  if (!h) return null;
+  try {
+    const r = await fetch(h.url + '/settings/notify', { headers: { Authorization: 'Bearer ' + h.token } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return Math.round((j.minMs ?? 10000) / 1000);
+  } catch {
+    return null;
+  }
+}
+export async function setNotifyMinSec(sec: number): Promise<boolean> {
+  const h = await getActiveHost();
+  if (!h) return false;
+  try {
+    const r = await fetch(h.url + '/settings/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + h.token },
+      body: JSON.stringify({ minMs: Math.round(sec * 1000) }),
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
 function bytesToBase64(bytes: Uint8Array): string {
   let bin = '';
   const chunk = 0x8000;

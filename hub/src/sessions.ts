@@ -58,6 +58,20 @@ export class SessionManager {
     this.notifyMinBusyMs = opts?.notifyMinBusyMs ?? (Number(process.env.MTB_NOTIFY_MIN_MS) || NOTIFY_MIN_BUSY_MS);
   }
 
+  // 완료 알림 임계값 (폰 설정에서 실시간 변경). 안전 범위로 clamp.
+  getNotify(): { minMs: number; quietMs: number } {
+    return { minMs: this.notifyMinBusyMs, quietMs: this.notifyQuietMs };
+  }
+  setNotify(opts: { minMs?: number; quietMs?: number }): { minMs: number; quietMs: number } {
+    if (typeof opts.minMs === 'number' && Number.isFinite(opts.minMs)) {
+      this.notifyMinBusyMs = Math.min(120000, Math.max(2000, Math.round(opts.minMs)));
+    }
+    if (typeof opts.quietMs === 'number' && Number.isFinite(opts.quietMs)) {
+      this.notifyQuietMs = Math.min(10000, Math.max(500, Math.round(opts.quietMs)));
+    }
+    return this.getNotify();
+  }
+
   // 런타임 스펙 → 실제 spawn 정보. env/agent별 분기는 여기 한 곳에서 확장한다.
   // (WSL 지원 = env 'wsl' 분기 추가, opencode/codex = agent 분기 추가)
   private resolveRuntime(spec: RuntimeSpec, cwd: string): { file: string; args: string[]; cwd: string; launch: string } {

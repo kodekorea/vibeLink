@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { listHosts, getActiveHost, setActiveHost, removeHost, type Host } from '@/lib/hub';
+import { listHosts, getActiveHost, setActiveHost, removeHost, getNotifyMinSec, setNotifyMinSec, type Host } from '@/lib/hub';
 import { notificationsAvailable } from '@/lib/notify';
 import { radius, font } from '@/lib/theme';
 import { usePrefs, setTheme, setLang, type Palette, type ThemeName, type Lang } from '@/lib/prefs';
@@ -14,16 +14,19 @@ export default function Settings() {
   const styles = makeStyles(c);
   const [hosts, setHosts] = useState<Host[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [alarmSec, setAlarmSec] = useState<number | null>(null);
 
   const refresh = useCallback(() => {
     listHosts().then(setHosts);
     getActiveHost().then(h => setActiveId(h?.id ?? null));
+    getNotifyMinSec().then(setAlarmSec).catch(() => {});
   }, []);
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
   async function pick(id: string) { await setActiveHost(id); setActiveId(id); }
   async function remove(id: string) { await removeHost(id); refresh(); }
+  async function setAlarm(sec: number) { setAlarmSec(sec); await setNotifyMinSec(sec); }
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ padding: 20, paddingTop: insets.top + 16, gap: 16 }}>
@@ -62,9 +65,23 @@ export default function Settings() {
         </View>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>{t('completionAlarm')}</Text>
-        <Text style={styles.value}>{notificationsAvailable ? t('available') : t('expoGoOff')}</Text>
+      <View style={styles.cardCol}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={styles.label}>{t('completionAlarm')}</Text>
+          <Text style={styles.value}>{notificationsAvailable ? t('available') : t('expoGoOff')}</Text>
+        </View>
+        <Text style={[styles.label, { marginTop: 6 }]}>{t('alarmThreshold')}</Text>
+        <View style={styles.seg}>
+          {[5, 10, 15, 30].map(n => {
+            const on = alarmSec === n;
+            return (
+              <Pressable key={n} onPress={() => setAlarm(n)} style={[styles.segItem, on && styles.segItemOn]}>
+                <Text style={[styles.segTxt, on && styles.segTxtOn]}>{n}{lang === 'ko' ? '초' : 's'}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.empty}>{t('alarmThresholdHint')}</Text>
       </View>
     </ScrollView>
   );

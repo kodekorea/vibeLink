@@ -63,6 +63,11 @@ async function main(): Promise<void> {
 
   let server: HubServer;
   const sessions = new SessionManager(pty, m => server.broadcast(m), shell, launch);
+  // 폰에서 바꾼 완료 알림 임계값 복원
+  try {
+    const nf = path.join(os.homedir(), '.vibelink', 'notify.json');
+    if (fs.existsSync(nf)) sessions.setNotify(JSON.parse(fs.readFileSync(nf, 'utf8')));
+  } catch { /* 무시 */ }
   server = new HubServer(store, tunnel, projects, sessions, pwaDir);
   await server.listen(port);
   log(`서버 시작: http://127.0.0.1:${port}`);

@@ -21,6 +21,7 @@ const EN = {
   // settings
   connectedPc: 'Connected PCs (hosts)', none: 'None', addPc: '＋ Add PC (scan QR)',
   completionAlarm: 'Completion alarm', available: 'Available', expoGoOff: 'Off in Expo Go (needs dev build)',
+  alarmThreshold: 'Alarm after working ≥', alarmThresholdHint: 'Only alerts when the agent worked at least this long, then finished.',
   delete: 'Delete', appearance: 'Appearance', theme: 'Theme', language: 'Language', light: 'Light', dark: 'Dark',
   endSession: 'End session', endSessionQ: (l: string) => `End session "${l}"?`, cancel: 'Cancel', end: 'End',
   // preview
@@ -44,6 +45,7 @@ const KO: Dict = {
   pdfMsg: 'PDF 미리보기는 아직 지원 안 해요.\n터미널에서 경로로 열어보세요.',
   connectedPc: '연결된 PC (호스트)', none: '없음', addPc: '＋ PC 추가 (QR 스캔)',
   completionAlarm: '완료 알림', available: '사용 가능', expoGoOff: 'Expo Go에서는 꺼짐 (dev build 필요)',
+  alarmThreshold: '이만큼 이상 작업 후 완료 시 알림', alarmThresholdHint: '에이전트가 이 시간 이상 작업하고 끝났을 때만 울려요.',
   delete: '삭제', appearance: '화면', theme: '테마', language: '언어', light: '라이트', dark: '다크',
   endSession: '세션 종료', endSessionQ: (l: string) => `${l} 세션을 종료할까요?`, cancel: '취소', end: '종료',
   preview: '프리뷰', web: '웹', screen: '화면', port: '포트', open: '열기', refresh: '새로고침', auto: '자동',

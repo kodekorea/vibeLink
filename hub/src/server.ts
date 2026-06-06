@@ -333,6 +333,12 @@ export class HubServer {
       this.json(res, 200, { sessions: this.sessions.tree() }); return;
     }
 
+    // 완료 알림 임계값 조회 (폰 설정에서 사용)
+    if (meth === 'GET' && pathOnly === '/settings/notify') {
+      if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
+      this.json(res, 200, this.sessions.getNotify()); return;
+    }
+
     // 프로젝트 즐겨찾기 목록
     if (meth === 'GET' && pathOnly === '/projects') {
       if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
@@ -579,6 +585,20 @@ export class HubServer {
     if (url === '/terminals/close') {
       const id = String(data['id'] ?? '');
       this.json(res, 200, { ok: this.sessions.closeTerminal(id) }); return;
+    }
+
+    // 완료 알림 임계값 변경 (폰 설정) — 즉시 적용 + ~/.vibelink/notify.json에 영속화
+    if (url === '/settings/notify') {
+      const next = this.sessions.setNotify({
+        minMs: data['minMs'] != null ? Number(data['minMs']) : undefined,
+        quietMs: data['quietMs'] != null ? Number(data['quietMs']) : undefined,
+      });
+      try {
+        const dir = path.join(os.homedir(), '.vibelink');
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(path.join(dir, 'notify.json'), JSON.stringify(next));
+      } catch { /* 저장 실패해도 런타임 값은 적용됨 */ }
+      this.json(res, 200, next); return;
     }
 
     if (url === '/projects/add') {
