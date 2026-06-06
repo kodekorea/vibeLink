@@ -2,20 +2,19 @@
 setlocal
 cd /d "%~dp0"
 title VibeLink Launcher
-chcp 65001 >nul
 echo ============================================
-echo   VibeLink - Desktop(Hub) + Mobile 한번에 실행
+echo   VibeLink - launching Desktop(Hub) + Mobile
 echo ============================================
 echo.
-echo  [1/2] 데스크톱(트레이 + 허브) 창 여는 중...
+echo  [1/2] Opening Desktop (tray + hub)...
 start "VibeLink - Desktop" "%~dp0desktop\run.bat"
 
-echo  [2/2] 모바일(Expo) 창 여는 중...
+echo  [2/2] Opening Mobile (Expo)...
 start "VibeLink - Mobile" "%~dp0mobile\run.bat"
 
 echo.
-echo  두 창이 각각 열렸습니다.
-echo   - 데스크톱: 트레이 아이콘에서 종료
-echo   - 모바일: 그 창에서 Ctrl+C 로 중지
-echo  이 창은 닫아도 됩니다.
+echo  Two windows opened.
+echo    - Desktop: quit from the tray icon
+echo    - Mobile:  press Ctrl+C in that window to stop
+echo  You can close this window.
 timeout /t 5 >nul
