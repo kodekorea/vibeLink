@@ -20,6 +20,9 @@ const MAX_BUFFER = 200 * 1024;
 //  - QUIET_MS 동안 조용 = 턴 종료. 직전 작업 구간이 MIN_BUSY_MS 이상이었으면 그때만 알림.
 const NOTIFY_QUIET_MS = 1500;   // 이만큼 출력 없으면 "끝남"으로 판정
 const NOTIFY_MIN_BUSY_MS = 10000; // 작업이 이 시간 이상 지속됐을 때만 알림(짧은 응답 무시)
+// 에이전트 실행은 첫 resize(실제 터미널 크기)까지 미룬다 — 80x24로 부팅해 화면이 깨지는 문제 방지.
+// 클라이언트가 안 붙어 resize가 안 오면 이 시간 뒤 그냥 실행.
+const LAUNCH_FALLBACK_MS = 1500;
 
 // 에이전트명 → 셸에 타이핑할 실행 커맨드. 명령명과 다른 경우만 등록한다.
 //  - opencode: 'opencode [project]'가 기본(default) 서브커맨드라 cwd에서 그냥 'opencode'면 TUI가 뜬다.
@@ -35,6 +38,7 @@ interface Terminal {
   id: string; sessionId: string; label: string; kind: TerminalKind; agent: string; env: string;
   pty: IPty; buffer: string; cols: number; rows: number;
   busyStart?: number; lastData?: number; idleTimer?: ReturnType<typeof setTimeout>;
+  pendingLaunch?: string; launchTimer?: ReturnType<typeof setTimeout>;
 }
 
 // 세션(프로젝트) > 터미널(PTY) 2계층. WS 메시지의 sessionId 필드는 터미널 id를 가리킨다(PWA 호환).
@@ -139,6 +143,7 @@ export class SessionManager {
     });
     pty.onExit(() => {
       if (term.idleTimer) clearTimeout(term.idleTimer);
+      if (term.launchTimer) clearTimeout(term.launchTimer);
       this.terminals.delete(id);
       this.broadcast({ type: 'terminal_exit', sessionId: id });
       if (!Array.from(this.terminals.values()).some(t => t.sessionId === sessionId)) {
@@ -147,8 +152,12 @@ export class SessionManager {
       this.broadcastList();
     });
 
-    // 에이전트(claude/opencode/codex) 터미널만 launch 명령 실행. 셸은 그대로 둔다.
-    if (rt.launch) pty.write(rt.launch + '\r');
+    // 에이전트(claude/opencode/codex) launch는 첫 resize까지 미룬다(셸은 launch 없음).
+    if (rt.launch) {
+      term.pendingLaunch = rt.launch;
+      term.launchTimer = setTimeout(() => this.flushLaunch(term), LAUNCH_FALLBACK_MS);
+      term.launchTimer.unref?.();
+    }
     return id;
   }
 
@@ -161,6 +170,16 @@ export class SessionManager {
     if (!t || cols < 1 || rows < 1) return;
     t.cols = cols; t.rows = rows;
     try { t.pty.resize(cols, rows); } catch { /* 종료됨 */ }
+    this.flushLaunch(t);   // 실제 크기를 받은 뒤 에이전트 실행(첫 화면 깨짐 방지)
+  }
+
+  // 미뤄둔 에이전트 launch를 실행(첫 resize 또는 폴백 타임아웃 시).
+  private flushLaunch(t: Terminal): void {
+    if (!t.pendingLaunch) return;
+    const cmd = t.pendingLaunch;
+    t.pendingLaunch = undefined;
+    if (t.launchTimer) { clearTimeout(t.launchTimer); t.launchTimer = undefined; }
+    try { t.pty.write(cmd + '\r'); } catch { /* 무시 */ }
   }
 
   // 셸 터미널만 닫는다. 에이전트 터미널은 고정(거부).
@@ -240,6 +259,7 @@ export class SessionManager {
   dispose(): void {
     for (const t of this.terminals.values()) {
       if (t.idleTimer) clearTimeout(t.idleTimer);
+      if (t.launchTimer) clearTimeout(t.launchTimer);
       try { t.pty.kill(); } catch { /* */ }
     }
     this.terminals.clear();

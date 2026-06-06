@@ -34,6 +34,7 @@ test('createSession: 세션 + claude 터미널 자동 생성 + launch 실행 + �
   const { sessionId, terminalId } = sm.createSession({ label: 'projA', path: 'C:\\a' });
   assert.equal(sessionId, 's1');
   assert.equal(terminalId, 't1');
+  sm.resize(terminalId, 80, 24);                       // 첫 resize 후 launch
   assert.deepEqual(made[0].writes, ['claude\r']);      // claude 실행됨
   assert.equal(made[0].opts.cwd, 'C:\\a');
   const tree = sm.tree();
@@ -58,8 +59,9 @@ test('createTerminal: 셸 추가 — claude 미실행, 같은 cwd, 라벨 shell 
 test('runtime spec: agent=opencode → opencode 실행, env=wsl → wsl.exe spawn (토대)', () => {
   const { spawn, made } = fakeSpawn();
   const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
-  sm.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'opencode', env: 'wsl' });
+  const { terminalId: t0 } = sm.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'opencode', env: 'wsl' });
   assert.equal(made[0].file, 'wsl.exe');          // env=wsl → wsl.exe
+  sm.resize(t0, 80, 24);
   assert.deepEqual(made[0].writes, ['opencode\r']); // agent=opencode → opencode 실행
   const term = sm.tree()[0].terminals[0];
   assert.equal(term.agent, 'opencode');
@@ -70,8 +72,9 @@ test('runtime spec: agent=opencode → opencode 실행, env=wsl → wsl.exe spaw
 test('agent 매핑: opencode/codex는 AGENT_CMD로 명령명 그대로 실행', () => {
   const { spawn, made } = fakeSpawn();
   const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
-  sm.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'opencode' });
-  sm.createSession({ label: 'q', path: 'C:\\q' }, { agent: 'codex' });
+  const { terminalId: ta } = sm.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'opencode' });
+  const { terminalId: tb } = sm.createSession({ label: 'q', path: 'C:\\q' }, { agent: 'codex' });
+  sm.resize(ta, 80, 24); sm.resize(tb, 80, 24);
   assert.deepEqual(made[0].writes, ['opencode\r']); // cwd에서 bare opencode → TUI
   assert.deepEqual(made[1].writes, ['codex\r']);     // codex 스텁
   assert.equal(sm.tree()[0].terminals[0].agent, 'opencode');
@@ -80,9 +83,10 @@ test('agent 매핑: opencode/codex는 AGENT_CMD로 명령명 그대로 실행', 
 test('env=wsl: wsl.exe --cd <세션경로>로 spawn + 셸에 claude 타이핑', () => {
   const { spawn, made } = fakeSpawn();
   const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
-  sm.createSession({ label: 'p', path: 'E:\\foo\\bar' }, { env: 'wsl' });
+  const { terminalId: tw } = sm.createSession({ label: 'p', path: 'E:\\foo\\bar' }, { env: 'wsl' });
   assert.equal(made[0].file, 'wsl.exe');
   assert.deepEqual(made[0].args, ['--cd', 'E:\\foo\\bar']); // 세션 폴더에서 대화형 셸
+  sm.resize(tw, 80, 24);
   assert.deepEqual(made[0].writes, ['claude\r']);           // launch는 셸에 타이핑
 });
 
@@ -126,8 +130,9 @@ test('env=cmd → cmd.exe, env=gitbash → Git bash.exe (-i -l)', () => {
 test('기본값: agent=claude, env=powershell (powershell.exe + claude)', () => {
   const { spawn, made } = fakeSpawn();
   const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
-  sm.createSession({ label: 'p', path: 'C:\\p' });
+  const { terminalId: tp } = sm.createSession({ label: 'p', path: 'C:\\p' });
   assert.equal(made[0].file, 'powershell.exe');
+  sm.resize(tp, 80, 24);
   assert.deepEqual(made[0].writes, ['claude\r']);
 });
 

@@ -22,7 +22,7 @@ const NOTIFY_INJECT = `(function(){
 
 export default function Terminal() {
   const insets = useSafeAreaInsets();
-  const { c, lang } = usePrefs();
+  const { c, lang, theme } = usePrefs();
   const [host, setHost] = useState<Host | null>(null);
   const webRef = useRef<WebView>(null);
   const [sid, setSid] = useState<string | null>(getActiveTerminalId());
@@ -70,8 +70,8 @@ export default function Terminal() {
       <View style={{ flex: 1 }}>
         <WebView
           ref={webRef}
-          key={host.id + ':' + (sid || '')}
-          source={{ uri: host.url + '?embed=1' + (sid ? '&session=' + encodeURIComponent(sid) : '') + '&lang=' + lang + '&safe=' + Math.round(insets.bottom) }}
+          key={host.id + ':' + (sid || '') + ':' + theme}
+          source={{ uri: host.url + '?embed=1' + (sid ? '&session=' + encodeURIComponent(sid) : '') + '&lang=' + lang + '&theme=' + theme + '&safe=' + Math.round(insets.bottom) }}
           injectedJavaScriptBeforeContentLoaded={cookieInject}
           injectedJavaScript={NOTIFY_INJECT}
           onMessage={onMessage}

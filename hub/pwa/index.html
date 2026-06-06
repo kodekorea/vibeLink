@@ -251,6 +251,12 @@ function setupTerm(){
   setTimeout(applyViewport, 800);
 }
 function doFit(){ try { fit.fit(); } catch (e) {} }
+// 활성 터미널의 실제 크기를 서버에 "명시적으로" 전송. (크기가 안 바뀌면 onResize가 안 울리므로
+// 재연결/전환 때 직접 보내야 함.) 서버는 이 resize로 미뤄둔 에이전트 launch를 올바른 크기로 실행한다.
+function syncSize(){
+  if (!active || !term || !term.cols || !term.rows) return;
+  sendWs({ type:'resize', sessionId: active, cols: term.cols, rows: term.rows });
+}
 
 function key(seq){ if (!sendWs({ type:'input', sessionId: active, data: seq })) { setConn(false); if (!ws || ws.readyState >= 2) connect(); } }
 function sendLine(){
@@ -268,7 +274,9 @@ function sendLine(){
 const KEYSEQ = { esc:'\x1b', tab:'\t', stab:'\x1b[Z', ctrlc:'\x03', up:'\x1b[A', down:'\x1b[B', left:'\x1b[D', right:'\x1b[C', enter:'\r' };
 
 // ── 라이트/다크 테마 (기본 라이트 = Claude 크림 느낌) ──
-let theme = localStorage.getItem('mtb_theme') || 'light';
+// 앱에서 ?theme= 로 넘기면 그걸 우선(임베드는 앱 테마를 따라감). 없으면 저장값/라이트.
+const QTHEME = new URLSearchParams(location.search).get('theme') || '';
+let theme = (QTHEME === 'dark' || QTHEME === 'light') ? QTHEME : (localStorage.getItem('mtb_theme') || 'light');
 function termTheme(){
   const cs = getComputedStyle(document.body);
   const bg = cs.getPropertyValue('--term-bg').trim() || '#faf9f5';
@@ -396,7 +404,7 @@ function applyViewport(){
 function setConn(ok){ const b = $('#send'); if (b) b.classList.toggle('offline', !ok); }
 function connect(){
   ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws');
-  ws.onopen = () => { setConn(true); doFit(); };
+  ws.onopen = () => { setConn(true); doFit(); syncSize(); setTimeout(syncSize, 200); };
   ws.onclose = () => { setConn(false); setTimeout(connect, 1500); };
   ws.onerror = () => setConn(false);
   ws.onmessage = e => handle(JSON.parse(e.data));
@@ -471,7 +479,7 @@ function switchTo(id){
   if (id === active) return;
   active = id; term.reset();
   sendWs({ type:'select', sessionId: id });
-  renderBar(); doFit();
+  renderBar(); doFit(); syncSize();
 }
 function switchByDelta(d){
   const i = sessions.findIndex(s => s.id === active);
@@ -587,6 +595,7 @@ async function createSession(p){
   const r = await api('/sessions/create', { method:'POST', body: JSON.stringify({ path: p, agent: selectedAgent, env: newEnv }) });
   try { const j = await r.json(); if (j && j.id) {
     active = j.terminalId || j.id; term.reset(); renderBar(); focusTerminal();
+    doFit(); syncSize(); setTimeout(syncSize, 200);   // 새 에이전트를 올바른 크기로 부팅
     // 네이티브 앱(2단 바)에 새 세션/터미널 id 전달
     try { if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ t:'created', sessionId: j.sessionId, terminalId: j.terminalId || j.id })); } catch (e) {}
   } } catch (e) {}
