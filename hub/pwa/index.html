@@ -52,8 +52,10 @@
   #inputbar input#line{flex:1}
   #inputbar input:focus{outline:none;border-color:var(--accent)}
   #attach.busy{opacity:.5}
-  #send{flex:0 0 auto;width:54px;min-height:50px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:20px;box-shadow:0 2px 10px rgba(204,120,92,.35)}
+  #send{flex:0 0 auto;width:54px;min-height:50px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:20px;box-shadow:0 2px 10px rgba(204,120,92,.35);transition:background-color .2s}
   #send:active{background:var(--accent-press)}
+  /* WS 끊김 — 입력이 전송되지 않음을 버튼 색으로 표시 */
+  #send.offline{background:#9b9b9b;box-shadow:none}
   #modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:10;backdrop-filter:blur(2px)}
   #modal.show{display:flex}
   #sheet{background:var(--panel);width:92%;max-width:420px;max-height:80%;overflow:auto;border-radius:16px;padding:18px;border:1px solid var(--line)}
@@ -212,8 +214,19 @@ function setupTerm(){
 }
 function doFit(){ try { fit.fit(); } catch (e) {} }
 
-function key(seq){ sendWs({ type:'input', sessionId: active, data: seq }); }
-function sendLine(){ const ln = $('#line'); sendWs({ type:'input', sessionId: active, data: ln.value + '\r' }); ln.value=''; }
+function key(seq){ if (!sendWs({ type:'input', sessionId: active, data: seq })) { setConn(false); if (!ws || ws.readyState >= 2) connect(); } }
+function sendLine(){
+  const ln = $('#line');
+  // 보낼 세션이 없거나 WS가 끊겼으면 입력을 비우지 않고 보존한다(조용히 사라지는 문제 방지).
+  if (!active) { setConn(false); return; }
+  const ok = sendWs({ type:'input', sessionId: active, data: ln.value + '\r' });
+  if (ok) { ln.value = ''; }
+  else {
+    setConn(false);
+    // 끊긴 소켓이면 즉시 재연결 시도 — 다음 전송이 통하도록.
+    if (!ws || ws.readyState >= 2) connect();
+  }
+}
 const KEYSEQ = { esc:'\x1b', tab:'\t', stab:'\x1b[Z', ctrlc:'\x03', up:'\x1b[A', down:'\x1b[B', left:'\x1b[D', right:'\x1b[C', enter:'\r' };
 
 // ── 라이트/다크 테마 (기본 라이트 = Claude 크림 느낌) ──
@@ -342,13 +355,16 @@ function applyViewport(){
   doFit();
 }
 
+function setConn(ok){ const b = $('#send'); if (b) b.classList.toggle('offline', !ok); }
 function connect(){
   ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws');
-  ws.onopen = () => doFit();
-  ws.onclose = () => setTimeout(connect, 1500);
+  ws.onopen = () => { setConn(true); doFit(); };
+  ws.onclose = () => { setConn(false); setTimeout(connect, 1500); };
+  ws.onerror = () => setConn(false);
   ws.onmessage = e => handle(JSON.parse(e.data));
 }
-function sendWs(m){ if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
+// 전송 성공 여부를 반환 — WS가 안 열렸으면 false(메시지는 버려짐).
+function sendWs(m){ if (ws && ws.readyState === 1) { ws.send(JSON.stringify(m)); return true; } return false; }
 
 function handle(m){
   if (m.type === 'session_list') {
