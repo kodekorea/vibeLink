@@ -62,7 +62,7 @@ test('runtime spec: agent=opencode → opencode 실행, env=wsl → wsl.exe spaw
   const { terminalId: t0 } = sm.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'opencode', env: 'wsl' });
   assert.equal(made[0].file, 'wsl.exe');          // env=wsl → wsl.exe
   sm.resize(t0, 80, 24);
-  assert.deepEqual(made[0].writes, ['opencode\r']); // agent=opencode → opencode 실행
+  assert.ok(made[0].writes[0].endsWith('opencode\r'), made[0].writes[0]); // opencode 실행(앞에 테마 프리픽스 가능)
   const term = sm.tree()[0].terminals[0];
   assert.equal(term.agent, 'opencode');
   assert.equal(term.env, 'wsl');
@@ -75,8 +75,8 @@ test('agent 매핑: opencode/codex는 AGENT_CMD로 명령명 그대로 실행', 
   const { terminalId: ta } = sm.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'opencode' });
   const { terminalId: tb } = sm.createSession({ label: 'q', path: 'C:\\q' }, { agent: 'codex' });
   sm.resize(ta, 80, 24); sm.resize(tb, 80, 24);
-  assert.deepEqual(made[0].writes, ['opencode\r']); // cwd에서 bare opencode → TUI
-  assert.deepEqual(made[1].writes, ['codex\r']);     // codex 스텁
+  assert.ok(made[0].writes[0].endsWith('opencode\r'), made[0].writes[0]); // opencode (테마 프리픽스 가능)
+  assert.deepEqual(made[1].writes, ['codex\r']);     // codex (프리픽스 없음)
   assert.equal(sm.tree()[0].terminals[0].agent, 'opencode');
 });
 
@@ -146,7 +146,7 @@ test('런모드(danger): 에이전트별 권한 건너뛰기 플래그 추가', 
   sm.resize(a.terminalId, 80, 24); sm.resize(b.terminalId, 80, 24); sm.resize(c.terminalId, 80, 24);
   assert.deepEqual(made[0].writes, ['claude --dangerously-skip-permissions\r']);
   assert.deepEqual(made[1].writes, ['codex --dangerously-bypass-approvals-and-sandbox\r']);
-  assert.deepEqual(made[2].writes, ['opencode\r']);   // opencode TUI엔 스킵 플래그 없음
+  assert.ok(made[2].writes[0].endsWith('opencode\r'), made[2].writes[0]);   // opencode 스킵 플래그 없음(테마 프리픽스만)
 });
 
 test('기본 에이전트 설정: setDefaultAgent → createSession이 그 에이전트로 띄움', () => {
@@ -157,7 +157,7 @@ test('기본 에이전트 설정: setDefaultAgent → createSession이 그 에�
   assert.equal(sm.getDefaultAgent(), 'opencode');
   const { terminalId } = sm.createSession({ label: 'p', path: 'C:\\p' }); // spec 없음 → 기본값 사용
   sm.resize(terminalId, 80, 24);
-  assert.deepEqual(made[0].writes, ['opencode\r']);       // 기본 에이전트 opencode 실행
+  assert.ok(made[0].writes[0].endsWith('opencode\r'), made[0].writes[0]);  // 기본 에이전트 opencode 실행
   assert.equal(sm.tree()[0].terminals[0].agent, 'opencode');
 });
 
