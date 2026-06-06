@@ -23,6 +23,8 @@ const EN = {
   completionAlarm: 'Completion alarm', available: 'Available', expoGoOff: 'Off in Expo Go (needs dev build)',
   alarmThreshold: 'Alarm after working ≥', alarmThresholdHint: 'Only alerts when the agent worked at least this long, then finished.',
   delete: 'Delete', appearance: 'Appearance', theme: 'Theme', language: 'Language', light: 'Light', dark: 'Dark',
+  defaultAgent: 'Default agent', defaultAgentHint: 'The agent launched with a new session.',
+  newTerminal: 'New terminal', agentLabel: 'Agent', environment: 'Environment', shell: 'Shell', add: 'Add',
   endSession: 'End session', endSessionQ: (l: string) => `End session "${l}"?`, cancel: 'Cancel', end: 'End',
   // preview
   preview: 'Preview', web: 'Web', screen: 'Screen', port: 'Port', open: 'Open', refresh: 'Refresh', auto: 'Auto',
@@ -47,6 +49,8 @@ const KO: Dict = {
   completionAlarm: '완료 알림', available: '사용 가능', expoGoOff: 'Expo Go에서는 꺼짐 (dev build 필요)',
   alarmThreshold: '이만큼 이상 작업 후 완료 시 알림', alarmThresholdHint: '에이전트가 이 시간 이상 작업하고 끝났을 때만 울려요.',
   delete: '삭제', appearance: '화면', theme: '테마', language: '언어', light: '라이트', dark: '다크',
+  defaultAgent: '기본 에이전트', defaultAgentHint: '새 세션을 시작할 때 띄울 에이전트예요.',
+  newTerminal: '새 터미널', agentLabel: '에이전트', environment: '환경', shell: '셸', add: '추가',
   endSession: '세션 종료', endSessionQ: (l: string) => `${l} 세션을 종료할까요?`, cancel: '취소', end: '종료',
   preview: '프리뷰', web: '웹', screen: '화면', port: '포트', open: '열기', refresh: '새로고침', auto: '자동',
   allDisplays: '전체', monitor: '모니터',

@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { listHosts, getActiveHost, setActiveHost, removeHost, getNotifyMinSec, setNotifyMinSec, type Host } from '@/lib/hub';
+import { listHosts, getActiveHost, setActiveHost, removeHost, getNotifyMinSec, setNotifyMinSec, getDefaultAgent, setDefaultAgent, type Host } from '@/lib/hub';
 import { notificationsAvailable } from '@/lib/notify';
 import { radius, font } from '@/lib/theme';
 import { usePrefs, setTheme, setLang, type Palette, type ThemeName, type Lang } from '@/lib/prefs';
@@ -15,11 +15,13 @@ export default function Settings() {
   const [hosts, setHosts] = useState<Host[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [alarmSec, setAlarmSec] = useState<number | null>(null);
+  const [agent, setAgent] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     listHosts().then(setHosts);
     getActiveHost().then(h => setActiveId(h?.id ?? null));
     getNotifyMinSec().then(setAlarmSec).catch(() => {});
+    getDefaultAgent().then(setAgent).catch(() => {});
   }, []);
 
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
@@ -27,6 +29,7 @@ export default function Settings() {
   async function pick(id: string) { await setActiveHost(id); setActiveId(id); }
   async function remove(id: string) { await removeHost(id); refresh(); }
   async function setAlarm(sec: number) { setAlarmSec(sec); await setNotifyMinSec(sec); }
+  async function pickAgent(a: string) { setAgent(a); await setDefaultAgent(a); }
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={{ padding: 20, paddingTop: insets.top + 16, gap: 16 }}>
@@ -63,6 +66,21 @@ export default function Settings() {
             </Pressable>
           ))}
         </View>
+      </View>
+
+      <View style={styles.cardCol}>
+        <Text style={styles.label}>{t('defaultAgent')}</Text>
+        <View style={styles.seg}>
+          {(['claude', 'opencode', 'codex'] as const).map(k => {
+            const on = agent === k;
+            return (
+              <Pressable key={k} onPress={() => pickAgent(k)} style={[styles.segItem, on && styles.segItemOn]}>
+                <Text style={[styles.segTxt, on && styles.segTxtOn]}>{k === 'claude' ? 'Claude' : k}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={styles.empty}>{t('defaultAgentHint')}</Text>
       </View>
 
       <View style={styles.cardCol}>

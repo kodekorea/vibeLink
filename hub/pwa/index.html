@@ -69,11 +69,6 @@
   .fav-del:active{background:#c64545;color:#fff}
   .sheet-actions{display:flex;gap:8px;margin-top:14px}
   .sheet-actions .btn{flex:1}
-  .env-row{display:flex;align-items:center;gap:8px;margin:0 0 12px}
-  .env-row .env-lbl{font-size:13px;color:var(--mut);flex:0 0 auto}
-  .env-seg{display:flex;flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  .env-seg button{flex:1;padding:8px 0;background:transparent;border:0;color:var(--mut);font-size:13px;cursor:pointer}
-  .env-seg button.on{background:var(--accent,#cc785c);color:#fff}
   .btn.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line);box-shadow:none}
   .hidden{display:none !important}
   body.embed #bar{display:none}
@@ -131,20 +126,17 @@ const WANT_SESSION = new URLSearchParams(location.search).get('session') || '';
 const QLANG = new URLSearchParams(location.search).get('lang') || '';
 const SAFE_BOTTOM = parseInt(new URLSearchParams(location.search).get('safe') || '0', 10) || 0;
 let ws, term, fit, sessions = [], active = '';
-// 새 세션에서 실행할 에이전트(=주 터미널 프로그램). 모달에서 선택, createSession 바디에 실어 보냄.
-let selectedAgent = 'claude';
-const AGENT_CHOICES = ['claude', 'opencode', 'codex'];
 
 // ── i18n (영어 기본, 글로벌). ?lang=ko 또는 localStorage mtb_lang로 전환 ──
 const STR = {
   en: { authFail:'Authentication failed', cmdPlaceholder:'Type a command', copy:'Copy', copied:'Copied', connect:'Connect', password:'Password',
     newSessionPick:'New session — pick a project', browseFolder:'Browse folders', close:'Close', drives:'Drives', up:'⬆ Up',
     startHere:'Start session here', doneWaiting:'Done / waiting for input', session:'Session', uploadFail:'Upload failed',
-    deletePrefix:'Delete', delete:'Delete', saveCurrent:'＋ Save current', newFolder:'＋ New folder', newFolderPrompt:'New folder name', mkdirFail:'Could not create folder', agent:'Agent', envLabel:'Environment' },
+    deletePrefix:'Delete', delete:'Delete', saveCurrent:'＋ Save current', newFolder:'＋ New folder', newFolderPrompt:'New folder name', mkdirFail:'Could not create folder' },
   ko: { authFail:'인증 실패', cmdPlaceholder:'명령 입력', copy:'복사', copied:'복사됨', connect:'연결', password:'암호',
     newSessionPick:'새 세션 — 프로젝트 선택', browseFolder:'폴더 찾아보기', close:'닫기', drives:'드라이브', up:'⬆ 상위',
     startHere:'여기서 세션 시작', doneWaiting:'완료 / 입력 대기', session:'세션', uploadFail:'업로드 실패',
-    deletePrefix:'삭제', delete:'삭제', saveCurrent:'＋ 현재 입력 저장', newFolder:'＋ 새 폴더', newFolderPrompt:'새 폴더 이름', mkdirFail:'폴더를 만들 수 없어요', agent:'에이전트', envLabel:'환경' },
+    deletePrefix:'삭제', delete:'삭제', saveCurrent:'＋ 현재 입력 저장', newFolder:'＋ 새 폴더', newFolderPrompt:'새 폴더 이름', mkdirFail:'폴더를 만들 수 없어요' },
 };
 const LANG = (QLANG || localStorage.getItem('mtb_lang') || 'en').startsWith('ko') ? 'ko' : 'en';
 function T(k){ return (STR[LANG] && STR[LANG][k]) || STR.en[k] || k; }
@@ -504,31 +496,10 @@ function switchByDelta(d){
   if (n) switchTo(n.id);
 }
 
-// 새 세션 환경(셸) 선택 — 모달에서 토글, createSession 본문에 env로 실린다.
-let newEnv = localStorage.getItem('mtb_env') || 'powershell';
-// 환경 세그먼트 토글(PowerShell/cmd/Git Bash/WSL). 모달 상단에 붙인다.
-function buildEnvToggle(){
-  const wrap = document.createElement('div'); wrap.className = 'env-row';
-  const lbl = document.createElement('span'); lbl.className = 'env-lbl'; lbl.textContent = T('envLabel');
-  const seg = document.createElement('div'); seg.className = 'env-seg';
-  const opts = [['powershell','PowerShell'], ['cmd','cmd'], ['gitbash','Git Bash'], ['wsl','WSL']];
-  for (const [val, text] of opts) {
-    const b = document.createElement('button'); b.textContent = text;
-    if (newEnv === val) b.classList.add('on');
-    b.onclick = () => { newEnv = val; localStorage.setItem('mtb_env', val);
-      for (const c of seg.children) c.classList.toggle('on', c === b); };
-    seg.appendChild(b);
-  }
-  wrap.appendChild(lbl); wrap.appendChild(seg);
-  return wrap;
-}
-
 async function openNewSession(){
   const { projects } = await (await api('/projects')).json();
   const sheet = $('#sheet');
   sheet.innerHTML = '<h3>' + escapeHtml(T('newSessionPick')) + '</h3>';
-  sheet.appendChild(buildAgentPicker());
-  sheet.appendChild(buildEnvToggle());
   for (const p of projects) {
     const row = document.createElement('div'); row.className = 'row row-fav';
     const lbl = document.createElement('span'); lbl.className = 'fav-label'; lbl.textContent = '▶ ' + p.label;
@@ -551,29 +522,10 @@ async function openNewSession(){
   sheet.appendChild(actions);
   $('#modal').classList.add('show');
 }
-// 에이전트 선택 토글(Claude / opencode). selectedAgent 갱신 + 활성 버튼 표시.
-function buildAgentPicker(){
-  const wrap = document.createElement('div'); wrap.className = 'sheet-actions'; wrap.style.marginBottom = '8px';
-  const cap = document.createElement('span'); cap.textContent = T('agent') + ':';
-  cap.style.alignSelf = 'center'; cap.style.opacity = '.7'; cap.style.marginRight = '4px';
-  wrap.appendChild(cap);
-  const btns = [];
-  const paint = () => btns.forEach(b => { b.className = b.dataset.agent === selectedAgent ? 'btn' : 'btn ghost'; });
-  for (const a of AGENT_CHOICES) {
-    const b = document.createElement('button'); b.dataset.agent = a;
-    b.textContent = a === 'claude' ? 'Claude' : a;
-    b.onclick = () => { selectedAgent = a; paint(); };
-    btns.push(b); wrap.appendChild(b);
-  }
-  paint();
-  return wrap;
-}
 async function browseFrom(p){
   const { entries, cwd } = await (await api('/fs' + (p ? ('?path=' + encodeURIComponent(p)) : ''))).json();
   const sheet = $('#sheet');
   sheet.innerHTML = '<h3>' + (cwd ? escapeHtml(cwd) : escapeHtml(T('drives'))) + '</h3>';
-  sheet.appendChild(buildAgentPicker());
-  sheet.appendChild(buildEnvToggle());
   if (cwd) {
     const up = document.createElement('div'); up.className = 'row'; up.textContent = T('up');
     up.onclick = () => browseFrom(parentOf(cwd)); sheet.appendChild(up);
@@ -609,7 +561,7 @@ async function addAndCreate(p){
 }
 async function createSession(p){
   $('#modal').classList.remove('show');
-  const r = await api('/sessions/create', { method:'POST', body: JSON.stringify({ path: p, agent: selectedAgent, env: newEnv }) });
+  const r = await api('/sessions/create', { method:'POST', body: JSON.stringify({ path: p }) });
   try { const j = await r.json(); if (j && j.id) {
     active = j.terminalId || j.id; term.reset(); renderBar(); focusTerminal();
     doFit(); syncSize(); setTimeout(syncSize, 200);   // 새 에이전트를 올바른 크기로 부팅

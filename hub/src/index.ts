@@ -68,6 +68,14 @@ async function main(): Promise<void> {
     const nf = path.join(os.homedir(), '.vibelink', 'notify.json');
     if (fs.existsSync(nf)) sessions.setNotify(JSON.parse(fs.readFileSync(nf, 'utf8')));
   } catch { /* 무시 */ }
+  // 폰에서 고른 새 세션 기본 에이전트 복원
+  try {
+    const af = path.join(os.homedir(), '.vibelink', 'agent.json');
+    if (fs.existsSync(af)) {
+      const a = JSON.parse(fs.readFileSync(af, 'utf8'));
+      if (a && a.agent) sessions.setDefaultAgent(String(a.agent));
+    }
+  } catch { /* 무시 */ }
   server = new HubServer(store, tunnel, projects, sessions, pwaDir);
   await server.listen(port);
   log(`서버 시작: http://127.0.0.1:${port}`);

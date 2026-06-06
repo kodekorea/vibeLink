@@ -136,6 +136,29 @@ test('기본값: agent=claude, env=powershell (powershell.exe + claude)', () => 
   assert.deepEqual(made[0].writes, ['claude\r']);
 });
 
+test('기본 에이전트 설정: setDefaultAgent → createSession이 그 에이전트로 띄움', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
+  assert.equal(sm.getDefaultAgent(), 'claude');           // 기본값 claude
+  assert.equal(sm.setDefaultAgent('opencode'), 'opencode');
+  assert.equal(sm.getDefaultAgent(), 'opencode');
+  const { terminalId } = sm.createSession({ label: 'p', path: 'C:\\p' }); // spec 없음 → 기본값 사용
+  sm.resize(terminalId, 80, 24);
+  assert.deepEqual(made[0].writes, ['opencode\r']);       // 기본 에이전트 opencode 실행
+  assert.equal(sm.tree()[0].terminals[0].agent, 'opencode');
+});
+
+test('기본 에이전트 설정: 잘못된 값은 무시(기존 유지), spec.agent는 기본값보다 우선', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
+  sm.setDefaultAgent('codex');
+  assert.equal(sm.setDefaultAgent('bogus'), 'codex');     // 화이트리스트 밖 → 무시
+  assert.equal(sm.setDefaultAgent(''), 'codex');          // 빈 값 → 무시
+  const { terminalId } = sm.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'claude' }); // 명시 우선
+  sm.resize(terminalId, 80, 24);
+  assert.deepEqual(made[0].writes, ['claude\r']);
+});
+
 test('createTerminal: 없는 세션이면 null', () => {
   const { spawn } = fakeSpawn();
   const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
