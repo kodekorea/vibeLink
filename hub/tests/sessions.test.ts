@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { SessionManager } from '../src/sessions';
+import { winPathToWsl, buildWslSpawn } from '../src/wsl';
 import type { IPty } from '../src/nodePty';
 
 interface Fake { pty: IPty; file: string; args: string[]; writes: string[]; emit: (d: string) => void; exit: () => void; opts: any; }
@@ -64,6 +65,41 @@ test('runtime spec: agent=opencode → opencode 실행, env=wsl → wsl.exe spaw
   assert.equal(term.agent, 'opencode');
   assert.equal(term.env, 'wsl');
   assert.equal(term.kind, 'agent');
+});
+
+test('env=wsl: wsl.exe --cd <세션경로>로 spawn + 셸에 claude 타이핑', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
+  sm.createSession({ label: 'p', path: 'E:\\foo\\bar' }, { env: 'wsl' });
+  assert.equal(made[0].file, 'wsl.exe');
+  assert.deepEqual(made[0].args, ['--cd', 'E:\\foo\\bar']); // 세션 폴더에서 대화형 셸
+  assert.deepEqual(made[0].writes, ['claude\r']);           // launch는 셸에 타이핑
+});
+
+test('env=wsl + agent=shell: 명령 타이핑 없이 순수 대화형 bash', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
+  const { sessionId } = sm.createSession({ label: 'p', path: 'C:\\p' }, { env: 'wsl' });
+  const tid = sm.createTerminal(sessionId)!; // 기본 agent=shell, env=세션 기본(wsl) 상속
+  const made1 = made[1];
+  assert.equal(made1.file, 'wsl.exe');
+  assert.deepEqual(made1.args, ['--cd', 'C:\\p']);
+  assert.deepEqual(made1.writes, []);                       // 셸은 launch 안 함
+  const term = sm.tree()[0].terminals.find(t => t.id === tid)!;
+  assert.equal(term.env, 'wsl');
+});
+
+test('winPathToWsl: 드라이브 경로 → /mnt/<letter>/...', () => {
+  assert.equal(winPathToWsl('E:\\foo\\bar'), '/mnt/e/foo/bar');
+  assert.equal(winPathToWsl('C:\\Users\\x'), '/mnt/c/Users/x');
+  assert.equal(winPathToWsl('/already/posix'), '/already/posix');
+  assert.equal(winPathToWsl('rel\\path'), 'rel/path');
+});
+
+test('buildWslSpawn: distro 지정 시 -d 추가', () => {
+  assert.deepEqual(buildWslSpawn('C:\\p'), { file: 'wsl.exe', args: ['--cd', 'C:\\p'] });
+  assert.deepEqual(buildWslSpawn('C:\\p', 'Ubuntu-24.04'),
+    { file: 'wsl.exe', args: ['-d', 'Ubuntu-24.04', '--cd', 'C:\\p'] });
 });
 
 test('기본값: agent=claude, env=powershell (powershell.exe + claude)', () => {
