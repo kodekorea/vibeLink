@@ -15,7 +15,6 @@
     },
     "android": {
       "package": "com.shain.vibelink",
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#faf9f5",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -41,7 +40,16 @@
       ],
       "expo-secure-store",
       "expo-notifications",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      "expo-font"
     ],
     "extra": {
       "router": {},
