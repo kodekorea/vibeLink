@@ -14,6 +14,9 @@
   <a href="https://expo.dev/accounts/kodekorea/projects/vibelink/builds">
     <img src="https://img.shields.io/badge/Install-Android--EAS-blue?style=for-the-badge&logo=expo&logoColor=white" alt="Install Android via EAS" />
   </a>
+  <a href="https://www.buymeacoffee.com/kodekorea" target="_blank">
+    <img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-FF813F?style=for-the-badge&logo=buy-me-a-coffee&logoColor=white" alt="Buy Me A Coffee" />
+  </a>
 </p>
 
 ---
@@ -150,6 +153,13 @@ eas build --platform android --profile preview
    npm run android
    ```
 
+#### 💖 Support the Project
+If VibeLink makes your mobile development life easier, consider buying me a coffee! Your support helps keep this project updated and maintained.
+
+<a href="https://www.buymeacoffee.com/kodekorea" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="180px" />
+</a>
+
 ---
 
 ## 🇰🇷 한국어
@@ -167,6 +177,9 @@ eas build --platform android --profile preview
   </a>
   <a href="https://expo.dev/accounts/kodekorea/projects/vibelink/builds">
     <img src="https://img.shields.io/badge/설치-Android--EAS-blue?style=for-the-badge&logo=expo&logoColor=white" alt="EAS를 통해 안드로이드 설치" />
+  </a>
+  <a href="https://www.buymeacoffee.com/kodekorea" target="_blank">
+    <img src="https://img.shields.io/badge/커피%20후원하기-Donate-FF813F?style=for-the-badge&logo=buy-me-a-coffee&logoColor=white" alt="Buy Me A Coffee" />
   </a>
 </p>
 
@@ -243,6 +256,13 @@ npm run dist
 ##### 2. 모바일 앱 환경 구성
 * **EAS 클라우드 빌드**: `eas build --platform android --profile preview` 명령어로 Expo 서버를 통한 APK 컴파일을 수행합니다.
 * **로컬 개발 모드**: JDK 17 및 Android Studio가 세팅된 로컬 PC 환경에서 `mobile/` 폴더로 이동해 `npm run android`를 실행합니다.
+
+#### 💖 후원하기 (Support the Project)
+VibeLink가 여러분의 이동식 개발 환경 개선에 도움이 되었다면, 커피 한 잔으로 힘을 보태주세요! 여러분의 후원은 프로젝트의 지속적인 유지보수와 업데이트에 큰 힘이 됩니다.
+
+<a href="https://www.buymeacoffee.com/kodekorea" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="180px" />
+</a>
 
 ---
 
