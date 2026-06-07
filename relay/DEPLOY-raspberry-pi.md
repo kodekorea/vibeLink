@@ -169,10 +169,20 @@ sudo apt-get update && sudo apt-get install -y caddy
 `/etc/caddy/Caddyfile` (기존 내용 지우고):
 ```
 relay.내도메인 {
-    reverse_proxy 127.0.0.1:8787
+    reverse_proxy 127.0.0.1:8787 {
+        transport http {
+            keepalive off
+        }
+    }
 }
 ```
-(DuckDNS면 `myrelay.duckdns.org { reverse_proxy 127.0.0.1:8787 }`)
+(DuckDNS면 `myrelay.duckdns.org { ... }` 안에 같은 reverse_proxy 블록)
+
+> ⚠️ **`keepalive off` 필수.** 릴레이는 "TCP 연결 1개 = 스트림 1개"로 보고 첫 요청 줄만 보고
+> hub로 라우팅을 고정한다. Caddy가 업스트림 연결을 풀링·재사용하면 한 번 `/h/<id>` 스트림에
+> 묶인 연결이 다른 요청(`/healthz`, `/ws`, 정적 파일 등)에 재사용되어 엉뚱한 응답(PWA/404/502)이
+> 나온다. `keepalive off`로 매 요청을 새 연결로 보내야 라우팅이 매번 올바르게 동작한다.
+> (WebSocket 업그레이드는 전용 연결이라 영향 없음.)
 
 ```bash
 sudo systemctl restart caddy

@@ -121,6 +121,9 @@ const deviceId = (() => {
   return id;
 })();
 const $ = s => document.querySelector(s);
+// 릴레이는 PWA를 /h/<id>/ 아래에서 서빙한다. 그 경로 접두어를 모든 API/WS에 붙여야
+// relay가 /h/<id>를 떼고 hub로 올바르게 전달한다. 루트(LAN 직결)면 BASE는 빈 문자열.
+const BASE = location.pathname.replace(/\/index\.html?$/, '').replace(/\/$/, '');
 const EMBED = new URLSearchParams(location.search).has('embed');
 const WANT_SESSION = new URLSearchParams(location.search).get('session') || '';
 const QLANG = new URLSearchParams(location.search).get('lang') || '';
@@ -149,7 +152,7 @@ function applyStaticI18n(){
   const ln = $('#line'); if (ln) ln.placeholder = T('cmdPlaceholder');
 }
 
-function api(p, opts){ return fetch(p, Object.assign({ headers:{ 'Content-Type':'application/json' } }, opts)); }
+function api(p, opts){ return fetch(BASE + p, Object.assign({ headers:{ 'Content-Type':'application/json' } }, opts)); }
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 $('#pairBtn').onclick = pair;
@@ -425,7 +428,7 @@ function applyViewport(){
 
 function setConn(ok){ const b = $('#send'); if (b) b.classList.toggle('offline', !ok); }
 function connect(){
-  ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+'/ws');
+  ws = new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host+BASE+'/ws');
   ws.onopen = () => { setConn(true); doFit(); syncSize(); setTimeout(syncSize, 200); };
   ws.onclose = () => { setConn(false); setTimeout(connect, 1500); };
   ws.onerror = () => setConn(false);
