@@ -18,8 +18,8 @@
   .card h2{font-size:14px;margin:0 0 10px;color:var(--ink)}
   label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
   input,select{width:100%;padding:9px;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;font-size:14px}
-  .seg{display:flex;gap:6px}
-  .seg button{flex:1;background:#fff;border:1px solid var(--line);color:var(--ink);font-weight:500}
+  .seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px}
+  .seg button{width:100%;background:#fff;border:1px solid var(--line);color:var(--ink);font-weight:500;padding:9px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .seg button.sel{background:var(--accent);color:#fff;border-color:transparent}
   .hint{font-size:12px;color:var(--muted);line-height:1.5;margin:6px 0 0}
   details{margin-bottom:14px}
@@ -77,7 +77,7 @@
       <h2>External access</h2>
       <label>Mode</label>
       <div class="seg" id="tunnel">
-        <button data-v="relay">Relay (recommended)</button>
+        <button data-v="relay">Relay</button>
         <button data-v="quick">Cloudflare</button>
         <button data-v="lan">LAN only</button>
       </div>

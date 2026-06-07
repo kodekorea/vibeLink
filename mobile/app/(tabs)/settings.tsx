@@ -70,16 +70,16 @@ export default function Settings() {
 
       <View style={styles.cardCol}>
         <Text style={styles.label}>{t('defaultAgent')}</Text>
-        <View style={styles.seg}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.segScroll} contentContainerStyle={styles.segScrollContent}>
           {(['claude', 'opencode', 'codex', 'grok', 'antigravity'] as const).map(k => {
             const on = agent === k;
             return (
-              <Pressable key={k} onPress={() => pickAgent(k)} style={[styles.segItem, on && styles.segItemOn]}>
+              <Pressable key={k} onPress={() => pickAgent(k)} style={[styles.segScrollItem, on && styles.segItemOn]}>
                 <Text style={[styles.segTxt, on && styles.segTxtOn]}>{k === 'claude' ? 'Claude' : k === 'grok' ? 'Grok' : k === 'antigravity' ? 'Antigravity' : k}</Text>
               </Pressable>
             );
           })}
-        </View>
+        </ScrollView>
         <Text style={styles.empty}>{t('defaultAgentHint')}</Text>
       </View>
 
@@ -122,6 +122,9 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   value: { color: c.ink, fontSize: 15 },
   seg: { flexDirection: 'row', gap: 6, backgroundColor: c.canvas, borderRadius: radius.md, borderCurve: 'continuous', padding: 4 },
   segItem: { flex: 1, paddingVertical: 9, borderRadius: radius.sm, borderCurve: 'continuous', alignItems: 'center' },
+  segScroll: { flexDirection: 'row', backgroundColor: c.canvas, borderRadius: radius.md, borderCurve: 'continuous', padding: 4 },
+  segScrollContent: { flexDirection: 'row', gap: 6 },
+  segScrollItem: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.sm, borderCurve: 'continuous', alignItems: 'center', minWidth: 80 },
   segItemOn: { backgroundColor: c.primary },
   segTxt: { color: c.body, fontSize: 14, fontFamily: font.bodyMedium },
   segTxtOn: { color: c.onPrimary, fontFamily: font.bodySemibold },

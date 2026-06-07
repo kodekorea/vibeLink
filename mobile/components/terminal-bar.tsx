@@ -104,28 +104,28 @@ export function TerminalBar() {
             <Text style={styles.sheetTitle}>{t('newTerminal')}</Text>
 
             <Text style={styles.sheetLabel}>{t('agentLabel')}</Text>
-            <View style={styles.segWrap}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.segScroll} contentContainerStyle={styles.segScrollContent}>
               {AGENTS.map(([k, lbl]) => {
                 const on = pAgent === k;
                 return (
-                  <Pressable key={k} onPress={() => setPAgent(k)} style={[styles.segItem, on && { backgroundColor: c.primary }]}>
+                  <Pressable key={k} onPress={() => setPAgent(k)} style={[styles.segScrollItem, on && { backgroundColor: c.primary }]}>
                     <Text style={[styles.segTxt, { color: on ? c.onPrimary : c.body }]}>{k === 'shell' ? t('shell') : lbl}</Text>
                   </Pressable>
                 );
               })}
-            </View>
+            </ScrollView>
 
             <Text style={styles.sheetLabel}>{t('environment')}</Text>
-            <View style={styles.segWrap}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.segScroll} contentContainerStyle={styles.segScrollContent}>
               {ENVS.map(([k, lbl]) => {
                 const on = pEnv === k;
                 return (
-                  <Pressable key={k} onPress={() => setPEnv(k)} style={[styles.segItem, on && { backgroundColor: c.primary }]}>
+                  <Pressable key={k} onPress={() => setPEnv(k)} style={[styles.segScrollItem, on && { backgroundColor: c.primary }]}>
                     <Text style={[styles.segTxt, { color: on ? c.onPrimary : c.body }]}>{lbl}</Text>
                   </Pressable>
                 );
               })}
-            </View>
+            </ScrollView>
 
             <View style={styles.sheetActions}>
               <Pressable onPress={() => setPicker(false)} style={[styles.actBtn, { backgroundColor: c.surfaceCard, borderColor: c.hairline, borderWidth: 1 }]}>
@@ -157,6 +157,9 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   sheetLabel: { color: c.mutedSoft, fontSize: 12, marginTop: 6 },
   segWrap: { flexDirection: 'row', gap: 6, backgroundColor: c.surfaceCard, borderRadius: 10, padding: 4 },
   segItem: { flex: 1, paddingVertical: 9, borderRadius: 7, alignItems: 'center' },
+  segScroll: { flexDirection: 'row', backgroundColor: c.surfaceCard, borderRadius: 10, padding: 4 },
+  segScrollContent: { flexDirection: 'row', gap: 6 },
+  segScrollItem: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 7, alignItems: 'center', minWidth: 70 },
   segTxt: { fontSize: 13, fontWeight: '600' },
   sheetActions: { flexDirection: 'row', gap: 10, marginTop: 14 },
   actBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },

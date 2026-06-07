@@ -47,7 +47,7 @@ function settings() {
   return {
     port: Number(s.port || process.env.MTB_PORT || 47801),
     password: s.password || 'changeme1234',
-    agent: oneOf(s.agent, ['claude', 'opencode', 'codex'], 'claude'),         // 기본 에이전트
+    agent: oneOf(s.agent, ['claude', 'opencode', 'codex', 'grok', 'antigravity'], 'claude'),         // 기본 에이전트
     runEnv: oneOf(s.runEnv, ['powershell', 'cmd', 'gitbash', 'wsl'], 'powershell'), // 런모드(환경)
     theme: (s.theme || s.claudeTheme) === 'dark' ? 'dark' : 'light',          // 테마 (claudeTheme 호환)
     runMode: (s.runMode || s.claudeMode) === 'skip' ? 'skip' : 'normal',      // 런모드: normal | skip(권한 건너뛰기)
@@ -120,7 +120,7 @@ ipcMain.handle('mtb:save', async (_e, s) => {
   writeSettings(Object.assign({}, cur, {
     port: Number(s.port) || 47801,
     password: s.password || 'changeme1234',
-    agent: oneOf(s.agent, ['claude', 'opencode', 'codex'], 'claude'),
+    agent: oneOf(s.agent, ['claude', 'opencode', 'codex', 'grok', 'antigravity'], 'claude'),
     runEnv: oneOf(s.runEnv, ['powershell', 'cmd', 'gitbash', 'wsl'], 'powershell'),
     theme: s.theme === 'dark' ? 'dark' : 'light',
     runMode: s.runMode === 'skip' ? 'skip' : 'normal',
