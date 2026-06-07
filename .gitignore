@@ -32,6 +32,8 @@ image copy*
 !desktop/build/icon.png
 !desktop/tray.png
 !hub/pwa/*.png
+!images/
+
 
 # Node / extension / hub
 **/node_modules/
