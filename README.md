@@ -1,8 +1,11 @@
 # 🌟 VibeLink (Mobile Terminal Bridge)
 
 > **A premium, high-performance, and secure bridge to mirror, monitor, and control your desktop terminals and workspaces directly from your mobile device.**
+>
+> 🌐 **Landing Page:** [vibelink.kodekorea.kr](https://vibelink.kodekorea.kr)
 
 ---
+
 
 <p align="center">
   <a href="#-english">🇺🇸 English</a> | 
@@ -118,7 +121,10 @@ eas build --platform android --profile preview
 
 **VibeLink**는 이동 중에도 자신의 개발 환경과 연결을 유지하려는 개발자를 위해 제작된 1인용 유틸리티입니다. 네이티브 안드로이드 앱(Expo 기반)과 데스크톱 트레이 앱(Electron 기반)을 연동하여, 활성화된 포트 감지, 터미널 탭 전환, 매크로 시퀀스 실행, 키스트로크 입력 주입 등을 로컬 네트워크 내에서 보안 비밀번호 기반으로 안전하게 수행할 수 있습니다.
 
+🌐 **공식 소개 페이지:** [vibelink.kodekorea.kr](https://vibelink.kodekorea.kr)
+
 ### 🎨 시각 자료 및 주요 기능
+
 
 | 터미널 (Claude Code TUI) | 터미널 (opencode TUI) | 실시간 화면 미러링 (원격 뷰) |
 | :---: | :---: | :---: |
