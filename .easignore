@@ -1,0 +1,23 @@
+# Exclude non-mobile directories from EAS uploads
+desktop/
+hub/
+relay/
+site/
+docs/
+images/
+*.bat
+*.exe
+*.png
+*.jpg
+!mobile/assets/*.png
+!mobile/assets/*.jpg
+!mobile/assets/**/*.png
+!mobile/assets/**/*.jpg
+
+# Exclude native android/ios build directories in mobile
+mobile/android/
+mobile/ios/
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/

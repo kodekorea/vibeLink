@@ -5,13 +5,13 @@
 > 🌐 **Landing Page:** [vibelink.kodekorea.kr](https://vibelink.kodekorea.kr)
 
 <p align="left">
-  <a href="https://github.com/kodekorea/vibeLink/releases">
+  <a href="https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink_Setup_0.1.0.exe">
     <img src="https://img.shields.io/badge/Download-Windows--EXE-coral?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows EXE" />
   </a>
-  <a href="https://github.com/kodekorea/vibeLink/releases">
+  <a href="https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink.apk">
     <img src="https://img.shields.io/badge/Download-Android--APK-warmgray?style=for-the-badge&logo=android&logoColor=white" alt="Download Android APK" />
   </a>
-  <a href="https://expo.dev/accounts/kodekorea/projects/vibelink">
+  <a href="https://expo.dev/accounts/kodekorea/projects/vibelink/builds/e3bb03e1-4bf4-418a-bfe5-dbc01640788f">
     <img src="https://img.shields.io/badge/Install-Android--EAS-blue?style=for-the-badge&logo=expo&logoColor=white" alt="Install Android via EAS" />
   </a>
 </p>
@@ -27,7 +27,7 @@
 
 ## 🇺🇸 English
 
-VibeLink is a single-user companion utility designed for developers who want to stay connected to their development environment while on the move. By bridging a beautiful native Android application (built with Expo) and a desktop tray application (built with Electron), VibeLink allows you to inspect active ports, switch terminal tabs, run macro sequences, and send keystrokes to your workstation securely over your local network.
+VibeLink is a single-user companion utility designed for developers who want to stay connected to their development environment while on the move. By bridging a native Android application (built with Expo) and a desktop tray application (built with Electron), VibeLink lets you run AI coding agents on your PC, open multiple workspaces at the same time, switch between mobile tabs, inspect active ports, review git file changes, and receive completion notifications when long-running agent work needs your attention.
 
 ### 🎨 Visual Showcase & Features
 
@@ -44,36 +44,40 @@ VibeLink is a single-user companion utility designed for developers who want to 
 | Agent Chat Room | Companion App Settings | Desktop Settings (Tray App) |
 | :---: | :---: | :---: |
 | <img src="images/mobile-chat-history.jpg" width="240" alt="Chat Room" /> | <img src="images/mobile-settings-hosts.jpg" width="240" alt="App Settings" /> | <img src="images/desktop-controller-settings.png" width="240" alt="Desktop Settings" /> |
-| **Agent Workspace Logs**<br>Monitor task logs and communicate with coding subagents. | **Quick Configuration**<br>Connect via QR, change themes (light/dark), and set alarms. | **Desktop Controller Panel**<br>Start/stop the hub, choose default shells, and configure parameters. |
+| **Chat History at a Glance**<br>Monitor agent messages, command output, and session status in one timeline. | **Quick Configuration**<br>Connect via QR, change themes (light/dark), choose default agents, and set completion alarms. | **Desktop Controller Panel**<br>Start/stop the hub, choose default shells, configure run modes, and expose relay/QR pairing. |
 
 ---
 
 ### ✨ Key Features
 
-- 💻 **Electron Desktop Controller**: A lightweight system tray application that manages the background hub server, configures ports/passwords, and provides clean settings panels.
-- 📱 **Native Android Companion (Expo)**: A fast, smooth React Native app equipped with:
+- 💻 **Electron Desktop Controller**: A lightweight system tray application that manages the background hub server, QR/relay pairing, default shells, run modes, and desktop settings.
+- 📱 **Native Android Companion (Expo)**: A fast React Native app organized around the mobile coding workflow:
+  - **Multi-Workspace Tabs**: Open several workspaces and AI agent sessions at the same time, then switch between them from your phone.
   - **Active Session Bar**: A Chrome-style tab interface that tracks and blends with your active session.
-  - **Dynamic Port Detection**: Live port detection and status monitoring (active ports indicated with green indicators `●`).
-  - **Quick Action Pads**: Dedicated arrow keys, tab controls, and editor-focused macros.
-  - **Macro Folder Sequencing**: Group commands into custom sequences and run them with a single tap.
+  - **Dynamic Port Detection**: Live port detection and status monitoring for running local development servers.
+  - **Quick Action Pads**: Dedicated Enter, arrow, Tab, Ctrl+C, and command controls for terminal work on mobile.
+  - **Git File Changes**: Inspect changed files before continuing agent work.
+  - **Chat History at a Glance**: Review agent messages, command output, and session status in one timeline.
+  - **Completion Notifications**: Configure alarms so your phone notifies you when an agent finishes a long-running task or needs follow-up input.
   - **QR Code Pairing**: Instantly connect your mobile app to your desktop server by scanning a local QR code.
-- 🔒 **Secure-by-Design**: Single-user authorization using robust, local-first passwords and tokens. Removed all external third-party tunnels (like ngrok) to ensure your data stays private and stays inside your local network.
+- 🤖 **Supported Agents**: Claude, Codex, OpenCode, GrokBuild, and AGY.
+- 🖥️ **Platform Support**: Android + Windows are supported now. Linux, macOS, and iOS are planned.
+- 🔒 **Secure-by-Design**: Single-user authorization using robust, local-first passwords and tokens so your workspace stays under your control.
 
 ---
-
 ### 🏗️ Architecture
 
 ```mermaid
 graph TD
-    subgraph Mobile App (React Native + Expo)
+    subgraph mobile["Mobile App (React Native + Expo)"]
         A[Session & WebView UI] <--> B[QR Scanner & Storage]
     end
 
-    subgraph Desktop Tray App (Electron)
+    subgraph desktop["Desktop Tray App (Electron)"]
         C[System Tray & Window UI] --> D[Hub Process Manager]
     end
 
-    subgraph Hub Backend Server (Node.js + TS)
+    subgraph hub["Hub Backend Server (Node.js + TS)"]
         E[HTTP / WebSocket Server] <--> F[Port Monitoring & CMD Injector]
     end
 
@@ -101,9 +105,9 @@ No complex installations are required. Just ensure the following:
 ### 🚀 Getting Started
 
 #### 💿 Direct Download (Recommended)
-You can directly download precompiled binaries from our **[GitHub Releases](https://github.com/kodekorea/vibeLink/releases)**:
-* **Windows (.exe)**: Download and run `VibeLink Setup 0.1.0.exe` to run the setup wizard and automatically place a shortcut on your desktop.
-* **Android (.apk)**: Download the `.apk` bundle directly from [GitHub Releases](https://github.com/kodekorea/vibeLink/releases) or scan the QR code from the **[EAS Build Page](https://expo.dev/accounts/kodekorea/projects/vibelink)** to install via Expo Cloud.
+You can directly download precompiled binaries from our **[GitHub Releases v0.1.0](https://github.com/kodekorea/vibeLink/releases/tag/v0.1.0)**:
+* **Windows (.exe)**: Download and run **[VibeLink Setup 0.1.0.exe](https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink_Setup_0.1.0.exe)** to run the setup wizard.
+* **Android (.apk)**: Download the **[VibeLink.apk](https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink.apk)** directly or scan the QR code from the **[EAS Build Page](https://expo.dev/accounts/kodekorea/projects/vibelink/builds/e3bb03e1-4bf4-418a-bfe5-dbc01640788f)**.
 
 ---
 
@@ -150,18 +154,18 @@ eas build --platform android --profile preview
 
 ## 🇰🇷 한국어
 
-**VibeLink**는 이동 중에도 자신의 개발 환경과 연결을 유지하려는 개발자를 위해 제작된 1인용 유틸리티입니다. 네이티브 안드로이드 앱(Expo 기반)과 데스크톱 트레이 앱(Electron 기반)을 연동하여, 활성화된 포트 감지, 터미널 탭 전환, 매크로 시퀀스 실행, 키스트로크 입력 주입 등을 로컬 네트워크 내에서 보안 비밀번호 기반으로 안전하게 수행할 수 있습니다.
+**VibeLink**는 이동 중에도 자신의 개발 환경과 연결을 유지하려는 개발자를 위해 제작된 1인용 유틸리티입니다. 네이티브 안드로이드 앱(Expo 기반)과 데스크톱 트레이 앱(Electron 기반)을 연동하여, Claude/Codex/OpenCode/GrokBuild/AGY 실행, 여러 워크스페이스 동시 작업, 터미널 탭 전환, Git 변경 확인, 화면 프리뷰, 완료 알림, 키스트로크 입력 등을 로컬 네트워크 내에서 안전하게 수행할 수 있습니다.
 
 🌐 **공식 소개 페이지:** [vibelink.kodekorea.kr](https://vibelink.kodekorea.kr)
 
 <p align="left">
-  <a href="https://github.com/kodekorea/vibeLink/releases">
+  <a href="https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink_Setup_0.1.0.exe">
     <img src="https://img.shields.io/badge/다운로드-Windows--EXE-coral?style=for-the-badge&logo=windows&logoColor=white" alt="Windows EXE 다운로드" />
   </a>
-  <a href="https://github.com/kodekorea/vibeLink/releases">
+  <a href="https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink.apk">
     <img src="https://img.shields.io/badge/다운로드-Android--APK-warmgray?style=for-the-badge&logo=android&logoColor=white" alt="Android APK 다운로드" />
   </a>
-  <a href="https://expo.dev/accounts/kodekorea/projects/vibelink">
+  <a href="https://expo.dev/accounts/kodekorea/projects/vibelink/builds/e3bb03e1-4bf4-418a-bfe5-dbc01640788f">
     <img src="https://img.shields.io/badge/설치-Android--EAS-blue?style=for-the-badge&logo=expo&logoColor=white" alt="EAS를 통해 안드로이드 설치" />
   </a>
 </p>
@@ -194,6 +198,10 @@ eas build --platform android --profile preview
   - **퀵 액션 키패드**: 방향키, 엔터, 탭 등 터치 기반 터미널 전용 퀵 키보드 레이어.
   - **매크로 폴더링**: 자주 사용하는 일련의 CLI 명령을 그룹화해 단 한 번의 탭으로 순차 실행.
   - **QR 코드 페어링**: 복잡한 네트워크 주소 입력 없이 데스크톱 화면의 QR을 스캔하여 로컬 매핑 완료.
+  - **여러 워크스페이스 동시 작업**: 여러 프로젝트와 AI 에이전트 세션을 동시에 열고 모바일 탭에서 빠르게 전환하며 작업할 수 있습니다.
+  - **완료 알림 기능**: 에이전트가 긴 작업을 끝냈거나 추가 입력이 필요할 때 모바일 알림으로 확인할 수 있습니다.
+- **지원 에이전트**: Claude, Codex, OpenCode, GrokBuild, AGY.
+- **플랫폼 지원**: 현재 Android + Windows를 지원하며, Linux, macOS, iOS는 지원 예정입니다.
 - **철저한 로컬 중심 보안**: ngrok 등 외부 서드파티 터널링을 차단하고, 로컬 네트워크상에서 보안 인증 토큰 및 비밀번호를 적용하여 1인 단일 사용자 환경을 철저히 보호합니다.
 
 ---
@@ -216,9 +224,9 @@ eas build --platform android --profile preview
 ### 🚀 빠른 시작 가이드
 
 #### 💿 빌드 파일 다운로드 (권장)
-배포용 설치 파일은 **[GitHub Releases 최신 릴리즈](https://github.com/kodekorea/vibeLink/releases)** 페이지에서 즉시 다운로드할 수 있습니다.
-* **Windows (.exe)**: `VibeLink Setup 0.1.0.exe` 파일을 실행하여 마법사 단계에 따라 PC에 설치합니다. (바탕화면에 단축 아이콘이 자동 생성되며 시스템 트레이에 상주합니다.)
-* **Android (.apk)**: `.apk` 파일을 [GitHub Releases](https://github.com/kodekorea/vibeLink/releases)에서 직접 다운로드하거나, **[EAS 빌드 대시보드](https://expo.dev/accounts/kodekorea/projects/vibelink)**에서 제공하는 QR 코드를 스마트폰으로 스캔하여 바로 설치합니다.
+배포용 설치 파일은 **[GitHub Releases v0.1.0](https://github.com/kodekorea/vibeLink/releases/tag/v0.1.0)** 페이지에서 즉시 다운로드할 수 있습니다.
+* **Windows (.exe)**: **[VibeLink Setup 0.1.0.exe](https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink_Setup_0.1.0.exe)** 파일을 직접 받아 실행하고 설치 단계를 완료합니다.
+* **Android (.apk)**: **[VibeLink.apk](https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink.apk)** 파일을 받아 직접 설치하거나, **[EAS 빌드 상세페이지](https://expo.dev/accounts/kodekorea/projects/vibelink/builds/e3bb03e1-4bf4-418a-bfe5-dbc01640788f)**에서 제공하는 QR 코드를 스마트폰으로 스캔하여 바로 설치합니다.
 
 ---
 

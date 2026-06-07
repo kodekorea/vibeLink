@@ -892,7 +892,7 @@
         <div>
           <p class="eyebrow">Mobile Terminal Bridge</p>
           <h1 id="hero-title" data-i18n="heroTitle">Connect your development PC to a mobile terminal in your hand.</h1>
-          <p data-i18n="heroBody">VibeLink is a desktop controller and Android companion for mobile vibe coding. Start Claude, Codex, OpenCode, GrokBuild, or AGY on your PC, pair by QR or relay host, then use your phone for terminal input, chat history, git file changes, files, previews, and settings.</p>
+          <p data-i18n="heroBody">VibeLink is a desktop controller and Android companion for mobile vibe coding. Start Claude, Codex, OpenCode, GrokBuild, or AGY on your PC, open multiple workspaces at once, then use your phone for terminal input, chat history, git file changes, previews, settings, and completion notifications.</p>
           <div class="hero-actions">
             <a class="button" href="https://github.com/kodekorea/VibeLink" data-i18n="githubCta">View on GitHub</a>
             <a class="button secondary" href="#workflow" data-i18n="workflowCta">See the workflow</a>
@@ -934,6 +934,16 @@
             <h3 data-i18n="feature4Title">Local-first security</h3>
             <p data-i18n="feature4Body">Designed around QR pairing and local network connectivity to reduce unnecessary external tunnel dependencies.</p>
           </article>
+          <article class="feature">
+            <div class="icon">05</div>
+            <h3 data-i18n="feature5Title">Multiple workspaces</h3>
+            <p data-i18n="feature5Body">Open several workspaces and agent sessions side by side, then switch between them from mobile tabs.</p>
+          </article>
+          <article class="feature">
+            <div class="icon">06</div>
+            <h3 data-i18n="feature6Title">Completion notifications</h3>
+            <p data-i18n="feature6Body">Set completion alarms so your phone lets you know when an agent finishes a long-running task or needs attention.</p>
+          </article>
         </div>
       </section>
 
@@ -966,7 +976,7 @@
 
       <section id="tour" class="section" aria-labelledby="tour-title">
         <h2 id="tour-title" data-i18n="tourTitle">A real mobile control surface for your coding workspace</h2>
-        <p class="section-lead" data-i18n="tourLead">The screenshots show the actual workflow: pair a PC, launch Claude, Codex, or OpenCode, mirror the screen, browse files, review changes, and keep the agent conversation moving from your phone.</p>
+        <p class="section-lead" data-i18n="tourLead">The screenshots show the actual workflow: pair a PC, launch Claude, Codex, OpenCode, GrokBuild, or AGY, mirror the screen, browse files, review changes, and keep the agent conversation moving from your phone.</p>
         <div class="tour-grid">
           <article class="tour-card">
             <img src="../images/mobile-settings-hosts.jpg" alt="Connected PCs and mobile settings">
@@ -979,7 +989,7 @@
             <img src="../images/mobile-terminal-opencode.jpg" alt="OpenCode terminal on mobile">
             <div class="tour-card-body">
               <h3 data-i18n="tour2Title">Run AI terminals</h3>
-              <p data-i18n="tour2Body">Open Claude, Codex, or OpenCode sessions with a dedicated mobile keypad for Enter, arrows, Tab, and command input.</p>
+              <p data-i18n="tour2Body">Open Claude, Codex, OpenCode, GrokBuild, or AGY sessions with a dedicated mobile keypad for Enter, arrows, Tab, and command input.</p>
             </div>
           </article>
           <article class="tour-card">
@@ -1091,7 +1101,7 @@
         navWorkflow: "Workflow",
         navWhy: "Why VibeLink",
         heroTitle: "Run AI coding agents on your PC. Control them from your phone.",
-        heroBody: "VibeLink is a desktop controller and Android companion for mobile vibe coding. Start Claude, Codex, OpenCode, GrokBuild, or AGY on your PC, pair by QR or relay host, then use your phone for terminal input, chat history, git file changes, files, previews, and settings.",
+        heroBody: "VibeLink is a desktop controller and Android companion for mobile vibe coding. Start Claude, Codex, OpenCode, GrokBuild, or AGY on your PC, open multiple workspaces at once, then use your phone for terminal input, chat history, git file changes, previews, settings, and completion notifications.",
         githubCta: "View on GitHub",
         workflowCta: "See the workflow",
         repoLabel: "Repository",
@@ -1113,12 +1123,16 @@
         feature3Body: "Track active development ports and jump into previews of running local web apps from your phone.",
         feature4Title: "Local-first security",
         feature4Body: "Designed around QR pairing and local network connectivity to reduce unnecessary external tunnel dependencies.",
+        feature5Title: "Multiple workspaces",
+        feature5Body: "Open several workspaces and agent sessions side by side, then switch between them from mobile tabs.",
+        feature6Title: "Completion notifications",
+        feature6Body: "Set completion alarms so your phone lets you know when an agent finishes a long-running task or needs attention.",
         tourTitle: "A real mobile control surface for your coding workspace",
-        tourLead: "The screenshots show the actual workflow: pair a PC, launch Claude, Codex, or OpenCode, mirror the screen, browse files, review changes, and keep the agent conversation moving from your phone.",
+        tourLead: "The screenshots show the actual workflow: pair a PC, launch Claude, Codex, OpenCode, GrokBuild, or AGY, mirror the screen, browse files, review changes, and keep the agent conversation moving from your phone.",
         tour1Title: "Connect and configure PCs",
         tour1Body: "Save relay hosts, scan QR codes, switch language and theme, choose the default agent, and tune completion alarms.",
         tour2Title: "Run AI terminals",
-        tour2Body: "Open Claude, Codex, or OpenCode sessions with a dedicated mobile keypad for Enter, arrows, Tab, and command input.",
+        tour2Body: "Open Claude, Codex, OpenCode, GrokBuild, or AGY sessions with a dedicated mobile keypad for Enter, arrows, Tab, and command input.",
         tour3Title: "Preview screens and ports",
         tour3Body: "Switch between Web and Screen preview, refresh manually or automatically, and select the monitor you want to inspect.",
         tour4Title: "Browse files from the phone",
@@ -1153,7 +1167,7 @@
         navWorkflow: "작동 방식",
         navWhy: "차별점",
         heroTitle: "PC에서 AI 코딩 에이전트를 실행하고, 폰에서 제어하세요.",
-        heroBody: "VibeLink는 모바일 바이브 코딩을 위한 데스크톱 컨트롤러와 Android 동반 앱입니다. PC에서 Claude, Codex, OpenCode, GrokBuild, AGY를 실행하고 QR 또는 relay host로 페어링한 뒤, 폰에서 터미널 입력, 채팅 기록, 깃 파일 변경, 파일, 프리뷰, 설정을 다룹니다.",
+        heroBody: "VibeLink는 모바일 바이브 코딩을 위한 데스크톱 컨트롤러와 Android 동반 앱입니다. PC에서 Claude, Codex, OpenCode, GrokBuild, AGY를 실행하고 여러 워크스페이스를 동시에 열어 작업하며, 폰에서 터미널 입력, 채팅 기록, 깃 파일 변경, 프리뷰, 설정, 완료 알림을 다룹니다.",
         githubCta: "GitHub에서 보기",
         workflowCta: "서비스 흐름 보기",
         repoLabel: "저장소",
@@ -1175,12 +1189,16 @@
         feature3Body: "개발 서버가 열린 포트를 추적하고 모바일에서 실행 중인 로컬 웹 앱 프리뷰로 바로 이동할 수 있습니다.",
         feature4Title: "로컬 우선 보안",
         feature4Body: "QR 페어링과 로컬 네트워크 연결을 중심으로 설계해 불필요한 외부 터널 의존을 줄입니다.",
+        feature5Title: "여러 워크스페이스 동시 작업",
+        feature5Body: "여러 워크스페이스와 에이전트 세션을 나란히 열고 모바일 탭에서 빠르게 전환하며 작업할 수 있습니다.",
+        feature6Title: "완료 알림",
+        feature6Body: "에이전트가 긴 작업을 끝냈거나 확인이 필요할 때 폰으로 알 수 있도록 완료 알림 시간을 설정할 수 있습니다.",
         tourTitle: "코딩 워크스페이스를 위한 실제 모바일 컨트롤 표면",
-        tourLead: "스크린샷은 실제 흐름을 보여줍니다. PC를 연결하고, Claude/Codex/OpenCode를 실행하고, 화면을 미러링하고, 파일과 변경사항을 확인하며, 에이전트 대화를 폰에서 이어갑니다.",
+        tourLead: "스크린샷은 실제 흐름을 보여줍니다. PC를 연결하고, Claude/Codex/OpenCode/GrokBuild/AGY를 실행하고, 화면을 미러링하고, 파일과 변경사항을 확인하며, 에이전트 대화를 폰에서 이어갑니다.",
         tour1Title: "PC 연결과 설정",
         tour1Body: "relay host 저장, QR 스캔, 언어와 테마 전환, 기본 에이전트 선택, 완료 알림 시간을 설정할 수 있습니다.",
         tour2Title: "AI 터미널 실행",
-        tour2Body: "Claude, Codex, OpenCode 세션을 열고 Enter, 방향키, Tab, 명령 입력을 위한 모바일 전용 키패드로 조작합니다.",
+        tour2Body: "Claude, Codex, OpenCode, GrokBuild, AGY 세션을 열고 Enter, 방향키, Tab, 명령 입력을 위한 모바일 전용 키패드로 조작합니다.",
         tour3Title: "화면과 포트 프리뷰",
         tour3Body: "Web과 Screen 프리뷰를 전환하고, 수동/자동 새로고침과 모니터 선택으로 필요한 화면을 확인합니다.",
         tour4Title: "폰에서 파일 탐색",
@@ -1237,12 +1255,16 @@
         feature3Body: "アクティブな開発ポートを追跡し、スマートフォンからローカルWebアプリのプレビューへ移動できます。",
         feature4Title: "ローカルファーストの安全性",
         feature4Body: "QRペアリングとローカルネットワーク接続を中心に設計し、不要な外部トンネル依存を減らします。",
+        feature5Title: "複数ワークスペース",
+        feature5Body: "複数のワークスペースとエージェントセッションを同時に開き、モバイルタブで切り替えながら作業できます。",
+        feature6Title: "完了通知",
+        feature6Body: "エージェントが長いタスクを終えた時や確認が必要な時に、スマートフォンへ通知できます。",
         tourTitle: "コーディングワークスペースのための実際のモバイル操作面",
-        tourLead: "スクリーンショットは実際の流れを示しています。PCを接続し、Claude、Codex、OpenCodeを起動し、画面をミラーし、ファイルや変更を確認し、エージェントとの会話をスマートフォンで続けます。",
+        tourLead: "スクリーンショットは実際の流れを示しています。PCを接続し、Claude、Codex、OpenCode、GrokBuild、AGYを起動し、画面をミラーし、ファイルや変更を確認し、エージェントとの会話をスマートフォンで続けます。",
         tour1Title: "PCの接続と設定",
         tour1Body: "relay hostの保存、QRスキャン、言語とテーマの切替、既定エージェントの選択、完了アラームの調整ができます。",
         tour2Title: "AIターミナルを実行",
-        tour2Body: "Claude、Codex、OpenCodeのセッションを開き、Enter、矢印、Tab、コマンド入力用のモバイルキーパッドで操作します。",
+        tour2Body: "Claude、Codex、OpenCode、GrokBuild、AGYのセッションを開き、Enter、矢印、Tab、コマンド入力用のモバイルキーパッドで操作します。",
         tour3Title: "画面とポートをプレビュー",
         tour3Body: "WebとScreenのプレビューを切り替え、手動または自動更新、モニター選択で確認できます。",
         tour4Title: "スマートフォンでファイル閲覧",
@@ -1299,12 +1321,16 @@
         feature3Body: "跟踪活动开发端口，并从手机进入正在运行的本地 Web 应用预览。",
         feature4Title: "本地优先安全",
         feature4Body: "围绕 QR 配对和本地网络连接设计，减少不必要的外部隧道依赖。",
+        feature5Title: "多个工作区",
+        feature5Body: "同时打开多个工作区和代理会话，并通过移动标签快速切换。",
+        feature6Title: "完成通知",
+        feature6Body: "设置完成提醒，当代理完成长任务或需要你处理时，手机会提醒你。",
         tourTitle: "面向编码工作区的真实移动控制界面",
-        tourLead: "截图展示了真实流程：连接 PC，启动 Claude、Codex 或 OpenCode，镜像屏幕，浏览文件，查看变更，并在手机上继续与代理对话。",
+        tourLead: "截图展示了真实流程：连接 PC，启动 Claude、Codex、OpenCode、GrokBuild 或 AGY，镜像屏幕，浏览文件，查看变更，并在手机上继续与代理对话。",
         tour1Title: "连接并配置 PC",
         tour1Body: "保存 relay host，扫描 QR，切换语言和主题，选择默认代理，并调整完成提醒。",
         tour2Title: "运行 AI 终端",
-        tour2Body: "打开 Claude、Codex 或 OpenCode 会话，并使用移动键盘操作 Enter、方向键、Tab 和命令输入。",
+        tour2Body: "打开 Claude、Codex、OpenCode、GrokBuild 或 AGY 会话，并使用移动键盘操作 Enter、方向键、Tab 和命令输入。",
         tour3Title: "预览屏幕和端口",
         tour3Body: "在 Web 和 Screen 预览间切换，手动或自动刷新，并选择要查看的显示器。",
         tour4Title: "在手机上浏览文件",
@@ -1361,12 +1387,16 @@
         feature3Body: "Sigue puertos de desarrollo activos y abre vistas previas de apps web locales desde tu teléfono.",
         feature4Title: "Seguridad local primero",
         feature4Body: "Diseñado alrededor de emparejamiento QR y conexión de red local para reducir dependencias de túneles externos.",
+        feature5Title: "Múltiples workspaces",
+        feature5Body: "Abre varios workspaces y sesiones de agentes a la vez, y cambia entre ellos desde pestañas móviles.",
+        feature6Title: "Notificaciones de finalización",
+        feature6Body: "Configura alarmas para que el teléfono avise cuando un agente termina una tarea larga o necesita atención.",
         tourTitle: "Una superficie móvil real para tu workspace de desarrollo",
-        tourLead: "Las capturas muestran el flujo real: conectar un PC, lanzar Claude, Codex u OpenCode, reflejar la pantalla, explorar archivos, revisar cambios y continuar la conversación del agente desde el teléfono.",
+        tourLead: "Las capturas muestran el flujo real: conectar un PC, lanzar Claude, Codex, OpenCode, GrokBuild o AGY, reflejar la pantalla, explorar archivos, revisar cambios y continuar la conversación del agente desde el teléfono.",
         tour1Title: "Conecta y configura PCs",
         tour1Body: "Guarda relay hosts, escanea QR, cambia idioma y tema, elige el agente por defecto y ajusta alarmas de finalización.",
         tour2Title: "Ejecuta terminales de IA",
-        tour2Body: "Abre sesiones de Claude, Codex u OpenCode con un teclado móvil para Enter, flechas, Tab y entrada de comandos.",
+        tour2Body: "Abre sesiones de Claude, Codex, OpenCode, GrokBuild o AGY con un teclado móvil para Enter, flechas, Tab y entrada de comandos.",
         tour3Title: "Previsualiza pantallas y puertos",
         tour3Body: "Cambia entre Web y Screen, refresca manual o automáticamente y selecciona el monitor que quieres inspeccionar.",
         tour4Title: "Explora archivos desde el teléfono",
