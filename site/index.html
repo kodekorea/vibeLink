@@ -1,0 +1,1433 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VibeLink - Mobile Terminal Bridge</title>
+  <meta name="description" content="VibeLink connects your phone to your local development PC so you can monitor terminals, ports, and AI coding agents on the go.">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f5ef;
+      --ink: #181817;
+      --muted: #706f6a;
+      --panel: #ffffff;
+      --panel-2: #eeebe3;
+      --line: #ddd8cc;
+      --coral: #c66f52;
+      --coral-dark: #9f513b;
+      --green: #128062;
+      --blue: #246b8f;
+      --navy: #202936;
+      --terminal: #151918;
+      --shadow: 0 26px 70px rgba(31, 29, 24, .16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    .shell {
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px clamp(20px, 5vw, 72px);
+      background: rgba(247, 245, 239, .88);
+      border-bottom: 1px solid rgba(221, 216, 204, .7);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    .brand-mark {
+      width: 92px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: hidden;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .55);
+      box-shadow: 0 7px 18px rgba(198, 111, 82, .18);
+    }
+
+    .brand-mark img {
+      width: auto;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .nav-links a:hover {
+      color: var(--ink);
+    }
+
+    .language-select {
+      min-height: 38px;
+      padding: 0 34px 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 18px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: var(--coral);
+      color: #fff;
+      font-weight: 760;
+      box-shadow: 0 10px 28px rgba(198, 111, 82, .24);
+      white-space: nowrap;
+    }
+
+    .button:hover {
+      background: var(--coral-dark);
+    }
+
+    .button.secondary {
+      background: #fff;
+      color: var(--ink);
+      border-color: var(--line);
+      box-shadow: none;
+    }
+
+    .hero {
+      min-height: calc(100vh - 66px);
+      display: grid;
+      grid-template-columns: minmax(0, .95fr) minmax(360px, 1.05fr);
+      align-items: center;
+      gap: clamp(28px, 5vw, 70px);
+      padding: clamp(44px, 6vw, 80px) clamp(20px, 5vw, 72px) 34px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 18px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 780;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(18, 128, 98, .12);
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 720px;
+      font-size: clamp(44px, 7vw, 88px);
+      line-height: .95;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 650px;
+      margin: 24px 0 0;
+      color: #4f4d49;
+      font-size: clamp(17px, 2vw, 21px);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 30px 0 0;
+    }
+
+    .repo-line {
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .repo-line code {
+      color: var(--navy);
+      font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+      font-size: 13px;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 610px;
+    }
+
+    .product-stage {
+      position: relative;
+      min-height: 650px;
+    }
+
+    .desktop-shot {
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: min(560px, 88%);
+      border-radius: 14px;
+      border: 1px solid rgba(24, 24, 23, .12);
+      background: #fff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .desktop-shot img {
+      width: 100%;
+      height: auto;
+    }
+
+    .mobile-shot {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: min(300px, 48%);
+      border-radius: 30px;
+      padding: 9px;
+      background: #1c2024;
+      box-shadow: 0 28px 80px rgba(20, 22, 25, .28);
+    }
+
+    .mobile-shot img {
+      width: 100%;
+      border-radius: 23px;
+      border: 1px solid rgba(255, 255, 255, .18);
+    }
+
+    .desktop {
+      position: absolute;
+      inset: 28px 0 auto 26px;
+      width: min(620px, 96%);
+      border-radius: 14px;
+      background: var(--panel);
+      border: 1px solid rgba(24, 24, 23, .1);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .window-bar {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 14px;
+      background: #f0ede6;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #d55f52;
+      flex: 0 0 auto;
+    }
+
+    .dot:nth-child(2) {
+      background: #d6a346;
+    }
+
+    .dot:nth-child(3) {
+      background: #3c9a72;
+    }
+
+    .window-title {
+      min-width: 0;
+      margin-left: 8px;
+      color: #6a6760;
+      font-size: 13px;
+      font-weight: 720;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .terminal {
+      min-height: 342px;
+      padding: 22px;
+      background: var(--terminal);
+      color: #dce5dc;
+      font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .terminal .muted {
+      color: #8aa29a;
+    }
+
+    .terminal .accent {
+      color: #ff9c78;
+    }
+
+    .terminal .ok {
+      color: #71d3a4;
+    }
+
+    .desktop-footer {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--line);
+    }
+
+    .metric {
+      padding: 17px;
+      background: #fff;
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 20px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .phone {
+      position: absolute;
+      right: 8px;
+      bottom: 6px;
+      width: 278px;
+      border-radius: 32px;
+      padding: 11px;
+      background: #1c2024;
+      box-shadow: 0 28px 80px rgba(20, 22, 25, .28);
+    }
+
+    .phone-screen {
+      min-height: 530px;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #faf9f5;
+      border: 1px solid rgba(255, 255, 255, .18);
+    }
+
+    .phone-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #f0ede6;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: rgba(18, 128, 98, .1);
+      color: var(--green);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 5px;
+      padding: 10px 10px 0;
+      background: #f0ede6;
+    }
+
+    .tab {
+      padding: 8px 10px;
+      border-radius: 8px 8px 0 0;
+      background: #fff;
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .mobile-terminal {
+      min-height: 300px;
+      padding: 16px;
+      background: #151918;
+      color: #e6eee9;
+      font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.7;
+    }
+
+    .keys {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      padding: 12px;
+      background: #eeebe3;
+    }
+
+    .key {
+      min-height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid rgba(198, 111, 82, .28);
+      color: #37342f;
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .key.primary {
+      background: rgba(198, 111, 82, .12);
+      color: var(--coral-dark);
+    }
+
+    .section {
+      padding: 82px clamp(20px, 5vw, 72px);
+      border-top: 1px solid rgba(221, 216, 204, .85);
+    }
+
+    .section h2 {
+      max-width: 820px;
+      margin: 0;
+      font-size: clamp(32px, 4.5vw, 56px);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .section-lead {
+      max-width: 780px;
+      margin: 18px 0 0;
+      color: #55524d;
+      font-size: 18px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 34px;
+    }
+
+    .feature {
+      min-height: 245px;
+      padding: 22px;
+      border-radius: 8px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+
+    .icon {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 18px;
+      border-radius: 8px;
+      background: #edf4f1;
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .feature:nth-child(2) .icon {
+      background: #f4ede9;
+      color: var(--coral-dark);
+    }
+
+    .feature:nth-child(3) .icon {
+      background: #eaf1f5;
+      color: var(--blue);
+    }
+
+    .feature:nth-child(4) .icon {
+      background: #eeedf3;
+      color: #5c5b8f;
+    }
+
+    .feature h3 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .feature p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 36px;
+      align-items: stretch;
+    }
+
+    .flow-panel {
+      border-radius: 8px;
+      background: var(--navy);
+      color: #fff;
+      overflow: hidden;
+      min-height: 420px;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .flow-panel.light {
+      background: #fff;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+
+    .flow-content {
+      padding: 28px;
+    }
+
+    .flow-content h3 {
+      margin: 0 0 12px;
+      font-size: 24px;
+    }
+
+    .flow-content p {
+      margin: 0;
+      color: rgba(255,255,255,.72);
+    }
+
+    .flow-panel.light p {
+      color: var(--muted);
+    }
+
+    .qr-box {
+      width: 180px;
+      height: 180px;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin: 32px auto;
+      padding: 15px;
+      background: #fff;
+      border-radius: 8px;
+    }
+
+    .qr-box i {
+      border-radius: 3px;
+      background: #1b1f24;
+    }
+
+    .scan-line {
+      height: 3px;
+      margin: -124px auto 124px;
+      width: 168px;
+      background: var(--coral);
+      box-shadow: 0 0 20px rgba(198, 111, 82, .85);
+    }
+
+    .port-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 26px;
+    }
+
+    .port {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 15px 16px;
+      border-radius: 8px;
+      background: #f4f7f5;
+      border: 1px solid #dbe6df;
+      font-weight: 760;
+    }
+
+    .port span {
+      color: var(--green);
+      font-size: 13px;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 34px;
+    }
+
+    .tour-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 34px;
+    }
+
+    .support-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 34px;
+    }
+
+    .support-panel {
+      padding: 24px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    .support-panel h3 {
+      margin: 0 0 16px;
+      font-size: 22px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 999px;
+      background: #f4ede9;
+      color: var(--coral-dark);
+      border: 1px solid rgba(198, 111, 82, .25);
+      font-size: 14px;
+      font-weight: 780;
+    }
+
+    .chip.available {
+      background: #edf4f1;
+      color: var(--green);
+      border-color: rgba(18, 128, 98, .22);
+    }
+
+    .chip.planned {
+      background: #eaf1f5;
+      color: var(--blue);
+      border-color: rgba(36, 107, 143, .22);
+    }
+
+    .chip span {
+      margin-left: 4px;
+    }
+
+    .tour-card {
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+
+    .tour-card img {
+      width: 100%;
+      aspect-ratio: 9 / 14;
+      object-fit: cover;
+      object-position: top center;
+      background: #eeeae2;
+    }
+
+    .tour-card-body {
+      padding: 18px;
+    }
+
+    .tour-card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .tour-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .compare-item {
+      padding: 22px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    .compare-item strong {
+      display: block;
+      margin-bottom: 9px;
+      font-size: 18px;
+    }
+
+    .compare-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .cta {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 24px;
+      padding: 42px clamp(20px, 5vw, 72px);
+      background: #161b22;
+      color: #fff;
+    }
+
+    .cta h2 {
+      margin: 0 0 8px;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.08;
+    }
+
+    .cta p {
+      margin: 0;
+      color: rgba(255,255,255,.7);
+      font-size: 16px;
+    }
+
+    footer {
+      padding: 22px clamp(20px, 5vw, 72px);
+      background: #11151a;
+      color: rgba(255,255,255,.56);
+      font-size: 13px;
+    }
+
+    @media (max-width: 1100px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .stage {
+        min-height: 640px;
+      }
+
+      .feature-grid,
+      .tour-grid,
+      .support-grid,
+      .compare {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 780px) {
+      .nav {
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .nav-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .nav-links a:not(.button) {
+        display: none;
+      }
+
+      .brand-mark {
+        width: 84px;
+        height: 31px;
+      }
+
+      .brand-mark img {
+        width: auto;
+      }
+
+      .hero {
+        padding-top: 34px;
+      }
+
+      h1 {
+        font-size: clamp(40px, 13vw, 62px);
+      }
+
+      .stage {
+        min-height: 560px;
+      }
+
+      .product-stage {
+        min-height: 620px;
+      }
+
+      .desktop-shot {
+        width: 92%;
+      }
+
+      .mobile-shot {
+        width: min(250px, 58vw);
+      }
+
+      .desktop {
+        left: 0;
+        width: 100%;
+      }
+
+      .terminal {
+        min-height: 285px;
+        font-size: 12px;
+        padding: 17px;
+      }
+
+      .desktop-footer {
+        grid-template-columns: 1fr;
+      }
+
+      .phone {
+        right: 50%;
+        transform: translateX(50%);
+        bottom: 0;
+        width: min(270px, 86vw);
+      }
+
+      .phone-screen {
+        min-height: 470px;
+      }
+
+      .feature-grid,
+      .tour-grid,
+      .support-grid,
+      .workflow,
+      .compare,
+      .cta {
+        grid-template-columns: 1fr;
+      }
+
+      .section {
+        padding-top: 58px;
+        padding-bottom: 58px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="nav" aria-label="Primary navigation">
+      <a class="brand" href="#top" aria-label="VibeLink home">
+        <span class="brand-mark"><img src="../logo.png" alt="VibeLink logo"></span>
+        <span>VibeLink</span>
+      </a>
+      <div class="nav-actions">
+        <div class="nav-links">
+          <a href="#features" data-i18n="navFeatures">Features</a>
+          <a href="#support" data-i18n="navSupport">Support</a>
+          <a href="#tour" data-i18n="navTour">Product tour</a>
+          <a href="#workflow" data-i18n="navWorkflow">Workflow</a>
+          <a href="#why" data-i18n="navWhy">Why VibeLink</a>
+          <a class="button secondary" href="https://github.com/kodekorea/VibeLink">GitHub</a>
+        </div>
+        <select id="languageSelect" class="language-select" aria-label="Language">
+          <option value="en">EN</option>
+          <option value="ko">KR</option>
+          <option value="ja">JP</option>
+          <option value="zh">中文</option>
+          <option value="es">ES</option>
+        </select>
+      </div>
+    </nav>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div>
+          <p class="eyebrow">Mobile Terminal Bridge</p>
+          <h1 id="hero-title" data-i18n="heroTitle">Connect your development PC to a mobile terminal in your hand.</h1>
+          <p data-i18n="heroBody">VibeLink is a desktop controller and Android companion for mobile vibe coding. Start Claude, Codex, OpenCode, GrokBuild, or AGY on your PC, pair by QR or relay host, then use your phone for terminal input, chat history, git file changes, files, previews, and settings.</p>
+          <div class="hero-actions">
+            <a class="button" href="https://github.com/kodekorea/VibeLink" data-i18n="githubCta">View on GitHub</a>
+            <a class="button secondary" href="#workflow" data-i18n="workflowCta">See the workflow</a>
+          </div>
+          <div class="repo-line"><span data-i18n="repoLabel">Repository</span> <code>kodekorea/VibeLink</code></div>
+        </div>
+
+        <div class="product-stage" aria-label="VibeLink desktop and mobile screenshots">
+          <figure class="desktop-shot">
+            <img src="../images/desktop-controller-settings.png" alt="VibeLink desktop controller with agent, shell, run mode, QR, and relay settings">
+          </figure>
+          <figure class="mobile-shot">
+            <img src="../images/mobile-terminal-claude.jpg" alt="VibeLink mobile terminal running Claude Code with command keypad">
+          </figure>
+        </div>
+      </section>
+
+      <section id="features" class="section" aria-labelledby="features-title">
+        <h2 id="features-title" data-i18n="featuresTitle">Features that keep AI coding sessions within reach on mobile</h2>
+        <p class="section-lead" data-i18n="featuresLead">Instead of shrinking an entire remote desktop, VibeLink focuses on the controls developers actually need: terminal input, session switching, port checks, and quick approval responses.</p>
+        <div class="feature-grid">
+          <article class="feature">
+            <div class="icon">01</div>
+            <h3 data-i18n="feature1Title">Mobile terminal control</h3>
+            <p data-i18n="feature1Body">Read terminal output, send commands, and use a developer keypad for arrows, Tab, Enter, and Ctrl+C.</p>
+          </article>
+          <article class="feature">
+            <div class="icon">02</div>
+            <h3 data-i18n="feature2Title">AI agent approval flow</h3>
+            <p data-i18n="feature2Body">Respond quickly when Claude, Codex, OpenCode, GrokBuild, or AGY pause for approval, input, or a follow-up command.</p>
+          </article>
+          <article class="feature">
+            <div class="icon">03</div>
+            <h3 data-i18n="feature3Title">localhost port preview</h3>
+            <p data-i18n="feature3Body">Track active development ports and jump into previews of running local web apps from your phone.</p>
+          </article>
+          <article class="feature">
+            <div class="icon">04</div>
+            <h3 data-i18n="feature4Title">Local-first security</h3>
+            <p data-i18n="feature4Body">Designed around QR pairing and local network connectivity to reduce unnecessary external tunnel dependencies.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="support" class="section" aria-labelledby="support-title">
+        <h2 id="support-title" data-i18n="supportTitle">Agent and platform support</h2>
+        <p class="section-lead" data-i18n="supportLead">VibeLink is focused first on Android-to-Windows mobile coding, with more desktop and mobile platforms planned.</p>
+        <div class="support-grid">
+          <article class="support-panel">
+            <h3 data-i18n="agentsTitle">Supported agents</h3>
+            <div class="chips" aria-label="Supported agents">
+              <span class="chip">Claude</span>
+              <span class="chip">Codex</span>
+              <span class="chip">OpenCode</span>
+              <span class="chip">GrokBuild</span>
+              <span class="chip">AGY</span>
+            </div>
+          </article>
+          <article class="support-panel">
+            <h3 data-i18n="platformsTitle">Platforms</h3>
+            <div class="chips" aria-label="Supported and planned platforms">
+              <span class="chip available">Android</span>
+              <span class="chip available">Windows</span>
+              <span class="chip planned">Linux <span data-i18n="plannedSuffix">&nbsp;planned</span></span>
+              <span class="chip planned">macOS <span data-i18n="plannedSuffix">&nbsp;planned</span></span>
+              <span class="chip planned">iOS <span data-i18n="plannedSuffix">&nbsp;planned</span></span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="tour" class="section" aria-labelledby="tour-title">
+        <h2 id="tour-title" data-i18n="tourTitle">A real mobile control surface for your coding workspace</h2>
+        <p class="section-lead" data-i18n="tourLead">The screenshots show the actual workflow: pair a PC, launch Claude, Codex, or OpenCode, mirror the screen, browse files, review changes, and keep the agent conversation moving from your phone.</p>
+        <div class="tour-grid">
+          <article class="tour-card">
+            <img src="../images/mobile-settings-hosts.jpg" alt="Connected PCs and mobile settings">
+            <div class="tour-card-body">
+              <h3 data-i18n="tour1Title">Connect and configure PCs</h3>
+              <p data-i18n="tour1Body">Save relay hosts, scan QR codes, switch language and theme, choose the default agent, and tune completion alarms.</p>
+            </div>
+          </article>
+          <article class="tour-card">
+            <img src="../images/mobile-terminal-opencode.jpg" alt="OpenCode terminal on mobile">
+            <div class="tour-card-body">
+              <h3 data-i18n="tour2Title">Run AI terminals</h3>
+              <p data-i18n="tour2Body">Open Claude, Codex, or OpenCode sessions with a dedicated mobile keypad for Enter, arrows, Tab, and command input.</p>
+            </div>
+          </article>
+          <article class="tour-card">
+            <img src="../images/mobile-preview-screen.jpg" alt="Screen preview from mobile">
+            <div class="tour-card-body">
+              <h3 data-i18n="tour3Title">Preview screens and ports</h3>
+              <p data-i18n="tour3Body">Switch between Web and Screen preview, refresh manually or automatically, and select the monitor you want to inspect.</p>
+            </div>
+          </article>
+          <article class="tour-card">
+            <img src="../images/mobile-file-browser.jpg" alt="Mobile file browser">
+            <div class="tour-card-body">
+              <h3 data-i18n="tour4Title">Browse files from the phone</h3>
+              <p data-i18n="tour4Body">Navigate workspace folders, open Markdown and source files, and download files without leaving the mobile app.</p>
+            </div>
+          </article>
+          <article class="tour-card">
+            <img src="../images/mobile-chat-history.jpg" alt="Agent chat conversation on mobile">
+            <div class="tour-card-body">
+              <h3 data-i18n="tour5Title">Chat history at a glance</h3>
+              <p data-i18n="tour5Body">Read agent messages, command output, and session status in one timeline, then continue from where you left off.</p>
+            </div>
+          </article>
+          <article class="tour-card">
+            <img src="../images/mobile-git-file-changes.jpg" alt="Changed files list on mobile">
+            <div class="tour-card-body">
+              <h3 data-i18n="tour6Title">Git file changes</h3>
+              <p data-i18n="tour6Body">Open the Changes tab to inspect the files touched by your agent and understand what changed before you continue.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="workflow" class="section" aria-labelledby="workflow-title">
+        <h2 id="workflow-title" data-i18n="workflowTitle">Install on desktop, control from mobile</h2>
+        <p class="section-lead" data-i18n="workflowLead">The desktop tray app starts the Hub server. The mobile app pairs by QR code, then receives terminal sessions and port status.</p>
+        <div class="workflow">
+          <article class="flow-panel">
+            <div class="flow-content">
+              <h3 data-i18n="flow1Title">1. Pair with QR</h3>
+              <p data-i18n="flow1Body">Open the local QR page in VibeLink on your PC, then scan it from the Android app to connect.</p>
+              <div class="qr-box" aria-hidden="true">
+                <i></i><i></i><i></i><span></span><i></i><i></i><i></i>
+                <i></i><span></span><i></i><span></span><i></i><span></span><i></i>
+                <i></i><i></i><i></i><span></span><i></i><i></i><i></i>
+                <span></span><i></i><span></span><i></i><span></span><i></i><span></span>
+                <i></i><i></i><span></span><span></span><i></i><span></span><i></i>
+                <i></i><span></span><i></i><i></i><span></span><i></i><span></span>
+                <i></i><i></i><i></i><span></span><i></i><span></span><i></i>
+              </div>
+              <div class="scan-line" aria-hidden="true"></div>
+            </div>
+          </article>
+          <article class="flow-panel light">
+            <div class="flow-content">
+              <h3 data-i18n="flow2Title">2. Control sessions and ports</h3>
+              <p data-i18n="flow2Body">Switch terminal tabs, check open ports, and send input at the exact point where your agent is waiting.</p>
+              <div class="port-list">
+                <div class="port">localhost:3000 <span>active</span></div>
+                <div class="port">localhost:5173 <span>preview</span></div>
+                <div class="port">terminal: codex <span>waiting</span></div>
+                <div class="port">workspace: VibeLink <span>synced</span></div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="why" class="section" aria-labelledby="why-title">
+        <h2 id="why-title" data-i18n="whyTitle">Not remote desktop. Not plain SSH. A developer-focused bridge.</h2>
+        <p class="section-lead" data-i18n="whyLead">VibeLink is not trying to squeeze your whole screen into a phone. It gives you a mobile control surface for keeping the AI coding loop moving.</p>
+        <div class="compare">
+          <article class="compare-item">
+            <strong data-i18n="why1Title">Lighter than remote desktop</strong>
+            <p data-i18n="why1Body">Focuses on terminal and development flow instead of mirroring the entire desktop at unreadable phone scale.</p>
+          </article>
+          <article class="compare-item">
+            <strong data-i18n="why2Title">More app-like than SSH</strong>
+            <p data-i18n="why2Body">Includes QR pairing, session bars, port previews, and a dedicated mobile keypad.</p>
+          </article>
+          <article class="compare-item">
+            <strong data-i18n="why3Title">More local-first than cloud tools</strong>
+            <p data-i18n="why3Body">Connects your development PC and phone on the local network to limit unnecessary workspace exposure.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="cta" aria-labelledby="cta-title">
+        <div>
+          <h2 id="cta-title" data-i18n="ctaTitle">Start with the VibeLink draft</h2>
+          <p data-i18n="ctaBody">A landing page draft for explaining the service, highlighting features, and routing developers to GitHub.</p>
+        </div>
+        <a class="button" href="https://github.com/kodekorea/VibeLink">kodekorea/VibeLink</a>
+      </section>
+    </main>
+
+    <footer data-i18n="footer">
+      VibeLink Mobile Terminal Bridge. Built for local-first mobile vibe coding workflows.
+    </footer>
+  </div>
+
+  <script>
+    const copy = {
+      en: {
+        metaDescription: "VibeLink connects your phone to your local development PC so you can monitor terminals, ports, and AI coding agents on the go.",
+        navFeatures: "Features",
+        navSupport: "Support",
+        navTour: "Product tour",
+        navWorkflow: "Workflow",
+        navWhy: "Why VibeLink",
+        heroTitle: "Run AI coding agents on your PC. Control them from your phone.",
+        heroBody: "VibeLink is a desktop controller and Android companion for mobile vibe coding. Start Claude, Codex, OpenCode, GrokBuild, or AGY on your PC, pair by QR or relay host, then use your phone for terminal input, chat history, git file changes, files, previews, and settings.",
+        githubCta: "View on GitHub",
+        workflowCta: "See the workflow",
+        repoLabel: "Repository",
+        metricPairing: "Fast pairing",
+        metricPorts: "Active port detection",
+        metricLocal: "Local network first",
+        featuresTitle: "Built around the real mobile AI coding loop",
+        featuresLead: "The app is organized around the screens developers actually use while away from the desk: Terminal, Chat, Changes, Files, Preview, and Settings.",
+        feature1Title: "Mobile terminal control",
+        feature1Body: "Read terminal output, send commands, and use a developer keypad for arrows, Tab, Enter, and Ctrl+C.",
+        feature2Title: "AI agent approval flow",
+        feature2Body: "Respond quickly when Claude, Codex, OpenCode, GrokBuild, or AGY pause for approval, input, or a follow-up command.",
+        supportTitle: "Agent and platform support",
+        supportLead: "VibeLink is focused first on Android-to-Windows mobile coding, with more desktop and mobile platforms planned.",
+        agentsTitle: "Supported agents",
+        platformsTitle: "Platforms",
+        plannedSuffix: "planned",
+        feature3Title: "localhost port preview",
+        feature3Body: "Track active development ports and jump into previews of running local web apps from your phone.",
+        feature4Title: "Local-first security",
+        feature4Body: "Designed around QR pairing and local network connectivity to reduce unnecessary external tunnel dependencies.",
+        tourTitle: "A real mobile control surface for your coding workspace",
+        tourLead: "The screenshots show the actual workflow: pair a PC, launch Claude, Codex, or OpenCode, mirror the screen, browse files, review changes, and keep the agent conversation moving from your phone.",
+        tour1Title: "Connect and configure PCs",
+        tour1Body: "Save relay hosts, scan QR codes, switch language and theme, choose the default agent, and tune completion alarms.",
+        tour2Title: "Run AI terminals",
+        tour2Body: "Open Claude, Codex, or OpenCode sessions with a dedicated mobile keypad for Enter, arrows, Tab, and command input.",
+        tour3Title: "Preview screens and ports",
+        tour3Body: "Switch between Web and Screen preview, refresh manually or automatically, and select the monitor you want to inspect.",
+        tour4Title: "Browse files from the phone",
+        tour4Body: "Navigate workspace folders, open Markdown and source files, and download files without leaving the mobile app.",
+        tour5Title: "Chat history at a glance",
+        tour5Body: "Read agent messages, command output, and session status in one timeline, then continue from where you left off.",
+        tour6Title: "Git file changes",
+        tour6Body: "Open the Changes tab to inspect the files touched by your agent and understand what changed before you continue.",
+        workflowTitle: "Desktop hub, mobile command center",
+        workflowLead: "The desktop tray app starts the Hub server. The mobile app pairs by QR code, then receives terminal sessions and port status.",
+        flow1Title: "1. Pair with QR",
+        flow1Body: "Open the local QR page in VibeLink on your PC, then scan it from the Android app to connect.",
+        flow2Title: "2. Control sessions and ports",
+        flow2Body: "Switch terminal tabs, check open ports, and send input at the exact point where your agent is waiting.",
+        whyTitle: "Not remote desktop. Not plain SSH. A developer-focused bridge.",
+        whyLead: "VibeLink is not trying to squeeze your whole screen into a phone. It gives you a mobile control surface for keeping the AI coding loop moving.",
+        why1Title: "Lighter than remote desktop",
+        why1Body: "Focuses on terminal and development flow instead of mirroring the entire desktop at unreadable phone scale.",
+        why2Title: "More app-like than SSH",
+        why2Body: "Includes QR pairing, session bars, port previews, and a dedicated mobile keypad.",
+        why3Title: "More local-first than cloud tools",
+        why3Body: "Connects your development PC and phone on the local network to limit unnecessary workspace exposure.",
+        ctaTitle: "Start with the VibeLink draft",
+        ctaBody: "A landing page draft for explaining the service, highlighting features, and routing developers to GitHub.",
+        footer: "VibeLink Mobile Terminal Bridge. Built for local-first mobile vibe coding workflows."
+      },
+      ko: {
+        metaDescription: "VibeLink는 모바일에서 로컬 개발 PC의 터미널, 포트, AI 코딩 에이전트를 안전하게 제어하는 개발자용 브리지입니다.",
+        navFeatures: "기능",
+        navSupport: "지원",
+        navTour: "제품 투어",
+        navWorkflow: "작동 방식",
+        navWhy: "차별점",
+        heroTitle: "PC에서 AI 코딩 에이전트를 실행하고, 폰에서 제어하세요.",
+        heroBody: "VibeLink는 모바일 바이브 코딩을 위한 데스크톱 컨트롤러와 Android 동반 앱입니다. PC에서 Claude, Codex, OpenCode, GrokBuild, AGY를 실행하고 QR 또는 relay host로 페어링한 뒤, 폰에서 터미널 입력, 채팅 기록, 깃 파일 변경, 파일, 프리뷰, 설정을 다룹니다.",
+        githubCta: "GitHub에서 보기",
+        workflowCta: "서비스 흐름 보기",
+        repoLabel: "저장소",
+        metricPairing: "빠른 페어링",
+        metricPorts: "활성 포트 감지",
+        metricLocal: "로컬 네트워크 우선",
+        featuresTitle: "실제 모바일 AI 코딩 루프에 맞춘 구성",
+        featuresLead: "앱은 책상 밖에서 개발자가 실제로 쓰는 화면인 Terminal, Chat, Changes, Files, Preview, Settings 흐름을 중심으로 구성되어 있습니다.",
+        feature1Title: "모바일 터미널 컨트롤",
+        feature1Body: "터미널 출력 확인, 명령 전송, 방향키와 Tab, Enter, Ctrl+C 같은 개발자 키를 모바일에 맞춘 패드로 제공합니다.",
+        feature2Title: "AI 에이전트 승인 대응",
+        feature2Body: "Claude, Codex, OpenCode, GrokBuild, AGY가 승인, 입력, 후속 명령을 기다릴 때 빠르게 확인하고 응답할 수 있습니다.",
+        supportTitle: "에이전트 및 플랫폼 지원",
+        supportLead: "VibeLink는 우선 Android와 Windows 조합의 모바일 코딩에 집중하며, 더 많은 데스크톱/모바일 플랫폼은 지원 예정입니다.",
+        agentsTitle: "지원 에이전트",
+        platformsTitle: "플랫폼",
+        plannedSuffix: "예정",
+        feature3Title: "localhost 포트 프리뷰",
+        feature3Body: "개발 서버가 열린 포트를 추적하고 모바일에서 실행 중인 로컬 웹 앱 프리뷰로 바로 이동할 수 있습니다.",
+        feature4Title: "로컬 우선 보안",
+        feature4Body: "QR 페어링과 로컬 네트워크 연결을 중심으로 설계해 불필요한 외부 터널 의존을 줄입니다.",
+        tourTitle: "코딩 워크스페이스를 위한 실제 모바일 컨트롤 표면",
+        tourLead: "스크린샷은 실제 흐름을 보여줍니다. PC를 연결하고, Claude/Codex/OpenCode를 실행하고, 화면을 미러링하고, 파일과 변경사항을 확인하며, 에이전트 대화를 폰에서 이어갑니다.",
+        tour1Title: "PC 연결과 설정",
+        tour1Body: "relay host 저장, QR 스캔, 언어와 테마 전환, 기본 에이전트 선택, 완료 알림 시간을 설정할 수 있습니다.",
+        tour2Title: "AI 터미널 실행",
+        tour2Body: "Claude, Codex, OpenCode 세션을 열고 Enter, 방향키, Tab, 명령 입력을 위한 모바일 전용 키패드로 조작합니다.",
+        tour3Title: "화면과 포트 프리뷰",
+        tour3Body: "Web과 Screen 프리뷰를 전환하고, 수동/자동 새로고침과 모니터 선택으로 필요한 화면을 확인합니다.",
+        tour4Title: "폰에서 파일 탐색",
+        tour4Body: "워크스페이스 폴더를 탐색하고 Markdown과 소스 파일을 열며, 앱을 벗어나지 않고 파일을 다운로드합니다.",
+        tour5Title: "챗 기록 한눈에 보기",
+        tour5Body: "에이전트 메시지, 명령 출력, 세션 상태를 하나의 타임라인에서 보고 중단된 지점부터 바로 이어갑니다.",
+        tour6Title: "깃 파일 변경 확인",
+        tour6Body: "Changes 탭에서 에이전트가 건드린 파일을 확인하고 계속 진행하기 전에 무엇이 바뀌었는지 파악합니다.",
+        workflowTitle: "데스크톱 허브, 모바일 커맨드 센터",
+        workflowLead: "데스크톱 트레이 앱이 Hub 서버를 실행하고, 모바일 앱은 QR로 페어링한 뒤 세션과 포트 상태를 받아옵니다.",
+        flow1Title: "1. QR로 페어링",
+        flow1Body: "PC의 VibeLink에서 로컬 QR 페이지를 열고, Android 앱에서 스캔해 연결합니다.",
+        flow2Title: "2. 세션과 포트를 제어",
+        flow2Body: "터미널 탭을 전환하고, 열린 포트를 확인하고, 에이전트가 멈춘 지점에 바로 입력을 보냅니다.",
+        whyTitle: "원격 데스크톱도, 단순 SSH도 아닌 개발자 전용 브리지",
+        whyLead: "VibeLink는 화면 전체를 작게 눌러 담는 도구가 아니라, 모바일에서 AI 코딩 루프를 계속 이어가기 위한 컨트롤 표면입니다.",
+        why1Title: "원격 데스크톱보다 가볍게",
+        why1Body: "전체 데스크톱 대신 터미널과 개발 흐름 중심으로 구성해 모바일 입력 피로를 줄입니다.",
+        why2Title: "SSH보다 앱답게",
+        why2Body: "QR 페어링, 세션 바, 포트 프리뷰, 전용 키패드처럼 모바일 앱에서 기대하는 UX를 제공합니다.",
+        why3Title: "클라우드보다 로컬 우선",
+        why3Body: "개발 PC와 모바일을 로컬 네트워크에서 연결하는 구조로 개인 워크스페이스 노출을 최소화합니다.",
+        ctaTitle: "VibeLink 초안 페이지",
+        ctaBody: "서비스 소개, 기능 설명, GitHub 유입을 위한 랜딩 페이지 초안입니다.",
+        footer: "VibeLink Mobile Terminal Bridge. 로컬 우선 모바일 바이브 코딩 워크플로를 위해 제작되었습니다."
+      },
+      ja: {
+        metaDescription: "VibeLinkは、モバイルからローカル開発PCのターミナル、ポート、AIコーディングエージェントを監視・操作する開発者向けブリッジです。",
+        navFeatures: "機能",
+        navSupport: "対応",
+        navTour: "製品ツアー",
+        navWorkflow: "ワークフロー",
+        navWhy: "選ばれる理由",
+        heroTitle: "開発PCを手元のモバイルターミナルにつなぎます。",
+        heroBody: "VibeLinkはモバイルvibe coding向けのデスクトップコントローラーとAndroidコンパニオンです。PCでClaude、Codex、OpenCode、GrokBuild、AGYを起動し、QRまたはrelay hostでペアリングして、スマートフォンからターミナル入力、チャット履歴、Gitファイル変更、ファイル、プレビュー、設定を扱えます。",
+        githubCta: "GitHubで見る",
+        workflowCta: "ワークフローを見る",
+        repoLabel: "リポジトリ",
+        metricPairing: "高速ペアリング",
+        metricPorts: "アクティブポート検出",
+        metricLocal: "ローカルネットワーク優先",
+        featuresTitle: "AIコーディングセッションをモバイルで追い続ける機能",
+        featuresLead: "リモートデスクトップ全体を縮小表示するのではなく、ターミナル入力、セッション切替、ポート確認、承認応答に集中します。",
+        feature1Title: "モバイルターミナル操作",
+        feature1Body: "ターミナル出力の確認、コマンド送信、矢印キー、Tab、Enter、Ctrl+Cを専用キーパッドで扱えます。",
+        feature2Title: "AIエージェント承認フロー",
+        feature2Body: "Claude、Codex、OpenCode、GrokBuild、AGYが承認、入力、追加コマンドを待つ場面にすばやく対応できます。",
+        supportTitle: "エージェントとプラットフォーム対応",
+        supportLead: "VibeLinkはまずAndroidとWindowsのモバイルコーディングに集中し、Linux、macOS、iOSは今後対応予定です。",
+        agentsTitle: "対応エージェント",
+        platformsTitle: "プラットフォーム",
+        plannedSuffix: "予定",
+        feature3Title: "localhostポートプレビュー",
+        feature3Body: "アクティブな開発ポートを追跡し、スマートフォンからローカルWebアプリのプレビューへ移動できます。",
+        feature4Title: "ローカルファーストの安全性",
+        feature4Body: "QRペアリングとローカルネットワーク接続を中心に設計し、不要な外部トンネル依存を減らします。",
+        tourTitle: "コーディングワークスペースのための実際のモバイル操作面",
+        tourLead: "スクリーンショットは実際の流れを示しています。PCを接続し、Claude、Codex、OpenCodeを起動し、画面をミラーし、ファイルや変更を確認し、エージェントとの会話をスマートフォンで続けます。",
+        tour1Title: "PCの接続と設定",
+        tour1Body: "relay hostの保存、QRスキャン、言語とテーマの切替、既定エージェントの選択、完了アラームの調整ができます。",
+        tour2Title: "AIターミナルを実行",
+        tour2Body: "Claude、Codex、OpenCodeのセッションを開き、Enter、矢印、Tab、コマンド入力用のモバイルキーパッドで操作します。",
+        tour3Title: "画面とポートをプレビュー",
+        tour3Body: "WebとScreenのプレビューを切り替え、手動または自動更新、モニター選択で確認できます。",
+        tour4Title: "スマートフォンでファイル閲覧",
+        tour4Body: "ワークスペースフォルダーを移動し、Markdownやソースファイルを開き、アプリ内でダウンロードできます。",
+        tour5Title: "チャット履歴を一覧",
+        tour5Body: "エージェントのメッセージ、コマンド出力、セッション状態を1つのタイムラインで確認し、続きから再開できます。",
+        tour6Title: "Gitファイル変更",
+        tour6Body: "Changesタブでエージェントが触れたファイルを確認し、続行前に何が変わったか把握できます。",
+        workflowTitle: "デスクトップHub、モバイル司令塔",
+        workflowLead: "デスクトップトレイアプリがHubサーバーを起動し、モバイルアプリはQRでペアリングしてセッションとポート状態を受け取ります。",
+        flow1Title: "1. QRでペアリング",
+        flow1Body: "PCのVibeLinkでローカルQRページを開き、Androidアプリでスキャンして接続します。",
+        flow2Title: "2. セッションとポートを操作",
+        flow2Body: "ターミナルタブを切り替え、開いているポートを確認し、エージェントが待っている場所へ入力を送れます。",
+        whyTitle: "リモートデスクトップでも単純なSSHでもない、開発者向けブリッジ",
+        whyLead: "VibeLinkは画面全体をスマートフォンに押し込むのではなく、AIコーディングループを止めないためのモバイル操作面を提供します。",
+        why1Title: "リモートデスクトップより軽量",
+        why1Body: "読みにくい全画面ミラーリングではなく、ターミナルと開発フローに集中します。",
+        why2Title: "SSHよりアプリらしい",
+        why2Body: "QRペアリング、セッションバー、ポートプレビュー、専用モバイルキーパッドを備えています。",
+        why3Title: "クラウドツールよりローカル優先",
+        why3Body: "開発PCとスマートフォンをローカルネットワークで接続し、不要なワークスペース露出を抑えます。",
+        ctaTitle: "VibeLinkドラフトから始める",
+        ctaBody: "サービス説明、機能紹介、GitHub誘導のためのランディングページ案です。",
+        footer: "VibeLink Mobile Terminal Bridge. ローカルファーストのモバイル vibe coding ワークフロー向けに構築されています。"
+      },
+      zh: {
+        metaDescription: "VibeLink 可让你在手机上安全监控和控制本地开发电脑的终端、端口与 AI 编程代理。",
+        navFeatures: "功能",
+        navSupport: "支持",
+        navTour: "产品导览",
+        navWorkflow: "流程",
+        navWhy: "优势",
+        heroTitle: "把你的开发电脑连接到手中的移动终端。",
+        heroBody: "VibeLink 是面向移动 vibe coding 的桌面控制器和 Android 伴侣应用。你可以在 PC 上启动 Claude、Codex、OpenCode、GrokBuild 或 AGY，通过 QR 或 relay host 配对，然后在手机上处理终端输入、聊天记录、Git 文件变更、文件、预览和设置。",
+        githubCta: "在 GitHub 查看",
+        workflowCta: "查看流程",
+        repoLabel: "仓库",
+        metricPairing: "快速配对",
+        metricPorts: "活动端口检测",
+        metricLocal: "本地网络优先",
+        featuresTitle: "让 AI 编程会话在手机上触手可及",
+        featuresLead: "VibeLink 不会把整个远程桌面缩小到手机里，而是专注于开发者真正需要的控制：终端输入、会话切换、端口检查和快速批准。",
+        feature1Title: "移动终端控制",
+        feature1Body: "查看终端输出、发送命令，并使用方向键、Tab、Enter、Ctrl+C 等开发者按键。",
+        feature2Title: "AI 代理批准流程",
+        feature2Body: "当 Claude、Codex、OpenCode、GrokBuild 或 AGY 等待批准、输入或后续命令时，可以快速响应。",
+        supportTitle: "代理和平台支持",
+        supportLead: "VibeLink 首先专注于 Android 到 Windows 的移动编码流程，Linux、macOS 和 iOS 计划支持。",
+        agentsTitle: "支持的代理",
+        platformsTitle: "平台",
+        plannedSuffix: "计划中",
+        feature3Title: "localhost 端口预览",
+        feature3Body: "跟踪活动开发端口，并从手机进入正在运行的本地 Web 应用预览。",
+        feature4Title: "本地优先安全",
+        feature4Body: "围绕 QR 配对和本地网络连接设计，减少不必要的外部隧道依赖。",
+        tourTitle: "面向编码工作区的真实移动控制界面",
+        tourLead: "截图展示了真实流程：连接 PC，启动 Claude、Codex 或 OpenCode，镜像屏幕，浏览文件，查看变更，并在手机上继续与代理对话。",
+        tour1Title: "连接并配置 PC",
+        tour1Body: "保存 relay host，扫描 QR，切换语言和主题，选择默认代理，并调整完成提醒。",
+        tour2Title: "运行 AI 终端",
+        tour2Body: "打开 Claude、Codex 或 OpenCode 会话，并使用移动键盘操作 Enter、方向键、Tab 和命令输入。",
+        tour3Title: "预览屏幕和端口",
+        tour3Body: "在 Web 和 Screen 预览间切换，手动或自动刷新，并选择要查看的显示器。",
+        tour4Title: "在手机上浏览文件",
+        tour4Body: "浏览工作区文件夹，打开 Markdown 和源代码文件，并在应用内下载文件。",
+        tour5Title: "一眼查看聊天记录",
+        tour5Body: "在一条时间线中查看代理消息、命令输出和会话状态，并从中断处继续。",
+        tour6Title: "Git 文件变更",
+        tour6Body: "打开 Changes 标签，检查代理触碰过的文件，在继续前了解发生了哪些变化。",
+        workflowTitle: "桌面 Hub，移动命令中心",
+        workflowLead: "桌面托盘应用启动 Hub 服务器。移动应用通过 QR 配对后接收终端会话和端口状态。",
+        flow1Title: "1. 使用 QR 配对",
+        flow1Body: "在电脑上的 VibeLink 打开本地 QR 页面，然后用 Android 应用扫描连接。",
+        flow2Title: "2. 控制会话和端口",
+        flow2Body: "切换终端标签、检查开放端口，并在代理等待的位置发送输入。",
+        whyTitle: "不是远程桌面，也不是普通 SSH，而是开发者专用桥接工具。",
+        whyLead: "VibeLink 不是把整个屏幕塞进手机，而是提供一个移动控制界面，让 AI 编程循环持续前进。",
+        why1Title: "比远程桌面更轻",
+        why1Body: "关注终端和开发流程，而不是在手机上镜像整个难以阅读的桌面。",
+        why2Title: "比 SSH 更像应用",
+        why2Body: "提供 QR 配对、会话栏、端口预览和专用移动键盘。",
+        why3Title: "比云工具更本地优先",
+        why3Body: "通过本地网络连接开发电脑和手机，减少不必要的工作区暴露。",
+        ctaTitle: "从 VibeLink 草案开始",
+        ctaBody: "用于介绍服务、突出功能并引导开发者访问 GitHub 的落地页草案。",
+        footer: "VibeLink Mobile Terminal Bridge。为本地优先的移动 vibe coding 工作流而构建。"
+      },
+      es: {
+        metaDescription: "VibeLink conecta tu teléfono con tu PC de desarrollo local para monitorear terminales, puertos y agentes de programación con IA.",
+        navFeatures: "Funciones",
+        navSupport: "Soporte",
+        navTour: "Tour",
+        navWorkflow: "Flujo",
+        navWhy: "Por qué",
+        heroTitle: "Conecta tu PC de desarrollo a una terminal móvil en tu mano.",
+        heroBody: "VibeLink es un controlador de escritorio y app Android para mobile vibe coding. Ejecuta Claude, Codex, OpenCode, GrokBuild o AGY en tu PC, empareja por QR o relay host y usa el teléfono para terminal, historial de chat, cambios Git, archivos, previews y configuración.",
+        githubCta: "Ver en GitHub",
+        workflowCta: "Ver el flujo",
+        repoLabel: "Repositorio",
+        metricPairing: "Emparejamiento rápido",
+        metricPorts: "Detección de puertos activos",
+        metricLocal: "Red local primero",
+        featuresTitle: "Funciones para mantener sesiones de IA al alcance del móvil",
+        featuresLead: "En lugar de reducir todo un escritorio remoto, VibeLink se enfoca en lo que usan los desarrolladores: entrada de terminal, cambio de sesiones, revisión de puertos y respuestas de aprobación.",
+        feature1Title: "Control de terminal móvil",
+        feature1Body: "Lee la salida de la terminal, envía comandos y usa un teclado para flechas, Tab, Enter y Ctrl+C.",
+        feature2Title: "Flujo de aprobación de agentes IA",
+        feature2Body: "Responde rápido cuando Claude, Codex, OpenCode, GrokBuild o AGY esperan aprobación, entrada o un comando de seguimiento.",
+        supportTitle: "Soporte de agentes y plataformas",
+        supportLead: "VibeLink se enfoca primero en codificación móvil de Android a Windows, con Linux, macOS e iOS planificados.",
+        agentsTitle: "Agentes soportados",
+        platformsTitle: "Plataformas",
+        plannedSuffix: "planificado",
+        feature3Title: "Vista previa de puertos localhost",
+        feature3Body: "Sigue puertos de desarrollo activos y abre vistas previas de apps web locales desde tu teléfono.",
+        feature4Title: "Seguridad local primero",
+        feature4Body: "Diseñado alrededor de emparejamiento QR y conexión de red local para reducir dependencias de túneles externos.",
+        tourTitle: "Una superficie móvil real para tu workspace de desarrollo",
+        tourLead: "Las capturas muestran el flujo real: conectar un PC, lanzar Claude, Codex u OpenCode, reflejar la pantalla, explorar archivos, revisar cambios y continuar la conversación del agente desde el teléfono.",
+        tour1Title: "Conecta y configura PCs",
+        tour1Body: "Guarda relay hosts, escanea QR, cambia idioma y tema, elige el agente por defecto y ajusta alarmas de finalización.",
+        tour2Title: "Ejecuta terminales de IA",
+        tour2Body: "Abre sesiones de Claude, Codex u OpenCode con un teclado móvil para Enter, flechas, Tab y entrada de comandos.",
+        tour3Title: "Previsualiza pantallas y puertos",
+        tour3Body: "Cambia entre Web y Screen, refresca manual o automáticamente y selecciona el monitor que quieres inspeccionar.",
+        tour4Title: "Explora archivos desde el teléfono",
+        tour4Body: "Navega carpetas del workspace, abre Markdown y archivos fuente, y descarga archivos sin salir de la app.",
+        tour5Title: "Historial de chat de un vistazo",
+        tour5Body: "Lee mensajes del agente, salida de comandos y estado de sesión en una sola línea de tiempo, y continúa desde donde quedaste.",
+        tour6Title: "Cambios de archivos Git",
+        tour6Body: "Abre Changes para inspeccionar los archivos tocados por el agente y entender qué cambió antes de continuar.",
+        workflowTitle: "Hub de escritorio, centro de mando móvil",
+        workflowLead: "La app de bandeja inicia el servidor Hub. La app móvil se empareja por QR y recibe sesiones de terminal y estado de puertos.",
+        flow1Title: "1. Empareja con QR",
+        flow1Body: "Abre la página QR local en VibeLink desde tu PC y escanéala desde la app Android.",
+        flow2Title: "2. Controla sesiones y puertos",
+        flow2Body: "Cambia pestañas de terminal, revisa puertos abiertos y envía entrada justo donde el agente está esperando.",
+        whyTitle: "No es escritorio remoto. No es SSH simple. Es un puente para desarrolladores.",
+        whyLead: "VibeLink no intenta meter toda tu pantalla en un teléfono. Te da una superficie móvil para mantener activo el ciclo de programación con IA.",
+        why1Title: "Más ligero que escritorio remoto",
+        why1Body: "Se centra en la terminal y el flujo de desarrollo, no en reflejar todo el escritorio a una escala ilegible.",
+        why2Title: "Más app que SSH",
+        why2Body: "Incluye emparejamiento QR, barras de sesión, vistas de puertos y teclado móvil dedicado.",
+        why3Title: "Más local que las herramientas cloud",
+        why3Body: "Conecta tu PC de desarrollo y tu teléfono en la red local para limitar exposición innecesaria del workspace.",
+        ctaTitle: "Empieza con el borrador de VibeLink",
+        ctaBody: "Un borrador de landing page para explicar el servicio, destacar funciones y llevar desarrolladores a GitHub.",
+        footer: "VibeLink Mobile Terminal Bridge. Creado para flujos mobile vibe coding con prioridad local."
+      }
+    };
+
+    const languageNames = {
+      en: "English",
+      ko: "한국어",
+      ja: "日本語",
+      zh: "中文",
+      es: "Español"
+    };
+
+    function getInitialLanguage() {
+      const params = new URLSearchParams(window.location.search);
+      const requested = params.get("lang") || localStorage.getItem("vibelink_lang");
+      return copy[requested] ? requested : "en";
+    }
+
+    function applyLanguage(lang) {
+      const dict = copy[lang] || copy.en;
+      document.documentElement.lang = lang;
+      document.title = lang === "en" ? "VibeLink - Mobile Terminal Bridge" : "VibeLink - " + languageNames[lang];
+      const meta = document.querySelector('meta[name="description"]');
+      if (meta) meta.setAttribute("content", dict.metaDescription);
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (dict[key]) el.textContent = dict[key];
+      });
+      localStorage.setItem("vibelink_lang", lang);
+      document.getElementById("languageSelect").value = lang;
+    }
+
+    const initialLanguage = getInitialLanguage();
+    document.getElementById("languageSelect").addEventListener("change", (event) => {
+      applyLanguage(event.target.value);
+    });
+    applyLanguage(initialLanguage);
+  </script>
+</body>
+</html>

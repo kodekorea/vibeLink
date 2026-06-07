@@ -33,6 +33,8 @@ image copy*
 !desktop/tray.png
 !hub/pwa/*.png
 !images/
+!images/*.jpg
+!images/*.png
 
 
 # Node / extension / hub

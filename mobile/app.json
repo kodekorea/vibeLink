@@ -3,6 +3,9 @@
     "name": "VibeLink",
     "slug": "vibelink",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -45,6 +48,7 @@
       "eas": {
         "projectId": "646250ab-d001-41e5-aad9-6eeaab05533d"
       }
-    }
+    },
+    "owner": "kodekorea"
   }
 }
