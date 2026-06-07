@@ -80,9 +80,23 @@ graph TD
     D <-->|Spawn / IPC Control| E
 ```
 
+### 📋 Prerequisites
+
+#### For General Users (Using Pre-built Binaries)
+No complex installations are required. Just ensure the following:
+* **Network:** Both your desktop PC and mobile device must be connected to the **same local network (Wi-Fi)** to establish a direct connection.
+* **Windows (.exe):** Default shells (`PowerShell` and `CMD`) work out of the box. If you want to use `WSL` or `Git Bash` via VibeLink, they must be pre-installed on your PC.
+* **Android (.apk):** Since this app is installed outside the Google Play Store, you must allow **"Install unknown apps"** in your Android security settings.
+
+#### For Developers (Building from Source)
+* **Common:** Node.js (LTS version recommended)
+* **Mobile (Local Build):** JDK 17, Android Studio, Android SDK configured in your environment variables (`ANDROID_HOME`), and USB Debugging enabled on your Android device.
+* **Mobile (EAS Cloud Build):** Expo Account & EAS CLI installed.
+
 ---
 
 ### 🚀 Getting Started
+
 
 #### 💿 Direct Download (Recommended)
 You can directly download precompiled binaries from our **[GitHub Releases](https://github.com/kodekorea/vibeLink/releases/latest)**:
@@ -180,9 +194,23 @@ eas build --platform android --profile preview
   - **QR 코드 페어링**: 복잡한 네트워크 주소 입력 없이 데스크톱 화면의 QR을 스캔하여 로컬 매핑 완료.
 - **철저한 로컬 중심 보안**: ngrok 등 외부 서드파티 터널링을 차단하고, 로컬 네트워크상에서 보안 인증 토큰 및 비밀번호를 적용하여 1인 단일 사용자 환경을 철저히 보호합니다.
 
+### 📋 요구사항 (Prerequisites)
+
+#### 일반 사용자 (빌드 파일 실행 시)
+복잡한 사전 설치 없이 바로 사용할 수 있습니다. 단, 아래의 네트워크 및 보안 설정만 확인해 주세요.
+* **네트워크:** 데스크톱 PC와 모바일 기기가 **동일한 로컬 네트워크 (같은 Wi-Fi 공유기)**에 연결되어 있어야 직접 연동이 가능합니다.
+* **Windows (.exe):** 기본 탑재된 `PowerShell` 및 `CMD`는 즉시 구동됩니다. `WSL`이나 `Git Bash`를 사용하려면 해당 프로그램이 PC에 설치되어 있어야 합니다.
+* **Android (.apk):** 구글 플레이 스토어 외부에서 직접 APK를 설치하는 방식이므로, 설치 시 **"출처를 알 수 없는 앱 설치 허용"** 권한을 승인해 주셔야 합니다.
+
+#### 개발자 (소스코드 직접 빌드 시)
+* **공통:** Node.js (LTS 버전 권장)
+* **모바일 (로컬 빌드):** JDK 17, Android Studio, Android SDK 환경 변수 설정(`ANDROID_HOME` 및 `platform-tools`), 모바일 기기의 USB 디버깅 활성화.
+* **모바일 (EAS 클라우드 빌드):** Expo 계정 생성 및 EAS CLI 설치.
+
 ---
 
 ### 🚀 빠른 시작 가이드
+
 
 #### 💿 빌드 파일 다운로드 (권장)
 배포용 설치 파일은 **[GitHub Releases 최신 릴리즈](https://github.com/kodekorea/vibeLink/releases/latest)** 페이지에서 즉시 다운로드할 수 있습니다.
