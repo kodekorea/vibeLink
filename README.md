@@ -5,10 +5,10 @@
 > 🌐 **Landing Page:** [vibelink.kodekorea.kr](https://vibelink.kodekorea.kr)
 
 <p align="left">
-  <a href="https://github.com/kodekorea/vibeLink/releases/latest">
+  <a href="https://github.com/kodekorea/vibeLink/releases">
     <img src="https://img.shields.io/badge/Download-Windows--EXE-coral?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows EXE" />
   </a>
-  <a href="https://github.com/kodekorea/vibeLink/releases/latest">
+  <a href="https://github.com/kodekorea/vibeLink/releases">
     <img src="https://img.shields.io/badge/Download-Android--APK-warmgray?style=for-the-badge&logo=android&logoColor=white" alt="Download Android APK" />
   </a>
   <a href="https://expo.dev/accounts/kodekorea/projects/vibelink">
@@ -101,9 +101,9 @@ No complex installations are required. Just ensure the following:
 ### 🚀 Getting Started
 
 #### 💿 Direct Download (Recommended)
-You can directly download precompiled binaries from our **[GitHub Releases](https://github.com/kodekorea/vibeLink/releases/latest)**:
+You can directly download precompiled binaries from our **[GitHub Releases](https://github.com/kodekorea/vibeLink/releases)**:
 * **Windows (.exe)**: Download and run `VibeLink Setup 0.1.0.exe` to run the setup wizard and automatically place a shortcut on your desktop.
-* **Android (.apk)**: Download the `.apk` bundle directly from [GitHub Releases](https://github.com/kodekorea/vibeLink/releases/latest) or scan the QR code from the **[EAS Build Page](https://expo.dev/accounts/kodekorea/projects/vibelink)** to install via Expo Cloud.
+* **Android (.apk)**: Download the `.apk` bundle directly from [GitHub Releases](https://github.com/kodekorea/vibeLink/releases) or scan the QR code from the **[EAS Build Page](https://expo.dev/accounts/kodekorea/projects/vibelink)** to install via Expo Cloud.
 
 ---
 
@@ -155,10 +155,10 @@ eas build --platform android --profile preview
 🌐 **공식 소개 페이지:** [vibelink.kodekorea.kr](https://vibelink.kodekorea.kr)
 
 <p align="left">
-  <a href="https://github.com/kodekorea/vibeLink/releases/latest">
+  <a href="https://github.com/kodekorea/vibeLink/releases">
     <img src="https://img.shields.io/badge/다운로드-Windows--EXE-coral?style=for-the-badge&logo=windows&logoColor=white" alt="Windows EXE 다운로드" />
   </a>
-  <a href="https://github.com/kodekorea/vibeLink/releases/latest">
+  <a href="https://github.com/kodekorea/vibeLink/releases">
     <img src="https://img.shields.io/badge/다운로드-Android--APK-warmgray?style=for-the-badge&logo=android&logoColor=white" alt="Android APK 다운로드" />
   </a>
   <a href="https://expo.dev/accounts/kodekorea/projects/vibelink">
@@ -216,9 +216,9 @@ eas build --platform android --profile preview
 ### 🚀 빠른 시작 가이드
 
 #### 💿 빌드 파일 다운로드 (권장)
-배포용 설치 파일은 **[GitHub Releases 최신 릴리즈](https://github.com/kodekorea/vibeLink/releases/latest)** 페이지에서 즉시 다운로드할 수 있습니다.
+배포용 설치 파일은 **[GitHub Releases 최신 릴리즈](https://github.com/kodekorea/vibeLink/releases)** 페이지에서 즉시 다운로드할 수 있습니다.
 * **Windows (.exe)**: `VibeLink Setup 0.1.0.exe` 파일을 실행하여 마법사 단계에 따라 PC에 설치합니다. (바탕화면에 단축 아이콘이 자동 생성되며 시스템 트레이에 상주합니다.)
-* **Android (.apk)**: `.apk` 파일을 [GitHub Releases](https://github.com/kodekorea/vibeLink/releases/latest)에서 직접 다운로드하거나, **[EAS 빌드 대시보드](https://expo.dev/accounts/kodekorea/projects/vibelink)**에서 제공하는 QR 코드를 스마트폰으로 스캔하여 바로 설치합니다.
+* **Android (.apk)**: `.apk` 파일을 [GitHub Releases](https://github.com/kodekorea/vibeLink/releases)에서 직접 다운로드하거나, **[EAS 빌드 대시보드](https://expo.dev/accounts/kodekorea/projects/vibelink)**에서 제공하는 QR 코드를 스마트폰으로 스캔하여 바로 설치합니다.
 
 ---
 
