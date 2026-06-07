@@ -4,7 +4,17 @@
 >
 > 🌐 **Landing Page:** [vibelink.kodekorea.kr](https://vibelink.kodekorea.kr)
 
+<p align="left">
+  <a href="https://github.com/kodekorea/vibeLink/releases/latest">
+    <img src="https://img.shields.io/badge/Download-Windows--EXE-coral?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows EXE" />
+  </a>
+  <a href="https://github.com/kodekorea/vibeLink/releases/latest">
+    <img src="https://img.shields.io/badge/Download-Android--APK-warmgray?style=for-the-badge&logo=android&logoColor=white" alt="Download Android APK" />
+  </a>
+</p>
+
 ---
+
 
 
 <p align="center">
@@ -74,20 +84,26 @@ graph TD
 
 ### 🚀 Getting Started
 
-#### 1. Desktop App Installation (Windows)
+#### 💿 Direct Download (Recommended)
+You can directly download precompiled binaries from our **[GitHub Releases](https://github.com/kodekorea/vibeLink/releases/latest)**:
+* **Windows (.exe)**: Download and run `VibeLink Setup 0.1.0.exe` to run the setup wizard and automatically place a shortcut on your desktop.
+* **Android (.apk)**: Download and install the `.apk` bundle directly on your mobile device.
 
-To install VibeLink on your desktop:
-1. Locate the precompiled installer at `desktop/dist/VibeLink Setup 0.1.0.exe`.
-2. Run the installer. You will see a step-by-step setup wizard allowing you to choose your installation directory.
-3. The wizard will automatically create a desktop shortcut named **VibeLink** with the custom warm coral icon.
-4. Launch the application. It will run silently in your Windows System Tray and automatically spawn the Hub server.
+---
 
-*To build from source:*
-```bash
-cd desktop
-npm install
-npm run dist
-```
+#### 🛠️ Build & Run from Source (Advanced)
+
+##### 1. Desktop App Installation (Windows)
+To build the desktop installer from source:
+1. Install dependencies and pack the package:
+   ```bash
+   cd desktop
+   npm install
+   npm run dist
+   ```
+2. Locate the generated installer at `desktop/dist/VibeLink Setup 0.1.0.exe`.
+3. Launch the installer, run the setup wizard, and launch VibeLink from your Windows system tray.
+
 
 #### 2. Mobile App Setup (Android)
 
@@ -123,7 +139,17 @@ eas build --platform android --profile preview
 
 🌐 **공식 소개 페이지:** [vibelink.kodekorea.kr](https://vibelink.kodekorea.kr)
 
+<p align="left">
+  <a href="https://github.com/kodekorea/vibeLink/releases/latest">
+    <img src="https://img.shields.io/badge/다운로드-Windows--EXE-coral?style=for-the-badge&logo=windows&logoColor=white" alt="Windows EXE 다운로드" />
+  </a>
+  <a href="https://github.com/kodekorea/vibeLink/releases/latest">
+    <img src="https://img.shields.io/badge/다운로드-Android--APK-warmgray?style=for-the-badge&logo=android&logoColor=white" alt="Android APK 다운로드" />
+  </a>
+</p>
+
 ### 🎨 시각 자료 및 주요 기능
+
 
 
 | 터미널 (Claude Code TUI) | 터미널 (opencode TUI) | 실시간 화면 미러링 (원격 뷰) |
@@ -158,14 +184,27 @@ eas build --platform android --profile preview
 
 ### 🚀 빠른 시작 가이드
 
-#### 1. 데스크톱 앱 설치 (Windows)
-1. `desktop/dist/VibeLink Setup 0.1.0.exe` 경로의 빌드된 설치 파일을 실행합니다.
-2. 설치 단계 마법사를 완료하면 바탕화면에 **VibeLink** 바로가기 단축 아이콘이 생성됩니다.
-3. 실행하면 작업 표시줄(System Tray)에 자동으로 등록되며 허브 서버가 가동됩니다.
+#### 💿 빌드 파일 다운로드 (권장)
+배포용 설치 파일은 **[GitHub Releases 최신 릴리즈](https://github.com/kodekorea/vibeLink/releases/latest)** 페이지에서 즉시 다운로드할 수 있습니다.
+* **Windows (.exe)**: `VibeLink Setup 0.1.0.exe` 파일을 실행하여 마법사 단계에 따라 PC에 설치합니다. (바탕화면에 단축 아이콘이 자동 생성되며 시스템 트레이에 상주합니다.)
+* **Android (.apk)**: `.apk` 파일을 스마트폰에 내려받아 설치를 승인하고 실행합니다.
 
-#### 2. 모바일 앱 환경 구성
-* **EAS 클라우드 빌드**: Android Studio 설정이 번거로운 경우 EAS CLI를 통해 미리 컴파일된 `.apk`를 내려받을 수 있습니다.
-* **로컬 개발 모드**: JDK 17 및 Android Studio를 설치하고 환경 변수를 구성한 후, `mobile/` 폴더에서 `npm run android`를 구동하여 장치에 직접 배포합니다.
+---
+
+#### 🛠️ 소스코드 빌드 및 개발 구동 (개발자용)
+
+##### 1. 데스크톱 앱 빌드
+```bash
+cd desktop
+npm install
+npm run dist
+```
+빌드가 완료되면 `desktop/dist/VibeLink Setup 0.1.0.exe` 파일이 생성됩니다.
+
+##### 2. 모바일 앱 환경 구성
+* **EAS 클라우드 빌드**: `eas build --platform android --profile preview` 명령어로 Expo 서버를 통한 APK 컴파일을 수행합니다.
+* **로컬 개발 모드**: JDK 17 및 Android Studio가 세팅된 로컬 PC 환경에서 `mobile/` 폴더로 이동해 `npm run android`를 실행합니다.
+
 
 ---
 
