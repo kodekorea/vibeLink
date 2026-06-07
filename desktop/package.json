@@ -11,6 +11,9 @@
   "build": {
     "appId": "com.shain.vibelink",
     "productName": "VibeLink",
+    "directories": {
+      "output": "dist-new"
+    },
     "files": ["main.js", "preload.js", "settings.html", "tray.png"],
     "extraResources": [
       { "from": "../hub", "to": "hub", "filter": ["src/**/*", "pwa/**/*", "package.json", "node_modules/**/*"] }

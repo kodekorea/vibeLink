@@ -11,7 +11,7 @@
   <a href="https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink.apk">
     <img src="https://img.shields.io/badge/Download-Android--APK-warmgray?style=for-the-badge&logo=android&logoColor=white" alt="Download Android APK" />
   </a>
-  <a href="https://expo.dev/accounts/kodekorea/projects/vibelink/builds/e3bb03e1-4bf4-418a-bfe5-dbc01640788f">
+  <a href="https://expo.dev/accounts/kodekorea/projects/vibelink/builds/0251b596-5b26-40b6-90f8-0f298183d40e">
     <img src="https://img.shields.io/badge/Install-Android--EAS-blue?style=for-the-badge&logo=expo&logoColor=white" alt="Install Android via EAS" />
   </a>
 </p>
@@ -107,7 +107,7 @@ No complex installations are required. Just ensure the following:
 #### 💿 Direct Download (Recommended)
 You can directly download precompiled binaries from our **[GitHub Releases v0.1.0](https://github.com/kodekorea/vibeLink/releases/tag/v0.1.0)**:
 * **Windows (.exe)**: Download and run **[VibeLink Setup 0.1.0.exe](https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink_Setup_0.1.0.exe)** to run the setup wizard.
-* **Android (.apk)**: Download the **[VibeLink.apk](https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink.apk)** directly or scan the QR code from the **[EAS Build Page](https://expo.dev/accounts/kodekorea/projects/vibelink/builds/e3bb03e1-4bf4-418a-bfe5-dbc01640788f)**.
+* **Android (.apk)**: Download the **[VibeLink.apk](https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink.apk)** directly or scan the QR code from the **[EAS Build Page](https://expo.dev/accounts/kodekorea/projects/vibelink/builds/0251b596-5b26-40b6-90f8-0f298183d40e)**.
 
 ---
 
@@ -165,7 +165,7 @@ eas build --platform android --profile preview
   <a href="https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink.apk">
     <img src="https://img.shields.io/badge/다운로드-Android--APK-warmgray?style=for-the-badge&logo=android&logoColor=white" alt="Android APK 다운로드" />
   </a>
-  <a href="https://expo.dev/accounts/kodekorea/projects/vibelink/builds/e3bb03e1-4bf4-418a-bfe5-dbc01640788f">
+  <a href="https://expo.dev/accounts/kodekorea/projects/vibelink/builds/0251b596-5b26-40b6-90f8-0f298183d40e">
     <img src="https://img.shields.io/badge/설치-Android--EAS-blue?style=for-the-badge&logo=expo&logoColor=white" alt="EAS를 통해 안드로이드 설치" />
   </a>
 </p>
@@ -226,7 +226,7 @@ eas build --platform android --profile preview
 #### 💿 빌드 파일 다운로드 (권장)
 배포용 설치 파일은 **[GitHub Releases v0.1.0](https://github.com/kodekorea/vibeLink/releases/tag/v0.1.0)** 페이지에서 즉시 다운로드할 수 있습니다.
 * **Windows (.exe)**: **[VibeLink Setup 0.1.0.exe](https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink_Setup_0.1.0.exe)** 파일을 직접 받아 실행하고 설치 단계를 완료합니다.
-* **Android (.apk)**: **[VibeLink.apk](https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink.apk)** 파일을 받아 직접 설치하거나, **[EAS 빌드 상세페이지](https://expo.dev/accounts/kodekorea/projects/vibelink/builds/e3bb03e1-4bf4-418a-bfe5-dbc01640788f)**에서 제공하는 QR 코드를 스마트폰으로 스캔하여 바로 설치합니다.
+* **Android (.apk)**: **[VibeLink.apk](https://github.com/kodekorea/vibeLink/releases/download/v0.1.0/VibeLink.apk)** 파일을 받아 직접 설치하거나, **[EAS 빌드 상세페이지](https://expo.dev/accounts/kodekorea/projects/vibelink/builds/0251b596-5b26-40b6-90f8-0f298183d40e)**에서 제공하는 QR 코드를 스마트폰으로 스캔하여 바로 설치합니다.
 
 ---
 
