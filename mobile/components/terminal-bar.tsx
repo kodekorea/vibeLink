@@ -10,8 +10,8 @@ import {
 import { usePrefs, type Palette } from '@/lib/prefs';
 import { t } from '@/lib/i18n';
 
-// 새 터미널 picker 선택지: 에이전트(셸/Claude/opencode/codex) × 환경(PowerShell/cmd/Git Bash/WSL).
-const AGENTS: [string, string][] = [['shell', 'Shell'], ['claude', 'Claude'], ['opencode', 'opencode'], ['codex', 'codex']];
+// 새 터미널 picker 선택지: 에이전트(셸/Claude/opencode/codex/grok/antigravity) × 환경(PowerShell/cmd/Git Bash/WSL).
+const AGENTS: [string, string][] = [['shell', 'Shell'], ['claude', 'Claude'], ['opencode', 'opencode'], ['codex', 'codex'], ['grok', 'Grok'], ['antigravity', 'Antigravity']];
 const ENVS: [string, string][] = [['powershell', 'PowerShell'], ['cmd', 'cmd'], ['gitbash', 'Git Bash'], ['wsl', 'WSL']];
 
 // 활성 세션의 터미널 줄(2단 바의 아래단). claude(고정) + 셸 터미널들 + ＋.

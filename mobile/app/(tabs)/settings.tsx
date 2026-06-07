@@ -71,11 +71,11 @@ export default function Settings() {
       <View style={styles.cardCol}>
         <Text style={styles.label}>{t('defaultAgent')}</Text>
         <View style={styles.seg}>
-          {(['claude', 'opencode', 'codex'] as const).map(k => {
+          {(['claude', 'opencode', 'codex', 'grok', 'antigravity'] as const).map(k => {
             const on = agent === k;
             return (
               <Pressable key={k} onPress={() => pickAgent(k)} style={[styles.segItem, on && styles.segItemOn]}>
-                <Text style={[styles.segTxt, on && styles.segTxtOn]}>{k === 'claude' ? 'Claude' : k}</Text>
+                <Text style={[styles.segTxt, on && styles.segTxtOn]}>{k === 'claude' ? 'Claude' : k === 'grok' ? 'Grok' : k === 'antigravity' ? 'Antigravity' : k}</Text>
               </Pressable>
             );
           })}

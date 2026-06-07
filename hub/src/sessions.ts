@@ -25,18 +25,23 @@ const NOTIFY_MIN_BUSY_MS = 10000; // 작업이 이 시간 이상 지속됐을 �
 const LAUNCH_FALLBACK_MS = 1500;
 
 // 에이전트명 → 셸에 타이핑할 실행 커맨드. 명령명과 다른 경우만 등록한다.
-//  - opencode: 'opencode [project]'가 기본(default) 서브커맨드라 cwd에서 그냥 'opencode'면 TUI가 뜬다.
-//  - codex:    OpenAI Codex CLI 스텁(미설치·미검증) — 일단 'codex'로 매핑해 선택만 가능하게.
+//  - opencode:    'opencode [project]'가 기본(default) 서브커맨드라 cwd에서 그냥 'opencode'면 TUI가 뜬다.
+//  - codex:       OpenAI Codex CLI 스텁(미설치·미검증) — 일단 'codex'로 매핑해 선택만 가능하게.
+//  - antigravity: 실제 실행 명령은 'agy'라 매핑이 필요(이름≠명령).
 // 'claude'는 launchCmd(생성자 주입)를 쓰므로 여기 두지 않는다. 맵에 없으면 에이전트명을 그대로 실행.
+// 'grok'은 명령명이 'grok'으로 같으니 미등록(폴백으로 그대로 실행).
 const AGENT_CMD: Record<string, string> = {
   opencode: 'opencode',
   codex: 'codex',
+  antigravity: 'agy',
 };
 // 런모드 = 권한 건너뛰기(위험) 플래그. 에이전트별로 명령이 다르다.
 // 주의: opencode TUI(`opencode [project]`)엔 스킵 플래그가 없다(권한은 opencode 설정에서) → 미등록.
 const DANGER_FLAGS: Record<string, string> = {
   claude: '--dangerously-skip-permissions',
   codex: '--dangerously-bypass-approvals-and-sandbox',
+  grok: '--always-approve',
+  antigravity: '--dangerously-skip-permissions',
 };
 
 interface Session { id: string; label: string; cwd: string; env: string; }
@@ -89,7 +94,7 @@ export class SessionManager {
   // 새 세션 기본 에이전트 (폰 설정에서 변경 + 시작 시 agent.json에서 복원).
   getDefaultAgent(): string { return this.defaultAgent; }
   setDefaultAgent(a: string): string {
-    if (a && (a === 'claude' || a === 'opencode' || a === 'codex')) this.defaultAgent = a;
+    if (a && (a === 'claude' || a === 'opencode' || a === 'codex' || a === 'grok' || a === 'antigravity')) this.defaultAgent = a;
     return this.defaultAgent;
   }
   // 새 세션 기본 셸/환경 (powershell/cmd/gitbash/wsl).

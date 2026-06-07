@@ -29,7 +29,7 @@
 </style></head>
 <body>
   <h1>VibeLink</h1>
-  <p class="sub">Run AI coding sessions (Claude / codex / opencode) on this PC, control them from your phone.</p>
+  <p class="sub">Run AI coding sessions (Claude / codex / opencode / Grok / Antigravity) on this PC, control them from your phone.</p>
 
   <div class="status"><span class="dot" id="dot"></span><span id="statusText">Stopped</span></div>
   <div class="url" id="url"></div>
@@ -45,6 +45,8 @@
       <button data-v="claude">Claude</button>
       <button data-v="opencode">opencode</button>
       <button data-v="codex">codex</button>
+      <button data-v="grok">Grok</button>
+      <button data-v="antigravity">Antigravity</button>
     </div>
     <label>Default shell</label>
     <div class="seg" id="runEnv">
@@ -58,7 +60,7 @@
       <button data-v="normal">normal</button>
       <button data-v="skip">skip permissions</button>
     </div>
-    <p class="hint">"skip permissions" appends the agent's dangerous flag (claude <code>--dangerously-skip-permissions</code>, codex <code>--dangerously-bypass-approvals-and-sandbox</code>). opencode has no such flag for the TUI — configure permissions in opencode itself.</p>
+    <p class="hint">"skip permissions" appends the agent's dangerous flag (claude <code>--dangerously-skip-permissions</code>, codex <code>--dangerously-bypass-approvals-and-sandbox</code>, grok <code>--always-approve</code>, antigravity <code>--dangerously-skip-permissions</code>). opencode has no such flag for the TUI — configure permissions in opencode itself. Antigravity launches via <code>agy</code>.</p>
     <label>Theme</label>
     <div class="seg" id="theme">
       <button data-v="light">Light</button>

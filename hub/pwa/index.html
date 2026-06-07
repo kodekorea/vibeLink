@@ -35,9 +35,8 @@
   #plus:hover{background:var(--line)}
   #term{flex:1 1 auto;min-height:0;position:relative;padding:2px 4px}
   #term .xterm-viewport{overflow-y:auto !important;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
-  /* 모바일: 손가락이 닿는 캔버스(.xterm-screen) 레이어의 네이티브 제스처를 끄고
-     스크롤/스와이프를 JS(touchmove)에서 직접 구동 — Android WebView 씹힘 방지 */
-  #term .xterm-screen,#term .xterm-screen canvas{touch-action:none}
+  /* 모바일에서 손가락이 실제 닿는 캔버스(.xterm-screen) 레이어에도 세로 팬을 허용 */
+  #term .xterm-screen,#term .xterm-screen canvas{touch-action:pan-y}
   #toBottom{position:absolute;right:14px;bottom:14px;z-index:5;display:none;width:44px;height:44px;border-radius:22px;background:var(--accent);color:#fff;border:none;font-size:20px;box-shadow:0 3px 12px rgba(204,120,92,.35)}
   #toBottom.show{display:block}
   #keybar{display:flex;gap:7px;padding:8px 10px;background:var(--panel);overflow-x:auto;flex:0 0 auto;border-top:1px solid var(--line)}
@@ -184,6 +183,7 @@ function setupTerm(){
     lineHeight: 1.15,
     fontFamily: '"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace',
     theme: termTheme(),
+    disableStdin: true,
   });
   fit = new FitAddon.FitAddon();
   term.loadAddon(fit);
