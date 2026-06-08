@@ -71,6 +71,21 @@
     <p class="hint">Phone pairs via the QR. New sessions launch the default agent in the run mode above.</p>
   </div>
 
+  <div class="card">
+    <h2>Keep PC awake</h2>
+    <label>Prevent sleep while the hub runs</label>
+    <div class="seg" id="keepAwake">
+      <button data-v="on">On</button>
+      <button data-v="off">Off</button>
+    </div>
+    <label>Also when on battery</label>
+    <div class="seg" id="keepAwakeOnBattery">
+      <button data-v="off">Plugged-in only</button>
+      <button data-v="on">Battery too</button>
+    </div>
+    <p class="hint">Stops Windows from sleeping so your phone can reach the hub anytime. Screen still turns off. Default keeps the laptop awake only while charging (so battery isn't drained). Note: closing the lid still sleeps unless you set Windows' lid-close action to "Do nothing".</p>
+  </div>
+
   <details>
     <summary>Advanced (relay / tunnel / port)</summary>
     <div class="card" style="margin-top:10px">
@@ -121,6 +136,8 @@ function render(s){
   seg('theme', s.theme||'light');
   seg('tunnel', s.tunnel||'relay');
   seg('runMode', s.runMode||'normal');
+  seg('keepAwake', s.keepAwake===false?'off':'on');
+  seg('keepAwakeOnBattery', s.keepAwakeOnBattery===true?'on':'off');
   $('logs').textContent = (s.logs||[]).join('');
 }
 $('toggle').onclick = async()=>{ const s=await window.mtb.getState(); render(await (s.running?window.mtb.stop():window.mtb.start())); };
@@ -131,6 +148,7 @@ $('save').onclick = async()=>render(await window.mtb.save({
   agent:segVal('agent')||'claude', runEnv:segVal('runEnv')||'powershell', theme:segVal('theme')||'light',
   runMode:segVal('runMode')||'normal',
   tunnel:segVal('tunnel')||'relay', relayUrl:$('relayUrl').value, relayKey:$('relayKey').value, relayId:$('relayId').value,
+  keepAwake:(segVal('keepAwake')||'on')==='on', keepAwakeOnBattery:(segVal('keepAwakeOnBattery')||'off')==='on',
 }));
 window.mtb.onState(render);
 window.mtb.getState().then(render);

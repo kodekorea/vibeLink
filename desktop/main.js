@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain, shell, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, shell, nativeImage, powerSaveBlocker, powerMonitor } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -9,6 +9,8 @@ const SMOKE = !!process.env.MTB_SMOKE;
 const SETTINGS_PATH = path.join(os.homedir(), '.vibelink', 'desktop.json');
 
 let tray = null, win = null, hubProc = null, hubUrl = '', logs = [];
+let hubStopRequested = false, hubRestarts = []; // 자동재시작 감독용
+let psbId = null;                                // powerSaveBlocker 핸들
 
 // .env 파서 (의존성 없이 KEY=VALUE) — ngrok 토큰/도메인을 hub로 넘기기 위함.
 function parseDotEnv(text) {
@@ -55,13 +57,31 @@ function settings() {
     relayUrl: s.relayUrl || '',     // 예: wss://relay.kodekorea.kr
     relayKey: s.relayKey || '',
     relayId: s.relayId || 'myhub',
+    keepAwake: s.keepAwake !== false,          // hub 실행 중 PC 절전 차단(기본 ON)
+    keepAwakeOnBattery: s.keepAwakeOnBattery === true, // 배터리에서도 차단(기본 OFF — 노트북 보호)
   };
 }
 function hubDir() { return app.isPackaged ? path.join(process.resourcesPath, 'hub') : path.join(__dirname, '..', 'hub'); }
 function log(s) { logs.push(s); if (logs.length > 200) logs.shift(); }
 
+// 절전 차단: hub 실행 중 + keepAwake + (충전 중 또는 배터리에서도 허용) 일 때만 ON.
+// 'prevent-app-suspension' → Windows ES_SYSTEM_REQUIRED (시스템은 안 자고 화면만 꺼짐 = 전력 절약).
+function refreshPowerBlocker() {
+  const cfg = settings();
+  const onBattery = (() => { try { return powerMonitor.isOnBatteryPower(); } catch { return false; } })();
+  const shouldBlock = !!hubProc && cfg.keepAwake && (!onBattery || cfg.keepAwakeOnBattery);
+  if (shouldBlock && psbId === null) {
+    psbId = powerSaveBlocker.start('prevent-app-suspension');
+    log('[power] 절전 차단 ON (배터리=' + onBattery + ')');
+  } else if (!shouldBlock && psbId !== null) {
+    powerSaveBlocker.stop(psbId); psbId = null;
+    log('[power] 절전 차단 OFF');
+  }
+}
+
 function startHub() {
   if (hubProc) return;
+  hubStopRequested = false;
   const cfg = settings();
   const dot = loadDotEnv();
   const env = Object.assign({}, process.env, dot.vars, { MTB_PORT: String(cfg.port), MTB_PASSWORD: cfg.password });
@@ -81,13 +101,26 @@ function startHub() {
   }
   if (dot.file) log('[env] loaded ' + dot.file);
   log('[tunnel] ' + env.MTB_TUNNEL);
-  hubProc = spawn('node', ['--import', 'tsx', 'src/index.ts'], { cwd: hubDir(), env });
-  hubProc.stdout.on('data', d => { const s = d.toString(); const m = s.match(/https:\/\/[^\s"]+/); if (m) { hubUrl = m[0]; pushState(); } log(s); });
-  hubProc.stderr.on('data', d => log(d.toString()));
-  hubProc.on('exit', () => { hubProc = null; hubUrl = ''; pushState(); });
+  const child = spawn('node', ['--import', 'tsx', 'src/index.ts'], { cwd: hubDir(), env });
+  hubProc = child;
+  child.stdout.on('data', d => { const s = d.toString(); const m = s.match(/https:\/\/[^\s"]+/); if (m) { hubUrl = m[0]; pushState(); } log(s); });
+  child.stderr.on('data', d => log(d.toString()));
+  child.on('exit', (code) => {
+    if (hubProc !== child) return; // 새로 띄운 프로세스로 교체됨(설정 재시작 등) → 무시
+    hubProc = null; hubUrl = ''; pushState(); refreshPowerBlocker();
+    if (hubStopRequested || app.isQuitting) return; // 의도된 종료
+    // 비정상 종료 → 자동 재시작 (1분 내 5회 초과 시 폭주 방지로 중단)
+    const now = Date.now();
+    hubRestarts = hubRestarts.filter(t => now - t < 60000);
+    hubRestarts.push(now);
+    if (hubRestarts.length > 5) { log('[hub] 1분 내 재시작 5회 초과 — 자동재시작 중단'); return; }
+    log('[hub] 비정상 종료(code=' + code + ') — 2초 후 자동 재시작');
+    setTimeout(() => { if (!hubProc && !hubStopRequested && !app.isQuitting) startHub(); }, 2000);
+  });
+  refreshPowerBlocker();
   pushState();
 }
-function stopHub() { if (hubProc) hubProc.kill(); hubProc = null; hubUrl = ''; pushState(); }
+function stopHub() { hubStopRequested = true; if (hubProc) hubProc.kill(); hubProc = null; hubUrl = ''; refreshPowerBlocker(); pushState(); }
 function state() { return Object.assign({ running: !!hubProc, url: hubUrl, logs: logs.slice(-50) }, settings()); }
 function pushState() { if (win && !win.isDestroyed()) win.webContents.send('mtb:state', state()); updateTray(); }
 
@@ -128,7 +161,10 @@ ipcMain.handle('mtb:save', async (_e, s) => {
     relayUrl: s.relayUrl || '',
     relayKey: s.relayKey || '',
     relayId: s.relayId || 'myhub',
+    keepAwake: s.keepAwake !== false,
+    keepAwakeOnBattery: s.keepAwakeOnBattery === true,
   }));
+  refreshPowerBlocker(); // 토글 즉시 반영(재시작 안 해도)
   // 실행 중이면 새 설정(암호/포트/claude옵션 등)을 반영하려고 자동 재시작.
   if (hubProc) {
     log('[settings] saved — restarting hub to apply');
@@ -146,6 +182,7 @@ app.whenReady().then(() => {
   if (SMOKE) return runSmoke();
   tray = new Tray(trayImage());
   updateTray();
+  try { powerMonitor.on('on-ac', refreshPowerBlocker); powerMonitor.on('on-battery', refreshPowerBlocker); } catch { /* */ }
   startHub();
   showWindow();
 });
