@@ -3,10 +3,11 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const http = require('http');
-const { spawn } = require('child_process');
+const { execFileSync, spawn } = require('child_process');
 
 const SMOKE = !!process.env.MTB_SMOKE;
 const SETTINGS_PATH = path.join(os.homedir(), '.vibelink', 'desktop.json');
+const RUN_ENVS = ['powershell', 'cmd', 'gitbash', 'wsl', 'zsh', 'bash', 'sh'];
 
 let tray = null, win = null, hubProc = null, hubUrl = '', logs = [];
 let hubStopRequested = false, hubRestarts = []; // 자동재시작 감독용
@@ -46,11 +47,13 @@ function writeSettings(s) { fs.mkdirSync(path.dirname(SETTINGS_PATH), { recursiv
 function settings() {
   const s = readSettings();
   const oneOf = (v, list, def) => list.includes(v) ? v : def;
+  const defaultRunEnv = process.platform === 'win32' ? 'powershell' : 'zsh';
   return {
+    platform: process.platform,
     port: Number(s.port || process.env.MTB_PORT || 47801),
     password: s.password || 'changeme1234',
     agent: oneOf(s.agent, ['claude', 'opencode', 'codex', 'grok', 'antigravity'], 'claude'),         // 기본 에이전트
-    runEnv: oneOf(s.runEnv, ['powershell', 'cmd', 'gitbash', 'wsl'], 'powershell'), // 런모드(환경)
+    runEnv: oneOf(s.runEnv, RUN_ENVS, defaultRunEnv), // 런모드(환경)
     theme: (s.theme || s.claudeTheme) === 'dark' ? 'dark' : 'light',          // 테마 (claudeTheme 호환)
     runMode: (s.runMode || s.claudeMode) === 'skip' ? 'skip' : 'normal',      // 런모드: normal | skip(권한 건너뛰기)
     tunnel: oneOf(s.tunnel, ['cf', 'relay', 'quick', 'lan'], 'cf'),          // 기본=Cloudflare 터널
@@ -65,6 +68,41 @@ function settings() {
 }
 function hubDir() { return app.isPackaged ? path.join(process.resourcesPath, 'hub') : path.join(__dirname, '..', 'hub'); }
 function log(s) { logs.push(s); if (logs.length > 200) logs.shift(); }
+function augmentPath(env) {
+  const extras = process.platform === 'darwin'
+    ? ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin']
+    : ['/usr/local/bin', '/usr/bin', '/bin'];
+  const parts = String(env.PATH || '').split(path.delimiter).filter(Boolean);
+  for (const p of extras) if (!parts.includes(p)) parts.push(p);
+  env.PATH = parts.join(path.delimiter);
+}
+function findNode(env) {
+  const cands = [
+    process.env.MTB_NODE,
+    ...String(env.PATH || '').split(path.delimiter).filter(Boolean).map(p => path.join(p, process.platform === 'win32' ? 'node.exe' : 'node')),
+  ].filter(Boolean);
+  for (const c of cands) {
+    try { if (fs.existsSync(c)) return c; } catch { /* ignore */ }
+  }
+  if (process.platform !== 'win32') {
+    for (const sh of ['/bin/zsh', '/bin/bash', '/bin/sh']) {
+      try {
+        const found = execFileSync(sh, ['-lc', 'command -v node'], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+        if (found) return found;
+      } catch { /* ignore */ }
+    }
+  }
+  return null;
+}
+function hubNodeCommand(env) {
+  augmentPath(env);
+  const node = findNode(env);
+  if (node) return { file: node, args: ['--import', 'tsx', 'src/index.ts'] };
+  if (!app.isPackaged) return { file: 'node', args: ['--import', 'tsx', 'src/index.ts'] };
+  log('[hub] system node not found; falling back to Electron runtime. Terminal native modules may not load.');
+  env.ELECTRON_RUN_AS_NODE = '1';
+  return { file: process.execPath, args: ['--import', 'tsx', 'src/index.ts'] };
+}
 
 // 절전 차단: hub 실행 중 + keepAwake + (충전 중 또는 배터리에서도 허용) 일 때만 ON.
 // 'prevent-app-suspension' → Windows ES_SYSTEM_REQUIRED (시스템은 안 자고 화면만 꺼짐 = 전력 절약).
@@ -87,6 +125,7 @@ function startHub() {
   const cfg = settings();
   const dot = loadDotEnv();
   const env = Object.assign({}, process.env, dot.vars, { MTB_PORT: String(cfg.port), MTB_PASSWORD: cfg.password });
+  if (process.platform !== 'win32') env.MTB_SHELL = process.env.SHELL || (process.platform === 'darwin' ? '/bin/zsh' : '/bin/sh');
   // 런모드(권한 건너뛰기)는 에이전트별 플래그를 hub가 붙인다 → MTB_LAUNCH는 베이스만.
   env.MTB_LAUNCH = 'claude';
   env.MTB_SKIP_PERMS = cfg.runMode === 'skip' ? '1' : '';
@@ -109,10 +148,17 @@ function startHub() {
   }
   if (dot.file) log('[env] loaded ' + dot.file);
   log('[tunnel] ' + env.MTB_TUNNEL);
-  const child = spawn('node', ['--import', 'tsx', 'src/index.ts'], { cwd: hubDir(), env });
+  const cmd = hubNodeCommand(env);
+  log('[hub] spawning ' + cmd.file);
+  const child = spawn(cmd.file, cmd.args, { cwd: hubDir(), env });
   hubProc = child;
   child.stdout.on('data', d => { const s = d.toString(); const m = s.match(/https:\/\/[^\s"]+/); if (m) { hubUrl = m[0]; pushState(); } log(s); });
   child.stderr.on('data', d => log(d.toString()));
+  child.on('error', (err) => {
+    if (hubProc !== child) return;
+    log('[hub] failed to start: ' + (err && err.message ? err.message : String(err)));
+    hubProc = null; hubUrl = ''; pushState(); refreshPowerBlocker();
+  });
   child.on('exit', (code) => {
     if (hubProc !== child) return; // 새로 띄운 프로세스로 교체됨(설정 재시작 등) → 무시
     hubProc = null; hubUrl = ''; pushState(); refreshPowerBlocker();
@@ -158,11 +204,12 @@ ipcMain.handle('mtb:stop', () => { stopHub(); return state(); });
 ipcMain.handle('mtb:save', async (_e, s) => {
   const cur = readSettings();
   const oneOf = (v, list, def) => list.includes(v) ? v : def;
+  const defaultRunEnv = process.platform === 'win32' ? 'powershell' : 'zsh';
   writeSettings(Object.assign({}, cur, {
     port: Number(s.port) || 47801,
     password: s.password || 'changeme1234',
     agent: oneOf(s.agent, ['claude', 'opencode', 'codex', 'grok', 'antigravity'], 'claude'),
-    runEnv: oneOf(s.runEnv, ['powershell', 'cmd', 'gitbash', 'wsl'], 'powershell'),
+    runEnv: oneOf(s.runEnv, RUN_ENVS, defaultRunEnv),
     theme: s.theme === 'dark' ? 'dark' : 'light',
     runMode: s.runMode === 'skip' ? 'skip' : 'normal',
     tunnel: oneOf(s.tunnel, ['cf', 'relay', 'quick', 'lan'], 'cf'),

@@ -9,6 +9,7 @@ import { SessionManager } from './sessions';
 import { loadNodePty } from './nodePty';
 import { HubServer } from './server';
 import { RelayClient } from './relayClient';
+import { defaultShell } from './shells';
 
 function loadSecret(): string {
   const p = path.join(os.homedir(), '.vibelink', 'jwt_secret');
@@ -46,7 +47,7 @@ function ensureClaudeTheme(theme: string): void {
 
 async function main(): Promise<void> {
   const port = Number(process.env.MTB_PORT ?? 47800);
-  const shell = process.env.MTB_SHELL ?? 'powershell.exe';
+  const shell = process.env.MTB_SHELL ?? defaultShell();
   const launch = process.env.MTB_LAUNCH ?? 'claude';
   const log = (m: string) => console.log(`[hub] ${m}`);
 

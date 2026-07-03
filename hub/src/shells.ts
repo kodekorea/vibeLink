@@ -1,4 +1,4 @@
-// Windows 셸 환경(env) 해석 헬퍼. powershell/cmd/gitbash. (wsl은 wsl.ts에서 별도)
+// 셸 환경(env) 해석 헬퍼. wsl은 wsl.ts에서 별도 처리한다.
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -19,9 +19,27 @@ export function gitBashPath(): string {
   return cands[cands.length - 1];
 }
 
+export function defaultShell(): string {
+  if (process.platform === 'win32') return 'powershell.exe';
+  return process.env.SHELL || (process.platform === 'darwin' ? '/bin/zsh' : '/bin/sh');
+}
+
+export function defaultEnv(): string {
+  return process.platform === 'win32' ? 'powershell' : 'zsh';
+}
+
+export const ENV_CHOICES = ['powershell', 'cmd', 'gitbash', 'wsl', 'zsh', 'bash', 'sh'] as const;
+
+export function isSupportedEnv(env: string): boolean {
+  return (ENV_CHOICES as readonly string[]).includes(env);
+}
+
 // env → spawn 파일/인자. powershell은 호출부의 기본 셸(this.shell)을 쓰므로 여기 없음.
 export function resolveEnvShell(env: string): { file: string; args: string[] } | null {
   if (env === 'cmd') return { file: 'cmd.exe', args: [] };
   if (env === 'gitbash') return { file: gitBashPath(), args: ['-i', '-l'] };
+  if (env === 'zsh') return { file: process.env.SHELL && process.env.SHELL.endsWith('/zsh') ? process.env.SHELL : '/bin/zsh', args: ['-l'] };
+  if (env === 'bash') return { file: '/bin/bash', args: ['-l'] };
+  if (env === 'sh') return { file: '/bin/sh', args: [] };
   return null; // powershell/그 외는 기본 셸
 }

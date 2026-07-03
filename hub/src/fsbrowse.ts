@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 export interface Entry { name: string; path: string; }
@@ -11,8 +12,35 @@ export function browseDir(p: string): Entry[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Windows 드라이브 루트 목록
+function existingDirs(entries: Entry[]): Entry[] {
+  const seen = new Set<string>();
+  const out: Entry[] = [];
+  for (const e of entries) {
+    try {
+      if (!fs.statSync(e.path).isDirectory()) continue;
+      const key = path.resolve(e.path);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(e);
+    } catch { /* 없음/권한 없음 */ }
+  }
+  return out;
+}
+
+// 파일 브라우저 시작 지점. Windows는 드라이브, macOS/Linux는 자주 쓰는 POSIX 루트.
 export function drives(): Entry[] {
+  if (process.platform !== 'win32') {
+    const home = os.homedir();
+    return existingDirs([
+      { name: 'Home', path: home },
+      { name: 'Desktop', path: path.join(home, 'Desktop') },
+      { name: 'Documents', path: path.join(home, 'Documents') },
+      { name: 'Downloads', path: path.join(home, 'Downloads') },
+      { name: 'Root /', path: '/' },
+      { name: 'Volumes', path: '/Volumes' },
+    ]);
+  }
+
   const out: Entry[] = [];
   for (const c of 'CDEFGHIJ') {
     const root = `${c}:\\`;

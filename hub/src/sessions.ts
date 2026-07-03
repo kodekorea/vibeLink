@@ -1,14 +1,14 @@
 import type { IPty, PtySpawn } from './nodePty';
 import { buildWslSpawn } from './wsl';
-import { resolveEnvShell } from './shells';
+import { defaultEnv, isSupportedEnv, resolveEnvShell } from './shells';
 
 export interface Project { label: string; path: string; }
 // 터미널 종류: 'agent' = 세션의 기본 에이전트 터미널(claude/opencode/codex 등, 고정·닫기불가),
 //             'shell' = 추가 셸 터미널(에이전트 미실행, 닫기가능).
 export type TerminalKind = 'agent' | 'shell';
-// 런타임 선택: agent(실행 프로그램) × env(환경/셸). 기본 claude × powershell.
+// 런타임 선택: agent(실행 프로그램) × env(환경/셸).
 //  - agent: 'claude' | 'opencode' | 'codex' | 'shell'(none)
-//  - env:   'powershell' | 'cmd' | 'gitbash' | 'wsl'
+//  - env:   'powershell' | 'cmd' | 'gitbash' | 'wsl' | 'zsh' | 'bash' | 'sh'
 export interface RuntimeSpec { agent: string; env: string; }
 export interface TerminalInfo { id: string; label: string; kind: TerminalKind; agent: string; env: string; }
 export interface SessionTree { id: string; label: string; cwd: string; env: string; terminals: TerminalInfo[]; }
@@ -63,7 +63,7 @@ export class SessionManager {
   private notifyMinBusyMs: number;
   // 새 세션이 띄울 기본 에이전트/환경(사용자 설정). createSession에 spec이 없으면 이 값을 쓴다.
   private defaultAgent = 'claude';
-  private defaultEnv = 'powershell';
+  private defaultEnv: string;
   private dangerMode = false;   // 런모드: 켜면 에이전트별 권한건너뛰기 플래그를 붙인다
 
   constructor(
@@ -73,6 +73,7 @@ export class SessionManager {
     private launchCmd: string,    // agent=claude 기본 실행 명령 (예: claude)
     opts?: { notifyQuietMs?: number; notifyMinBusyMs?: number },
   ) {
+    this.defaultEnv = /powershell(?:\.exe)?$/i.test(this.shell) ? 'powershell' : defaultEnv();
     this.notifyQuietMs = opts?.notifyQuietMs ?? (Number(process.env.MTB_NOTIFY_QUIET_MS) || NOTIFY_QUIET_MS);
     this.notifyMinBusyMs = opts?.notifyMinBusyMs ?? (Number(process.env.MTB_NOTIFY_MIN_MS) || NOTIFY_MIN_BUSY_MS);
   }
@@ -97,10 +98,10 @@ export class SessionManager {
     if (a && (a === 'claude' || a === 'opencode' || a === 'codex' || a === 'grok' || a === 'antigravity')) this.defaultAgent = a;
     return this.defaultAgent;
   }
-  // 새 세션 기본 셸/환경 (powershell/cmd/gitbash/wsl).
+  // 새 세션 기본 셸/환경.
   getDefaultEnv(): string { return this.defaultEnv; }
   setDefaultEnv(e: string): string {
-    if (e && (e === 'powershell' || e === 'cmd' || e === 'gitbash' || e === 'wsl')) this.defaultEnv = e;
+    if (e && isSupportedEnv(e)) this.defaultEnv = e;
     return this.defaultEnv;
   }
   // 런모드(권한 건너뛰기). 켜면 에이전트 명령에 위험 플래그를 붙인다.

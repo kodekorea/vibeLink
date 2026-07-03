@@ -127,6 +127,20 @@ test('env=cmd → cmd.exe, env=gitbash → Git bash.exe (-i -l)', () => {
   assert.deepEqual(made[1].args, ['-i', '-l']);
 });
 
+test('env=zsh/bash/sh → POSIX shells', () => {
+  const { spawn, made } = fakeSpawn();
+  const sm = new SessionManager(spawn, () => {}, '/bin/zsh', 'claude');
+  sm.createSession({ label: 'z', path: '/tmp/z' }, { agent: 'shell', env: 'zsh' });
+  assert.match(made[0].file, /\/zsh$/);
+  assert.deepEqual(made[0].args, ['-l']);
+  sm.createSession({ label: 'b', path: '/tmp/b' }, { agent: 'shell', env: 'bash' });
+  assert.equal(made[1].file, '/bin/bash');
+  assert.deepEqual(made[1].args, ['-l']);
+  sm.createSession({ label: 's', path: '/tmp/s' }, { agent: 'shell', env: 'sh' });
+  assert.equal(made[2].file, '/bin/sh');
+  assert.deepEqual(made[2].args, []);
+});
+
 test('기본값: agent=claude, env=powershell (powershell.exe + claude)', () => {
   const { spawn, made } = fakeSpawn();
   const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');

@@ -54,6 +54,9 @@
       <button data-v="cmd">cmd</button>
       <button data-v="gitbash">Git Bash</button>
       <button data-v="wsl">WSL</button>
+      <button data-v="zsh">zsh</button>
+      <button data-v="bash">bash</button>
+      <button data-v="sh">sh</button>
     </div>
     <label>Run mode</label>
     <div class="seg" id="runMode">
@@ -83,7 +86,7 @@
       <button data-v="off">Plugged-in only</button>
       <button data-v="on">Battery too</button>
     </div>
-    <p class="hint">Stops Windows from sleeping so your phone can reach the hub anytime. Screen still turns off. Default keeps the laptop awake only while charging (so battery isn't drained). Note: closing the lid still sleeps unless you set Windows' lid-close action to "Do nothing".</p>
+    <p class="hint">Stops this computer from sleeping so your phone can reach the hub anytime. Screen behavior is still controlled by your operating system. Default keeps laptops awake only while charging.</p>
   </div>
 
   <details>
@@ -120,6 +123,16 @@
 <script>
 const $=s=>document.getElementById(s);
 let cur = {};
+function platformDefaultEnv(platform){ return platform === 'win32' ? 'powershell' : 'zsh'; }
+function applyPlatform(platform){
+  const isWin = platform === 'win32';
+  document.querySelectorAll('#runEnv button').forEach(b => {
+    const v = b.dataset.v;
+    const winOnly = v === 'cmd' || v === 'gitbash' || v === 'wsl';
+    const unixOnly = v === 'zsh' || v === 'bash' || v === 'sh';
+    b.style.display = (isWin ? unixOnly : winOnly) ? 'none' : '';
+  });
+}
 function seg(id, val){ document.querySelectorAll('#'+id+' button').forEach(b=>b.classList.toggle('sel', b.dataset.v===val)); }
 function segVal(id){ const b=document.querySelector('#'+id+' button.sel'); return b?b.dataset.v:null; }
 document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{ b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); });
@@ -138,8 +151,9 @@ function render(s){
   setVal('relayId', s.relayId||'myhub');
   setVal('cfTunnelName', s.cfTunnelName||'vibelink-hub');
   setVal('cfHostname', s.cfHostname||'hub.kodekorea.kr');
+  applyPlatform(s.platform);
   seg('agent', s.agent||'claude');
-  seg('runEnv', s.runEnv||'powershell');
+  seg('runEnv', s.runEnv||platformDefaultEnv(s.platform));
   seg('theme', s.theme||'light');
   seg('tunnel', s.tunnel||'relay');
   seg('runMode', s.runMode||'normal');
@@ -149,10 +163,10 @@ function render(s){
 }
 $('toggle').onclick = async()=>{ const s=await window.mtb.getState(); render(await (s.running?window.mtb.stop():window.mtb.start())); };
 $('qr').onclick = ()=>window.mtb.openQr();
-$('tsLink').onclick = (e)=>{ e.preventDefault(); window.mtb.openExternal('https://tailscale.com/download'); };
+if ($('tsLink')) $('tsLink').onclick = (e)=>{ e.preventDefault(); window.mtb.openExternal('https://tailscale.com/download'); };
 $('save').onclick = async()=>render(await window.mtb.save({
   password:$('password').value, port:$('port').value,
-  agent:segVal('agent')||'claude', runEnv:segVal('runEnv')||'powershell', theme:segVal('theme')||'light',
+  agent:segVal('agent')||'claude', runEnv:segVal('runEnv')||platformDefaultEnv(cur.platform), theme:segVal('theme')||'light',
   runMode:segVal('runMode')||'normal',
   tunnel:segVal('tunnel')||'cf', relayUrl:$('relayUrl').value, relayKey:$('relayKey').value, relayId:$('relayId').value,
   cfTunnelName:$('cfTunnelName').value, cfHostname:$('cfHostname').value,

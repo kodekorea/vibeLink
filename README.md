@@ -61,7 +61,7 @@ VibeLink is a single-user companion utility designed for developers who want to 
   - **Completion Notifications**: Configure alarms so your phone notifies you when an agent finishes a long-running task or needs follow-up input.
   - **QR Code Pairing**: Instantly connect your mobile app to your desktop server by scanning a local QR code.
 - 🤖 **Supported Agents**: Claude, Codex, OpenCode, GrokBuild, and AGY.
-- 🖥️ **Platform Support**: Android + Windows are supported now. Linux, macOS, and iOS are planned.
+- 🖥️ **Platform Support**: Android + Windows are supported now. macOS desktop can be built from source. Linux and iOS are planned.
 - 🔒 **Secure-by-Design**: Single-user authorization using robust, local-first passwords and tokens so your workspace stays under your control.
 
 ---
@@ -93,6 +93,7 @@ graph TD
 No complex installations are required. Just ensure the following:
 * **Network:** Both your desktop PC and mobile device must be connected to the **same local network (Wi-Fi)** to establish a direct connection.
 * **Windows (.exe):** Default shells (`PowerShell` and `CMD`) work out of the box. If you want to use `WSL` or `Git Bash` via VibeLink, they must be pre-installed on your PC.
+* **macOS (source build):** Default shells (`zsh`, `bash`, and `sh`) are supported. Screen preview requires macOS Screen Recording permission for the VibeLink/Electron app or the terminal running it.
 * **Android (.apk):** Since this app is installed outside the Google Play Store, you must allow **"Install unknown apps"** in your Android security settings.
 
 #### For Developers (Building from Source)
@@ -113,16 +114,23 @@ You can directly download precompiled binaries from our **[GitHub Releases v0.1.
 
 #### 🛠️ Build & Run from Source (Advanced)
 
-##### 1. Desktop App Installation (Windows)
-To build the desktop installer from source:
+##### 1. Desktop App Installation (Windows / macOS)
+To build the desktop installer/app from source:
 1. Install dependencies and pack the package:
    ```bash
    cd desktop
    npm install
    npm run dist
    ```
-2. Locate the generated installer at `desktop/dist/VibeLink Setup 0.1.0.exe`.
-3. Launch the installer, run the setup wizard, and launch VibeLink from your Windows system tray.
+2. Locate the generated output:
+   - Windows: `desktop/dist-new/VibeLink Setup 0.1.0.exe`
+   - macOS: `desktop/dist-new/VibeLink-0.1.0-<arch>.dmg` or `desktop/dist-new/VibeLink-0.1.0-<arch>-mac.zip`
+3. Launch the installer/app and start VibeLink from the tray/menu bar.
+
+For local development on macOS:
+```bash
+./desktop/run.sh
+```
 
 ##### 2. Mobile App Setup (Android)
 
@@ -201,7 +209,7 @@ eas build --platform android --profile preview
   - **여러 워크스페이스 동시 작업**: 여러 프로젝트와 AI 에이전트 세션을 동시에 열고 모바일 탭에서 빠르게 전환하며 작업할 수 있습니다.
   - **완료 알림 기능**: 에이전트가 긴 작업을 끝냈거나 추가 입력이 필요할 때 모바일 알림으로 확인할 수 있습니다.
 - **지원 에이전트**: Claude, Codex, OpenCode, GrokBuild, AGY.
-- **플랫폼 지원**: 현재 Android + Windows를 지원하며, Linux, macOS, iOS는 지원 예정입니다.
+- **플랫폼 지원**: 현재 Android + Windows를 지원하며, macOS 데스크톱은 소스 빌드로 사용할 수 있습니다. Linux, iOS는 지원 예정입니다.
 - **철저한 로컬 중심 보안**: ngrok 등 외부 서드파티 터널링을 차단하고, 로컬 네트워크상에서 보안 인증 토큰 및 비밀번호를 적용하여 1인 단일 사용자 환경을 철저히 보호합니다.
 
 ---
@@ -212,6 +220,7 @@ eas build --platform android --profile preview
 복잡한 사전 설치 없이 바로 사용할 수 있습니다. 단, 아래의 네트워크 및 보안 설정만 확인해 주세요.
 * **네트워크:** 데스크톱 PC와 모바일 기기가 **동일한 로컬 네트워크 (같은 Wi-Fi 공유기)**에 연결되어 있어야 직접 연동이 가능합니다.
 * **Windows (.exe):** 기본 탑재된 `PowerShell` 및 `CMD`는 즉시 구동됩니다. `WSL`이나 `Git Bash`를 사용하려면 해당 프로그램이 PC에 설치되어 있어야 합니다.
+* **macOS (소스 빌드):** 기본 셸 `zsh`, `bash`, `sh`를 지원합니다. 화면 프리뷰를 쓰려면 VibeLink/Electron 앱 또는 실행 터미널에 macOS 화면 기록 권한을 허용해야 합니다.
 * **Android (.apk):** 구글 플레이 스토어 외부에서 직접 APK를 설치하는 방식이므로, 설치 시 **"출처를 알 수 없는 앱 설치 허용"** 권한을 승인해 주셔야 합니다.
 
 #### 개발자 (소스코드 직접 빌드 시)

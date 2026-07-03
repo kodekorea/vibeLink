@@ -14,13 +14,38 @@
     "directories": {
       "output": "dist-new"
     },
-    "files": ["main.js", "preload.js", "settings.html", "tray.png"],
+    "files": [
+      "main.js",
+      "preload.js",
+      "settings.html",
+      "tray.png",
+      "build/icon.png"
+    ],
     "extraResources": [
-      { "from": "../hub", "to": "hub", "filter": ["src/**/*", "pwa/**/*", "package.json", "node_modules/**/*"] }
+      {
+        "from": "../hub",
+        "to": "hub",
+        "filter": [
+          "src/**/*",
+          "pwa/**/*",
+          "package.json",
+          "node_modules/**/*"
+        ]
+      }
     ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "build/icon.png"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.developer-tools"
     },
     "nsis": {
       "oneClick": false,
@@ -31,7 +56,7 @@
     }
   },
   "devDependencies": {
-    "electron": "^31.7.0",
+    "electron": "^31.7.7",
     "electron-builder": "^24.13.3"
   }
 }

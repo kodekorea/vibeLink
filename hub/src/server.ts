@@ -356,7 +356,7 @@ export class HubServer {
       if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
       const p = new URL(url, 'http://x').searchParams.get('path');
       if (!p) { this.json(res, 200, { cwd: null, entries: drives() }); return; }
-      try { this.json(res, 200, { cwd: p, entries: browseDir(decodeURIComponent(p)) }); }
+      try { this.json(res, 200, { cwd: p, entries: browseDir(p) }); }
       catch (e) { this.json(res, 400, { error: String(e) }); }
       return;
     }
@@ -369,7 +369,7 @@ export class HubServer {
         this.json(res, 200, { cwd: null, entries: drives().map(d => ({ name: d.name, path: d.path, dir: true, size: 0 })) });
         return;
       }
-      try { this.json(res, 200, { cwd: p, entries: listEntries(decodeURIComponent(p)) }); }
+      try { this.json(res, 200, { cwd: p, entries: listEntries(p) }); }
       catch (e) { this.json(res, 400, { error: String(e) }); }
       return;
     }
@@ -379,7 +379,7 @@ export class HubServer {
       if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
       const p = new URL(url, 'http://x').searchParams.get('path');
       if (!p) { this.json(res, 400, { error: 'path required' }); return; }
-      try { this.json(res, 200, readFileText(decodeURIComponent(p))); }
+      try { this.json(res, 200, readFileText(p)); }
       catch (e) { this.json(res, 400, { error: String(e) }); }
       return;
     }

@@ -3,7 +3,7 @@ import assert from 'node:assert';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { listEntries, readFileText } from '../src/fsbrowse';
+import { drives, listEntries, readFileText } from '../src/fsbrowse';
 
 function tmpDir(): string {
   const d = path.join(os.tmpdir(), `mtb-fs-${process.pid}-${Math.random().toString(36).slice(2)}`);
@@ -21,6 +21,15 @@ test('listEntries: 디렉터리 먼저, 그다음 파일, 이름순 + size', () 
   assert.equal(e[1].name, 'a.txt'); assert.equal(e[1].dir, false); assert.equal(e[1].size, 2);
   assert.equal(e[2].name, 'b.txt');
   fs.rmSync(d, { recursive: true, force: true });
+});
+
+test('drives: 현재 OS에서 시작 폴더 목록을 반환', () => {
+  const roots = drives();
+  assert.ok(roots.length > 0);
+  assert.ok(roots.every(e => e.name && e.path));
+  if (process.platform !== 'win32') {
+    assert.ok(roots.some(e => e.path === os.homedir()));
+  }
 });
 
 test('readFileText: 내용 + size 반환', () => {
