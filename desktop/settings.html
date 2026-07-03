@@ -92,11 +92,16 @@
       <h2>External access</h2>
       <label>Mode</label>
       <div class="seg" id="tunnel">
+        <button data-v="cf">CF Tunnel</button>
         <button data-v="relay">Relay</button>
-        <button data-v="quick">Cloudflare</button>
+        <button data-v="quick">CF Quick</button>
         <button data-v="lan">LAN only</button>
       </div>
-      <p class="hint"><b>Relay</b>: your own server (set below) — works anywhere, stable. <b>Cloudflare</b>: temporary tunnel (URL changes on restart). <b>LAN only</b>: same Wi‑Fi (or Tailscale). Install <a href="#" id="tsLink">Tailscale</a> for stable LAN-free access without a relay.</p>
+      <p class="hint"><b>CF Tunnel</b> (recommended): stable named Cloudflare tunnel — fixed URL, works anywhere, no port-forwarding. Requires a one-time <code>cloudflared tunnel login</code> + a named tunnel. <b>Relay</b>: your own relay server (set below). <b>CF Quick</b>: temporary tunnel (URL changes each restart). <b>LAN only</b>: same Wi‑Fi.</p>
+      <label>CF tunnel name</label>
+      <input id="cfTunnelName" type="text" placeholder="vibelink-hub">
+      <label>CF hostname (phone connects here)</label>
+      <input id="cfHostname" type="text" placeholder="hub.kodekorea.kr">
       <label>Relay URL (wss://...)</label>
       <input id="relayUrl" type="text" placeholder="wss://relay.example.com">
       <label>Relay key</label>
@@ -131,6 +136,8 @@ function render(s){
   setVal('relayUrl', s.relayUrl||'');
   setVal('relayKey', s.relayKey||'');
   setVal('relayId', s.relayId||'myhub');
+  setVal('cfTunnelName', s.cfTunnelName||'vibelink-hub');
+  setVal('cfHostname', s.cfHostname||'hub.kodekorea.kr');
   seg('agent', s.agent||'claude');
   seg('runEnv', s.runEnv||'powershell');
   seg('theme', s.theme||'light');
@@ -147,7 +154,8 @@ $('save').onclick = async()=>render(await window.mtb.save({
   password:$('password').value, port:$('port').value,
   agent:segVal('agent')||'claude', runEnv:segVal('runEnv')||'powershell', theme:segVal('theme')||'light',
   runMode:segVal('runMode')||'normal',
-  tunnel:segVal('tunnel')||'relay', relayUrl:$('relayUrl').value, relayKey:$('relayKey').value, relayId:$('relayId').value,
+  tunnel:segVal('tunnel')||'cf', relayUrl:$('relayUrl').value, relayKey:$('relayKey').value, relayId:$('relayId').value,
+  cfTunnelName:$('cfTunnelName').value, cfHostname:$('cfHostname').value,
   keepAwake:(segVal('keepAwake')||'on')==='on', keepAwakeOnBattery:(segVal('keepAwakeOnBattery')||'off')==='on',
 }));
 window.mtb.onState(render);

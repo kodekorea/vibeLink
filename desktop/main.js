@@ -53,10 +53,12 @@ function settings() {
     runEnv: oneOf(s.runEnv, ['powershell', 'cmd', 'gitbash', 'wsl'], 'powershell'), // 런모드(환경)
     theme: (s.theme || s.claudeTheme) === 'dark' ? 'dark' : 'light',          // 테마 (claudeTheme 호환)
     runMode: (s.runMode || s.claudeMode) === 'skip' ? 'skip' : 'normal',      // 런모드: normal | skip(권한 건너뛰기)
-    tunnel: oneOf(s.tunnel, ['relay', 'quick', 'lan'], 'relay'),             // 기본=릴레이
+    tunnel: oneOf(s.tunnel, ['cf', 'relay', 'quick', 'lan'], 'cf'),          // 기본=Cloudflare 터널
     relayUrl: s.relayUrl || '',     // 예: wss://relay.kodekorea.kr
     relayKey: s.relayKey || '',
     relayId: s.relayId || 'myhub',
+    cfTunnelName: s.cfTunnelName || 'vibelink-hub',   // cloudflared named tunnel 이름
+    cfHostname: s.cfHostname || 'hub.kodekorea.kr',   // 폰 접속 호스트명
     keepAwake: s.keepAwake !== false,          // hub 실행 중 PC 절전 차단(기본 ON)
     keepAwakeOnBattery: s.keepAwakeOnBattery === true, // 배터리에서도 차단(기본 OFF — 노트북 보호)
   };
@@ -91,8 +93,14 @@ function startHub() {
   env.MTB_CLAUDE_THEME = cfg.theme;
   env.MTB_DEFAULT_AGENT = cfg.agent;   // 새 세션 기본 에이전트
   env.MTB_DEFAULT_ENV = cfg.runEnv;    // 새 세션 기본 셸(환경)
-  // 터널: 기본 릴레이. 사용자가 env를 직접 안 만져도 데스크톱이 릴레이 연결정보를 전달.
-  env.MTB_TUNNEL = cfg.tunnel;
+  // 터널: 기본 Cloudflare named tunnel. 'cf' → hub의 named 모드(cloudflared tunnel run)로 매핑.
+  if (cfg.tunnel === 'cf') {
+    env.MTB_TUNNEL = 'named';
+    env.MTB_TUNNEL_NAME = cfg.cfTunnelName;              // ~/.cloudflared/config.yml 의 터널
+    env.MTB_TUNNEL_URL = 'https://' + cfg.cfHostname;    // 폰 페어링 주소
+  } else {
+    env.MTB_TUNNEL = cfg.tunnel;
+  }
   if (cfg.tunnel === 'relay' && cfg.relayUrl) {
     env.MTB_RELAY_URL = cfg.relayUrl;
     env.MTB_RELAY_KEY = cfg.relayKey;
@@ -157,10 +165,12 @@ ipcMain.handle('mtb:save', async (_e, s) => {
     runEnv: oneOf(s.runEnv, ['powershell', 'cmd', 'gitbash', 'wsl'], 'powershell'),
     theme: s.theme === 'dark' ? 'dark' : 'light',
     runMode: s.runMode === 'skip' ? 'skip' : 'normal',
-    tunnel: oneOf(s.tunnel, ['relay', 'quick', 'lan'], 'relay'),
+    tunnel: oneOf(s.tunnel, ['cf', 'relay', 'quick', 'lan'], 'cf'),
     relayUrl: s.relayUrl || '',
     relayKey: s.relayKey || '',
     relayId: s.relayId || 'myhub',
+    cfTunnelName: s.cfTunnelName || 'vibelink-hub',
+    cfHostname: s.cfHostname || 'hub.kodekorea.kr',
     keepAwake: s.keepAwake !== false,
     keepAwakeOnBattery: s.keepAwakeOnBattery === true,
   }));
