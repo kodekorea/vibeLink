@@ -710,8 +710,8 @@ export class HubServer {
     const relay = this.externalKind === 'relay' && !!this.externalUrl;
     const lan = this.lanUrl();
     const ts = this.tailscaleUrl();
-    const section = (title: string, tag: string, ok: boolean, img: string, urlText: string, help?: string) => `
-<div class="card">
+    const section = (title: string, tag: string, ok: boolean, img: string, urlText: string, help?: string, attrs = '') => `
+<div class="card"${attrs}>
   <h3>${title}</h3>
   <div class="tag">${tag}</div>
   ${ok ? `<img src="${img}" alt="QR"><p class="u">${urlText}</p>` : `<p class="muted">${help || '사용 불가'}</p>`}
@@ -730,8 +730,8 @@ export class HubServer {
       'LAN IP를 찾지 못했어요.',
     );
     const extCard = relay
-      ? section('외부 접속 — 릴레이 (추천)', '집·밖 어디서나 · 주소 고정 · 셀프호스트', !!url, '/qr', url, '릴레이 연결 중...')
-      : section('외부 접속 — 임시 터널', '설정 없이 집 밖 · 단 재시작마다 주소 바뀜', !!url, '/qr', url, '터널 준비 중...');
+      ? section('외부 접속 — 릴레이 (추천)', '집·밖 어디서나 · 주소 고정 · 셀프호스트', !!url, '/qr', url, '릴레이 연결 중...', ' data-refresh="external"')
+      : section('외부 접속 — 임시 터널', '설정 없이 집 밖 · 단 재시작마다 주소 바뀜', !!url, '/qr', url, '터널 준비 중...', ' data-refresh="external"');
     // 릴레이 모드면 릴레이+LAN만 심플하게. 아니면 기존(Tailscale/LAN/터널).
     const cards = relay ? `${extCard}${lanCard}` : `${tsCard}${lanCard}${extCard}`;
 
@@ -752,6 +752,26 @@ a{color:#cc785c}
 <h2>VibeLink 연결</h2>
 <p class="sub">앱으로 QR 스캔 → 암호 입력 → 끝</p>
 ${cards}
+${url ? '' : `<script>
+(() => {
+  const card = document.querySelector('[data-refresh="external"]');
+  if (!card) return;
+  let stopped = false;
+  async function refreshWhenReady() {
+    if (stopped || document.visibilityState === 'hidden') return;
+    try {
+      const res = await fetch('/qr', { cache: 'no-store' });
+      if (res.ok) { location.reload(); return; }
+    } catch (_) { /* keep waiting */ }
+    setTimeout(refreshWhenReady, 2000);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshWhenReady();
+  });
+  window.addEventListener('beforeunload', () => { stopped = true; });
+  setTimeout(refreshWhenReady, 1000);
+})();
+</script>`}
 </body></html>`;
   }
 }
