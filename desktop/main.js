@@ -7,7 +7,10 @@ const { execFileSync, spawn } = require('child_process');
 
 const SMOKE = !!process.env.MTB_SMOKE;
 const SETTINGS_PATH = path.join(os.homedir(), '.vibelink', 'desktop.json');
-const RUN_ENVS = ['powershell', 'cmd', 'gitbash', 'wsl', 'zsh', 'bash', 'sh'];
+const RUN_ENVS_BY_PLATFORM = {
+  win32: ['powershell', 'cmd', 'gitbash', 'wsl'],
+  darwin: ['zsh', 'bash', 'sh'],
+};
 
 let tray = null, win = null, hubProc = null, hubUrl = '', logs = [];
 let hubStopRequested = false, hubRestarts = []; // 자동재시작 감독용
@@ -47,13 +50,14 @@ function writeSettings(s) { fs.mkdirSync(path.dirname(SETTINGS_PATH), { recursiv
 function settings() {
   const s = readSettings();
   const oneOf = (v, list, def) => list.includes(v) ? v : def;
-  const defaultRunEnv = process.platform === 'win32' ? 'powershell' : 'zsh';
+  const platformRunEnvs = RUN_ENVS_BY_PLATFORM[process.platform] || ['bash', 'sh'];
+  const defaultRunEnv = process.platform === 'win32' ? 'powershell' : (process.platform === 'darwin' ? 'zsh' : 'bash');
   return {
     platform: process.platform,
     port: Number(s.port || process.env.MTB_PORT || 47801),
     password: s.password || 'changeme1234',
     agent: oneOf(s.agent, ['claude', 'opencode', 'codex', 'grok', 'antigravity'], 'claude'),         // 기본 에이전트
-    runEnv: oneOf(s.runEnv, RUN_ENVS, defaultRunEnv), // 런모드(환경)
+    runEnv: oneOf(s.runEnv, platformRunEnvs, defaultRunEnv), // 런모드(환경)
     theme: (s.theme || s.claudeTheme) === 'dark' ? 'dark' : 'light',          // 테마 (claudeTheme 호환)
     runMode: (s.runMode || s.claudeMode) === 'skip' ? 'skip' : 'normal',      // 런모드: normal | skip(권한 건너뛰기)
     tunnel: oneOf(s.tunnel, ['cf', 'relay', 'quick', 'lan'], 'cf'),          // 기본=Cloudflare 터널
@@ -277,12 +281,13 @@ ipcMain.handle('mtb:stop', () => { stopHub(); return state(); });
 ipcMain.handle('mtb:save', async (_e, s) => {
   const cur = readSettings();
   const oneOf = (v, list, def) => list.includes(v) ? v : def;
-  const defaultRunEnv = process.platform === 'win32' ? 'powershell' : 'zsh';
+  const platformRunEnvs = RUN_ENVS_BY_PLATFORM[process.platform] || ['bash', 'sh'];
+  const defaultRunEnv = process.platform === 'win32' ? 'powershell' : (process.platform === 'darwin' ? 'zsh' : 'bash');
   writeSettings(Object.assign({}, cur, {
     port: Number(s.port) || 47801,
     password: s.password || 'changeme1234',
     agent: oneOf(s.agent, ['claude', 'opencode', 'codex', 'grok', 'antigravity'], 'claude'),
-    runEnv: oneOf(s.runEnv, RUN_ENVS, defaultRunEnv),
+    runEnv: oneOf(s.runEnv, platformRunEnvs, defaultRunEnv),
     theme: s.theme === 'dark' ? 'dark' : 'light',
     runMode: s.runMode === 'skip' ? 'skip' : 'normal',
     tunnel: oneOf(s.tunnel, ['cf', 'relay', 'quick', 'lan'], 'cf'),

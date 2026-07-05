@@ -137,7 +137,7 @@ test('env=cmd → cmd.exe, env=gitbash → Git bash.exe (-i -l)', () => {
 
 test('env=zsh/bash/sh → POSIX shells', () => {
   const { spawn, made } = fakeSpawn();
-  const sm = new SessionManager(spawn, () => {}, '/bin/zsh', 'claude');
+  const sm = new SessionManager(spawn, () => {}, '/bin/zsh', 'claude', { platform: 'darwin' });
   sm.createSession({ label: 'z', path: '/tmp/z' }, { agent: 'shell', env: 'zsh' });
   assert.match(made[0].file, /\/zsh$/);
   assert.deepEqual(made[0].args, ['-l']);
@@ -147,6 +147,20 @@ test('env=zsh/bash/sh → POSIX shells', () => {
   sm.createSession({ label: 's', path: '/tmp/s' }, { agent: 'shell', env: 'sh' });
   assert.equal(made[2].file, '/bin/sh');
   assert.deepEqual(made[2].args, []);
+});
+
+test('플랫폼별 shell 제한: Windows는 POSIX env를, macOS는 Windows-only env를 기본값으로 치환', () => {
+  const win = fakeSpawn();
+  const smWin = new SessionManager(win.spawn, () => {}, 'powershell.exe', 'claude', { platform: 'win32' });
+  smWin.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'shell', env: 'zsh' });
+  assert.equal(smWin.tree()[0].env, 'powershell');
+  assert.deepEqual(smWin.getSupportedEnvs(), ['powershell', 'cmd', 'gitbash', 'wsl']);
+
+  const mac = fakeSpawn();
+  const smMac = new SessionManager(mac.spawn, () => {}, '/bin/zsh', 'claude', { platform: 'darwin' });
+  smMac.createSession({ label: 'p', path: '/tmp/p' }, { agent: 'shell', env: 'powershell' });
+  assert.equal(smMac.tree()[0].env, 'zsh');
+  assert.deepEqual(smMac.getSupportedEnvs(), ['zsh', 'bash', 'sh']);
 });
 
 test('기본값: agent=claude, env=powershell (powershell.exe + claude)', () => {

@@ -26,17 +26,38 @@ export function defaultShell(): string {
 }
 
 export function defaultEnv(): string {
-  return process.platform === 'win32' ? 'powershell' : 'zsh';
+  return defaultEnvForPlatform();
 }
 
 export const ENV_CHOICES = ['powershell', 'cmd', 'gitbash', 'wsl', 'zsh', 'bash', 'sh'] as const;
+export type ShellEnv = typeof ENV_CHOICES[number];
+
+export function defaultEnvForPlatform(platform: NodeJS.Platform = process.platform): ShellEnv {
+  if (platform === 'win32') return 'powershell';
+  if (platform === 'darwin') return 'zsh';
+  return 'bash';
+}
+
+export function supportedEnvsForPlatform(platform: NodeJS.Platform = process.platform): ShellEnv[] {
+  if (platform === 'win32') return ['powershell', 'cmd', 'gitbash', 'wsl'];
+  if (platform === 'darwin') return ['zsh', 'bash', 'sh'];
+  return ['bash', 'sh'];
+}
 
 export function isSupportedEnv(env: string): boolean {
   return (ENV_CHOICES as readonly string[]).includes(env);
 }
 
+export function isSupportedEnvForPlatform(env: string, platform: NodeJS.Platform = process.platform): boolean {
+  return (supportedEnvsForPlatform(platform) as readonly string[]).includes(env);
+}
+
+export function normalizeEnvForPlatform(env: string | undefined, platform: NodeJS.Platform = process.platform): ShellEnv {
+  return env && isSupportedEnvForPlatform(env, platform) ? env as ShellEnv : defaultEnvForPlatform(platform);
+}
+
 // env → spawn 파일/인자. powershell은 호출부의 기본 셸(this.shell)을 쓰므로 여기 없음.
-export function resolveEnvShell(env: string): { file: string; args: string[] } | null {
+export function resolveEnvShell(env: string, platform: NodeJS.Platform = process.platform): { file: string; args: string[] } | null {
   if (env === 'cmd') return { file: existingWindowsExe('cmd.exe'), args: [] };
   if (env === 'gitbash') return { file: gitBashPath(), args: ['-i', '-l'] };
   if (env === 'zsh') return { file: process.env.SHELL && process.env.SHELL.endsWith('/zsh') ? process.env.SHELL : '/bin/zsh', args: ['-l'] };

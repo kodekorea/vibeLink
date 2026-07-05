@@ -1,7 +1,7 @@
 import type { IPty, PtySpawn } from './nodePty';
 import { buildWslSpawn } from './wsl';
 import { normalizeProcessEnv } from './env';
-import { defaultEnv, isSupportedEnv, resolveEnvShell } from './shells';
+import { normalizeEnvForPlatform, resolveEnvShell, supportedEnvsForPlatform } from './shells';
 
 export interface Project { label: string; path: string; }
 // 터미널 종류: 'agent' = 세션의 기본 에이전트 터미널(claude/opencode/codex 등, 고정·닫기불가),
@@ -66,15 +66,17 @@ export class SessionManager {
   private defaultAgent = 'claude';
   private defaultEnv: string;
   private dangerMode = false;   // 런모드: 켜면 에이전트별 권한건너뛰기 플래그를 붙인다
+  private platform: NodeJS.Platform;
 
   constructor(
     private spawn: PtySpawn,
     private broadcast: Send,
     private shell: string,        // env=powershell 기본 셸 (예: powershell.exe)
     private launchCmd: string,    // agent=claude 기본 실행 명령 (예: claude)
-    opts?: { notifyQuietMs?: number; notifyMinBusyMs?: number },
+    opts?: { notifyQuietMs?: number; notifyMinBusyMs?: number; platform?: NodeJS.Platform },
   ) {
-    this.defaultEnv = /powershell(?:\.exe)?$/i.test(this.shell) ? 'powershell' : defaultEnv();
+    this.platform = opts?.platform ?? (/(?:^|[\\/])powershell(?:\.exe)?$/i.test(this.shell) ? 'win32' : process.platform);
+    this.defaultEnv = normalizeEnvForPlatform(undefined, this.platform);
     this.notifyQuietMs = opts?.notifyQuietMs ?? (Number(process.env.MTB_NOTIFY_QUIET_MS) || NOTIFY_QUIET_MS);
     this.notifyMinBusyMs = opts?.notifyMinBusyMs ?? (Number(process.env.MTB_NOTIFY_MIN_MS) || NOTIFY_MIN_BUSY_MS);
   }
@@ -102,9 +104,11 @@ export class SessionManager {
   // 새 세션 기본 셸/환경.
   getDefaultEnv(): string { return this.defaultEnv; }
   setDefaultEnv(e: string): string {
-    if (e && isSupportedEnv(e)) this.defaultEnv = e;
+    this.defaultEnv = normalizeEnvForPlatform(e, this.platform);
     return this.defaultEnv;
   }
+  getPlatform(): NodeJS.Platform { return this.platform; }
+  getSupportedEnvs(): string[] { return supportedEnvsForPlatform(this.platform); }
   // 런모드(권한 건너뛰기). 켜면 에이전트 명령에 위험 플래그를 붙인다.
   setDanger(on: boolean): void { this.dangerMode = !!on; }
   getDanger(): boolean { return this.dangerMode; }
@@ -123,7 +127,7 @@ export class SessionManager {
       args = w.args;
     } else {
       // cmd.exe / Git Bash. cwd는 node-pty의 cwd로 잡힌다(Windows 경로 그대로 OK).
-      const sh = resolveEnvShell(spec.env);
+      const sh = resolveEnvShell(spec.env, this.platform);
       if (sh) { file = sh.file; args = sh.args; }
     }
     // 에이전트(실행 명령) — 셸에 타이핑할 launch 커맨드. 매핑은 AGENT_CMD 한 곳에서.
@@ -139,7 +143,7 @@ export class SessionManager {
   // 세션 생성 + 기본 에이전트 터미널 1개 자동 생성.
   createSession(project: Project, spec?: Partial<RuntimeSpec>, cols = 80, rows = 24): { sessionId: string; terminalId: string } {
     const agent = spec?.agent ?? this.defaultAgent;
-    const env = spec?.env ?? this.defaultEnv;
+    const env = normalizeEnvForPlatform(spec?.env ?? this.defaultEnv, this.platform);
     const sessionId = 's' + (++this.sCounter);
     this.sessions.set(sessionId, { id: sessionId, label: project.label, cwd: project.path, env });
     const terminalId = this.spawnTerminal(sessionId, 'agent', agent, agent, env, cols, rows);
@@ -152,7 +156,7 @@ export class SessionManager {
     const session = this.sessions.get(sessionId);
     if (!session) return null;
     const agent = spec?.agent ?? 'shell';
-    const env = spec?.env ?? session.env;
+    const env = normalizeEnvForPlatform(spec?.env ?? session.env, this.platform);
     const kind: TerminalKind = agent === 'shell' ? 'shell' : 'agent';
     const n = Array.from(this.terminals.values()).filter(t => t.sessionId === sessionId && t.kind === 'shell').length + 1;
     const label = kind === 'agent' ? agent : 'shell ' + n;

@@ -123,14 +123,12 @@
 <script>
 const $=s=>document.getElementById(s);
 let cur = {};
-function platformDefaultEnv(platform){ return platform === 'win32' ? 'powershell' : 'zsh'; }
+function platformDefaultEnv(platform){ return platform === 'win32' ? 'powershell' : (platform === 'darwin' ? 'zsh' : 'bash'); }
+function platformEnvs(platform){ return platform === 'win32' ? ['powershell','cmd','gitbash','wsl'] : (platform === 'darwin' ? ['zsh','bash','sh'] : ['bash','sh']); }
 function applyPlatform(platform){
-  const isWin = platform === 'win32';
+  const allowed = platformEnvs(platform);
   document.querySelectorAll('#runEnv button').forEach(b => {
-    const v = b.dataset.v;
-    const winOnly = v === 'cmd' || v === 'gitbash' || v === 'wsl';
-    const unixOnly = v === 'zsh' || v === 'bash' || v === 'sh';
-    b.style.display = (isWin ? unixOnly : winOnly) ? 'none' : '';
+    b.style.display = allowed.includes(b.dataset.v) ? '' : 'none';
   });
 }
 function seg(id, val){ document.querySelectorAll('#'+id+' button').forEach(b=>b.classList.toggle('sel', b.dataset.v===val)); }

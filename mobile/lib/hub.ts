@@ -6,6 +6,7 @@ const DEVICE_KEY = 'mtb_device';
 const SELPROJ_PREFIX = 'mtb_selproj_';
 
 export interface Host { id: string; label: string; url: string; token: string; }
+export interface HubInfo { ok: boolean; platform?: string; envs?: string[]; defaultEnv?: string; }
 
 let hosts: Host[] | null = null;
 let activeId: string | null = null;
@@ -174,6 +175,10 @@ export function setActiveTerminalId(id: string | null): void {
 export async function listSessions(): Promise<Session[]> {
   const r = await apiGet<{ sessions: Session[] }>('/sessions');
   return r.sessions;
+}
+
+export async function getHubInfo(): Promise<HubInfo | null> {
+  try { return await apiGet<HubInfo>('/api/me'); } catch { return null; }
 }
 
 // 특정 터미널의 에이전트(claude/opencode/codex/shell). PWA가 스크롤 방식을 정하는 데 쓴다.

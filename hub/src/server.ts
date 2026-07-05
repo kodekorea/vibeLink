@@ -317,7 +317,12 @@ export class HubServer {
     // 인증 확인
     if (meth === 'GET' && pathOnly === '/api/me') {
       if (!this.auth(req)) { this.json(res, 401, { error: 'unauthenticated' }); return; }
-      this.json(res, 200, { ok: true }); return;
+      this.json(res, 200, {
+        ok: true,
+        platform: this.sessions.getPlatform(),
+        envs: this.sessions.getSupportedEnvs(),
+        defaultEnv: this.sessions.getDefaultEnv(),
+      }); return;
     }
 
     // 현재 LISTEN 중인 로컬 포트 목록 (dev 서버 프리뷰용)

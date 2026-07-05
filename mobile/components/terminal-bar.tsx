@@ -5,6 +5,7 @@ import {
   listSessions, createTerminal, closeTerminal,
   getActiveSessionId, getActiveTerminalId, setActiveTerminalId,
   onSessionChange, onTerminalChange, onHostChange, claudeTerminalId,
+  getHubInfo,
   type TerminalInfo, type Session,
 } from '@/lib/hub';
 import { usePrefs, type Palette } from '@/lib/prefs';
@@ -13,6 +14,7 @@ import { t } from '@/lib/i18n';
 // 새 터미널 picker 선택지: 에이전트(셸/Claude/opencode/codex/grok/antigravity) × 환경.
 const AGENTS: [string, string][] = [['shell', 'Shell'], ['claude', 'Claude'], ['opencode', 'opencode'], ['codex', 'codex'], ['grok', 'Grok'], ['antigravity', 'Antigravity']];
 const ENVS: [string, string][] = [['powershell', 'PowerShell'], ['cmd', 'cmd'], ['gitbash', 'Git Bash'], ['wsl', 'WSL'], ['zsh', 'zsh'], ['bash', 'bash'], ['sh', 'sh']];
+const DEFAULT_ENVS = ENVS.map(([k]) => k);
 
 // 활성 세션의 터미널 줄(2단 바의 아래단). claude(고정) + 셸 터미널들 + ＋.
 export function TerminalBar() {
@@ -24,6 +26,14 @@ export function TerminalBar() {
   const [picker, setPicker] = useState(false);
   const [pAgent, setPAgent] = useState('shell');
   const [pEnv, setPEnv] = useState('powershell');
+  const [envChoices, setEnvChoices] = useState<string[]>(DEFAULT_ENVS);
+
+  const refreshEnvChoices = useCallback(async () => {
+    const info = await getHubInfo();
+    const next = info?.envs?.length ? info.envs : DEFAULT_ENVS;
+    setEnvChoices(next);
+    setPEnv(cur => next.includes(cur) ? cur : (info?.defaultEnv && next.includes(info.defaultEnv) ? info.defaultEnv : next[0] ?? 'powershell'));
+  }, []);
 
   const refresh = useCallback(async () => {
     const sid = getActiveSessionId();
@@ -42,17 +52,18 @@ export function TerminalBar() {
   }, []);
 
   useFocusEffect(useCallback(() => {
+    refreshEnvChoices();
     refresh();
     const id = setInterval(refresh, 2000);
     return () => clearInterval(id);
-  }, [refresh]));
+  }, [refresh, refreshEnvChoices]));
 
   useEffect(() => {
     const offT = onTerminalChange(() => setActiveTid(getActiveTerminalId()));
     const offS = onSessionChange(refresh);
-    const offH = onHostChange(refresh);
+    const offH = onHostChange(() => { refreshEnvChoices(); refresh(); });
     return () => { offT(); offS(); offH(); };
-  }, [refresh]);
+  }, [refresh, refreshEnvChoices]);
 
   async function addTerminal() {
     const sid = getActiveSessionId();
@@ -117,7 +128,7 @@ export function TerminalBar() {
 
             <Text style={styles.sheetLabel}>{t('environment')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.segScroll} contentContainerStyle={styles.segScrollContent}>
-              {ENVS.map(([k, lbl]) => {
+              {ENVS.filter(([k]) => envChoices.includes(k)).map(([k, lbl]) => {
                 const on = pEnv === k;
                 return (
                   <Pressable key={k} onPress={() => setPEnv(k)} style={[styles.segScrollItem, on && { backgroundColor: c.primary }]}>
