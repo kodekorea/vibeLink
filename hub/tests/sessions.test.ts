@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
+import * as path from 'path';
 import { SessionManager } from '../src/sessions';
 import { winPathToWsl, buildWslSpawn } from '../src/wsl';
 import type { IPty } from '../src/nodePty';
@@ -25,6 +26,10 @@ function fakeSpawn() {
     return pty;
   };
   return { spawn, made };
+}
+
+function exeName(file: string): string {
+  return path.basename(file).toLowerCase();
 }
 
 test('createSession: 세션 + claude 터미널 자동 생성 + launch 실행 + 방송', () => {
@@ -60,7 +65,7 @@ test('runtime spec: agent=opencode → opencode 실행, env=wsl → wsl.exe spaw
   const { spawn, made } = fakeSpawn();
   const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
   const { terminalId: t0 } = sm.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'opencode', env: 'wsl' });
-  assert.equal(made[0].file, 'wsl.exe');          // env=wsl → wsl.exe
+  assert.equal(exeName(made[0].file), 'wsl.exe'); // env=wsl → wsl.exe
   sm.resize(t0, 80, 24);
   assert.deepEqual(made[0].writes, ['opencode\r']); // agent=opencode → opencode 실행
   const term = sm.tree()[0].terminals[0];
@@ -84,7 +89,7 @@ test('env=wsl: wsl.exe --cd <세션경로>로 spawn + 셸에 claude 타이핑', 
   const { spawn, made } = fakeSpawn();
   const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
   const { terminalId: tw } = sm.createSession({ label: 'p', path: 'E:\\foo\\bar' }, { env: 'wsl' });
-  assert.equal(made[0].file, 'wsl.exe');
+  assert.equal(exeName(made[0].file), 'wsl.exe');
   assert.deepEqual(made[0].args, ['--cd', 'E:\\foo\\bar']); // 세션 폴더에서 대화형 셸
   sm.resize(tw, 80, 24);
   assert.deepEqual(made[0].writes, ['claude\r']);           // launch는 셸에 타이핑
@@ -96,7 +101,7 @@ test('env=wsl + agent=shell: 명령 타이핑 없이 순수 대화형 bash', () 
   const { sessionId } = sm.createSession({ label: 'p', path: 'C:\\p' }, { env: 'wsl' });
   const tid = sm.createTerminal(sessionId)!; // 기본 agent=shell, env=세션 기본(wsl) 상속
   const made1 = made[1];
-  assert.equal(made1.file, 'wsl.exe');
+  assert.equal(exeName(made1.file), 'wsl.exe');
   assert.deepEqual(made1.args, ['--cd', 'C:\\p']);
   assert.deepEqual(made1.writes, []);                       // 셸은 launch 안 함
   const term = sm.tree()[0].terminals.find(t => t.id === tid)!;
@@ -111,16 +116,19 @@ test('winPathToWsl: 드라이브 경로 → /mnt/<letter>/...', () => {
 });
 
 test('buildWslSpawn: distro 지정 시 -d 추가', () => {
-  assert.deepEqual(buildWslSpawn('C:\\p'), { file: 'wsl.exe', args: ['--cd', 'C:\\p'] });
-  assert.deepEqual(buildWslSpawn('C:\\p', 'Ubuntu-24.04'),
-    { file: 'wsl.exe', args: ['-d', 'Ubuntu-24.04', '--cd', 'C:\\p'] });
+  const a = buildWslSpawn('C:\\p');
+  assert.equal(exeName(a.file), 'wsl.exe');
+  assert.deepEqual(a.args, ['--cd', 'C:\\p']);
+  const b = buildWslSpawn('C:\\p', 'Ubuntu-24.04');
+  assert.equal(exeName(b.file), 'wsl.exe');
+  assert.deepEqual(b.args, ['-d', 'Ubuntu-24.04', '--cd', 'C:\\p']);
 });
 
 test('env=cmd → cmd.exe, env=gitbash → Git bash.exe (-i -l)', () => {
   const { spawn, made } = fakeSpawn();
   const sm = new SessionManager(spawn, () => {}, 'powershell.exe', 'claude');
   sm.createSession({ label: 'p', path: 'C:\\p' }, { agent: 'shell', env: 'cmd' });
-  assert.equal(made[0].file, 'cmd.exe');
+  assert.equal(exeName(made[0].file), 'cmd.exe');
   assert.deepEqual(made[0].writes, []);                 // shell → launch 없음
   sm.createSession({ label: 'q', path: 'C:\\q' }, { agent: 'shell', env: 'gitbash' });
   assert.match(made[1].file, /bash\.exe$/i);            // Git Bash 경로(System32 WSL 런처 아님)

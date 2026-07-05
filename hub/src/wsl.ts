@@ -1,3 +1,5 @@
+import { existingWindowsExe } from './env';
+
 // WSL(env='wsl') 런타임 헬퍼. sessions.ts를 깔끔하게 유지하려고 분리.
 //
 // 모델: hub는 셸을 spawn한 뒤 에이전트 실행 명령(claude 등)을 pty.write(launch+'\r')로
@@ -34,5 +36,5 @@ export function buildWslSpawn(cwd: string, distro?: string): WslSpawn {
   const args: string[] = [];
   if (distro) { args.push('-d', distro); }
   if (cwd) { args.push('--cd', cwd); }
-  return { file: 'wsl.exe', args };
+  return { file: existingWindowsExe('wsl.exe'), args };
 }

@@ -1,5 +1,6 @@
 import type { IPty, PtySpawn } from './nodePty';
 import { buildWslSpawn } from './wsl';
+import { normalizeProcessEnv } from './env';
 import { defaultEnv, isSupportedEnv, resolveEnvShell } from './shells';
 
 export interface Project { label: string; path: string; }
@@ -164,7 +165,7 @@ export class SessionManager {
     const session = this.sessions.get(sessionId)!;
     const rt = this.resolveRuntime({ agent, env }, session.cwd);
     const pty = this.spawn(rt.file, rt.args, {
-      name: 'xterm-256color', cols, rows, cwd: rt.cwd, env: process.env,
+      name: 'xterm-256color', cols, rows, cwd: rt.cwd, env: normalizeProcessEnv(process.env),
     });
     const id = 't' + (++this.tCounter);
     const term: Terminal = { id, sessionId, label, kind, agent, env, pty, buffer: '', cols, rows };

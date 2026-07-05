@@ -10,6 +10,7 @@ import { ProjectStore } from './projects';
 import { SessionManager } from './sessions';
 import { browseDir, drives, listEntries, readFileText } from './fsbrowse';
 import { loadAgentView } from './transcript';
+import { existingWindowsExe, normalizeProcessEnv } from './env';
 
 function parseCookies(req: http.IncomingMessage): Record<string, string> {
   const out: Record<string, string> = {};
@@ -50,9 +51,9 @@ function captureScreenPowerShell(idx?: number): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {
     import('child_process').then((cp) => {
       const child = cp.execFile(
-        'powershell.exe',
+        existingWindowsExe('powershell.exe'),
         ['-NoProfile', '-NonInteractive', '-STA', '-Command', ps],
-        { windowsHide: true, maxBuffer: 256 * 1024 * 1024 },
+        { env: normalizeProcessEnv(process.env), windowsHide: true, maxBuffer: 256 * 1024 * 1024 },
         (err, stdout) => {
           if (err) { reject(err); return; }
           const b64 = String(stdout).trim();
@@ -79,9 +80,9 @@ function listDisplaysWindows(): Promise<DisplayInfo[]> {
   return new Promise<DisplayInfo[]>((resolve, reject) => {
     import('child_process').then((cp) => {
       const child = cp.execFile(
-        'powershell.exe',
+        existingWindowsExe('powershell.exe'),
         ['-NoProfile', '-NonInteractive', '-Command', ps],
-        { windowsHide: true, maxBuffer: 1024 * 1024 },
+        { env: normalizeProcessEnv(process.env), windowsHide: true, maxBuffer: 1024 * 1024 },
         (err, stdout) => {
           if (err && !stdout) { reject(err); return; }
           try {
@@ -116,9 +117,9 @@ function clickScreenPowerShell(xf: number, yf: number, idx?: number): Promise<vo
   return new Promise<void>((resolve, reject) => {
     import('child_process').then((cp) => {
       const child = cp.execFile(
-        'powershell.exe',
+        existingWindowsExe('powershell.exe'),
         ['-NoProfile', '-NonInteractive', '-STA', '-Command', ps],
-        { windowsHide: true },
+        { env: normalizeProcessEnv(process.env), windowsHide: true },
         (err) => { if (err) reject(err); else resolve(); },
       );
       child.on('error', reject);
@@ -183,9 +184,9 @@ function listeningPorts(selfPort: number): Promise<number[]> {
   return new Promise((resolve, reject) => {
     import('child_process').then((cp) => {
       const netstatCmd = process.platform === 'win32'
-        ? (process.env.SystemRoot ? path.join(process.env.SystemRoot, 'System32', 'netstat.exe') : 'C:\\Windows\\System32\\netstat.exe')
+        ? existingWindowsExe('netstat.exe')
         : 'netstat';
-      cp.execFile(netstatCmd, ['-ano', '-p', 'TCP'], { windowsHide: true, maxBuffer: 8 * 1024 * 1024 }, (err, stdout) => {
+      cp.execFile(netstatCmd, ['-ano', '-p', 'TCP'], { env: normalizeProcessEnv(process.env), windowsHide: true, maxBuffer: 8 * 1024 * 1024 }, (err, stdout) => {
         if (err && !stdout) { reject(err); return; }
         const set = new Set<number>();
         for (const line of String(stdout).split(/\r?\n/)) {

@@ -68,18 +68,92 @@ function settings() {
 }
 function hubDir() { return app.isPackaged ? path.join(process.resourcesPath, 'hub') : path.join(__dirname, '..', 'hub'); }
 function log(s) { logs.push(s); if (logs.length > 200) logs.shift(); }
-function augmentPath(env) {
-  const extras = process.platform === 'darwin'
-    ? ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin']
-    : ['/usr/local/bin', '/usr/bin', '/bin'];
-  const parts = String(env.PATH || '').split(path.delimiter).filter(Boolean);
-  for (const p of extras) if (!parts.includes(p)) parts.push(p);
-  env.PATH = parts.join(path.delimiter);
+function envValue(env, key) {
+  const found = Object.keys(env).find(k => k.toLowerCase() === key.toLowerCase());
+  return found ? env[found] : undefined;
+}
+function setEnv(env, key, value) {
+  const found = Object.keys(env).find(k => k.toLowerCase() === key.toLowerCase());
+  env[found || key] = value;
+}
+function envPathKey(env) {
+  return Object.keys(env).find(k => k.toLowerCase() === 'path') || (process.platform === 'win32' ? 'Path' : 'PATH');
+}
+function addPath(parts, p) {
+  if (!p) return;
+  const v = String(p).trim();
+  if (!v) return;
+  if (!parts.some(x => process.platform === 'win32' ? x.toLowerCase() === v.toLowerCase() : x === v)) parts.push(v);
+}
+function windowsDir(env) {
+  return envValue(env, 'SystemRoot') || envValue(env, 'windir') || 'C:\\Windows';
+}
+function windowsExe(name, env) {
+  if (process.platform !== 'win32' || path.isAbsolute(name)) return name;
+  return path.join(windowsDir(env), 'System32', name);
+}
+function expandWindowsVars(value, env) {
+  return String(value).replace(/%([^%]+)%/g, (_m, name) => envValue(env, name) || process.env[name] || '');
+}
+function readRegistryPath(scope, env) {
+  if (process.platform !== 'win32') return '';
+  const key = scope === 'HKLM'
+    ? 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment'
+    : 'HKCU\\Environment';
+  try {
+    const out = execFileSync(windowsExe('reg.exe', env), ['query', key, '/v', 'Path'], {
+      env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true,
+    });
+    const line = out.split(/\r?\n/).find(l => /\bPath\b/i.test(l) && /\bREG_(?:EXPAND_)?SZ\b/i.test(l));
+    const m = line && line.match(/\bREG_(?:EXPAND_)?SZ\s+(.+)$/i);
+    return m ? m[1].trim() : '';
+  } catch {
+    return '';
+  }
+}
+function normalizeEnv(base) {
+  const env = Object.assign({}, base);
+  if (process.platform === 'win32') {
+    const root = windowsDir(env);
+    setEnv(env, 'SystemRoot', root);
+    setEnv(env, 'windir', envValue(env, 'windir') || root);
+    setEnv(env, 'ComSpec', envValue(env, 'ComSpec') || path.join(root, 'System32', 'cmd.exe'));
+    setEnv(env, 'TEMP', envValue(env, 'TEMP') || os.tmpdir());
+    setEnv(env, 'TMP', envValue(env, 'TMP') || os.tmpdir());
+
+    const parts = [];
+    for (const k of Object.keys(env)) {
+      if (k.toLowerCase() === 'path') {
+        for (const p of String(env[k] || '').split(path.delimiter)) addPath(parts, p);
+      }
+    }
+    for (const p of readRegistryPath('HKLM', env).split(path.delimiter)) addPath(parts, expandWindowsVars(p, env));
+    for (const p of readRegistryPath('HKCU', env).split(path.delimiter)) addPath(parts, expandWindowsVars(p, env));
+    addPath(parts, path.join(root, 'System32'));
+    addPath(parts, root);
+    addPath(parts, path.join(root, 'System32', 'WindowsPowerShell', 'v1.0'));
+    addPath(parts, path.join(root, 'System32', 'OpenSSH'));
+    addPath(parts, 'C:\\Program Files\\PowerShell\\7');
+    addPath(parts, 'C:\\Program Files\\nodejs');
+    addPath(parts, path.join(os.homedir(), 'AppData', 'Roaming', 'npm'));
+    env[envPathKey(env)] = parts.join(path.delimiter);
+  } else {
+    const extras = process.platform === 'darwin'
+      ? ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin']
+      : ['/usr/local/bin', '/usr/bin', '/bin'];
+    const parts = String(env.PATH || '').split(path.delimiter).filter(Boolean);
+    for (const p of extras) addPath(parts, p);
+    env.PATH = parts.join(path.delimiter);
+  }
+  return env;
+}
+function pathEntries(env) {
+  return String(env[envPathKey(env)] || '').split(path.delimiter).filter(Boolean);
 }
 function findNode(env) {
   const cands = [
     process.env.MTB_NODE,
-    ...String(env.PATH || '').split(path.delimiter).filter(Boolean).map(p => path.join(p, process.platform === 'win32' ? 'node.exe' : 'node')),
+    ...pathEntries(env).map(p => path.join(p, process.platform === 'win32' ? 'node.exe' : 'node')),
   ].filter(Boolean);
   for (const c of cands) {
     try { if (fs.existsSync(c)) return c; } catch { /* ignore */ }
@@ -95,7 +169,6 @@ function findNode(env) {
   return null;
 }
 function hubNodeCommand(env) {
-  augmentPath(env);
   const node = findNode(env);
   if (node) return { file: node, args: ['--import', 'tsx', 'src/index.ts'] };
   if (!app.isPackaged) return { file: 'node', args: ['--import', 'tsx', 'src/index.ts'] };
@@ -124,7 +197,7 @@ function startHub() {
   hubStopRequested = false;
   const cfg = settings();
   const dot = loadDotEnv();
-  const env = Object.assign({}, process.env, dot.vars, { MTB_PORT: String(cfg.port), MTB_PASSWORD: cfg.password });
+  const env = normalizeEnv(Object.assign({}, process.env, dot.vars, { MTB_PORT: String(cfg.port), MTB_PASSWORD: cfg.password }));
   if (process.platform !== 'win32') env.MTB_SHELL = process.env.SHELL || (process.platform === 'darwin' ? '/bin/zsh' : '/bin/sh');
   // 런모드(권한 건너뛰기)는 에이전트별 플래그를 hub가 붙인다 → MTB_LAUNCH는 베이스만.
   env.MTB_LAUNCH = 'claude';
