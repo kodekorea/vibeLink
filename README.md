@@ -98,7 +98,7 @@ No complex installations are required. Just ensure the following:
 
 #### For Developers (Building from Source)
 * **Common:** Node.js (LTS version recommended)
-* **Mobile (Local Build):** JDK 17, Android Studio, Android SDK configured in your environment variables (`ANDROID_HOME`), and USB Debugging enabled on your Android device.
+* **Mobile (Local Build):** JDK 17, Android Studio, Android SDK configured in your environment variables (`ANDROID_HOME`; on macOS usually `~/Library/Android/sdk`), and USB Debugging enabled on your Android device.
 * **Mobile (EAS Cloud Build):** Expo Account & EAS CLI installed.
 
 ---
@@ -146,17 +146,34 @@ eas build --platform android --profile preview
 ```
 
 **Option B: Local Development Run**
-1. Install **JDK 17** and **Android Studio** (on Windows, you can use `winget`):
+1. Install **JDK 17** and **Android Studio**.
+
+   Windows:
    ```powershell
    winget install EclipseAdoptium.Temurin.17.JDK
    winget install Google.AndroidStudio
    ```
-2. Configure environment variables: Set `ANDROID_HOME` to your Android SDK path, and add `%ANDROID_HOME%\platform-tools` to your `Path`.
+
+   macOS:
+   ```bash
+   brew install --cask temurin@17 android-studio
+   export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+   export ANDROID_HOME="$HOME/Library/Android/sdk"
+   export PATH="$ANDROID_HOME/platform-tools:$PATH"
+   ```
+2. Configure environment variables: Set `ANDROID_HOME` to your Android SDK path, and add platform-tools to your `Path`.
 3. Connect your Android device via USB (with USB Debugging enabled) and run:
    ```bash
    cd mobile
    npm run android
    ```
+
+To build a local APK on macOS/Linux:
+```bash
+./build-apk.sh
+```
+
+The APK is written to `mobile/android/app/build/outputs/apk/release/app-release.apk`.
 
 ---
 
@@ -225,7 +242,7 @@ eas build --platform android --profile preview
 
 #### 개발자 (소스코드 직접 빌드 시)
 * **공통:** Node.js (LTS 버전 권장)
-* **모바일 (로컬 빌드):** JDK 17, Android Studio, Android SDK 환경 변수 설정(`ANDROID_HOME` 및 `platform-tools`), 모바일 기기의 USB 디버깅 활성화.
+* **모바일 (로컬 빌드):** JDK 17, Android Studio, Android SDK 환경 변수 설정(`ANDROID_HOME`; macOS 기본 경로는 보통 `~/Library/Android/sdk`) 및 `platform-tools`, 모바일 기기의 USB 디버깅 활성화.
 * **모바일 (EAS 클라우드 빌드):** Expo 계정 생성 및 EAS CLI 설치.
 
 ---
@@ -252,6 +269,7 @@ npm run dist
 ##### 2. 모바일 앱 환경 구성
 * **EAS 클라우드 빌드**: `eas build --platform android --profile preview` 명령어로 Expo 서버를 통한 APK 컴파일을 수행합니다.
 * **로컬 개발 모드**: JDK 17 및 Android Studio가 세팅된 로컬 PC 환경에서 `mobile/` 폴더로 이동해 `npm run android`를 실행합니다.
+* **macOS 로컬 APK 빌드**: `./build-apk.sh`를 실행하면 `mobile/android/app/build/outputs/apk/release/app-release.apk`가 생성됩니다. `JAVA_HOME`은 JDK 17, `ANDROID_HOME`은 Android SDK 경로로 설정해야 합니다.
 
 ---
 

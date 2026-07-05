@@ -45,6 +45,7 @@ image copy*
 **/node_modules/
 **/dist/
 **/out/
+mobile/android/
 *.vsix
 **/cloudflared
 **/cloudflared.exe
