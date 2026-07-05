@@ -1,6 +1,6 @@
 {
   "name": "vibelink-desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "VibeLink desktop tray app (spawns hub/ as a child process)",
   "main": "main.js",
