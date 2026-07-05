@@ -13,6 +13,13 @@ if not exist node_modules (
   if errorlevel 1 goto fail
 )
 
+cd /d "%~dp0hub"
+echo Installing hub runtime deps...
+call npm install
+if errorlevel 1 goto fail
+
+cd /d "%~dp0desktop"
+
 rem No code signing (personal distribution) -> avoids cert prompts.
 set CSC_IDENTITY_AUTO_DISCOVERY=false
 

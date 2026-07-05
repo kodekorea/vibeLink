@@ -11,6 +11,11 @@ if [ ! -d node_modules ]; then
   npm install
 fi
 
+(
+  cd ../hub
+  npm install
+)
+
 # Personal distribution: avoid local signing prompts unless explicitly configured.
 export CSC_IDENTITY_AUTO_DISCOVERY="${CSC_IDENTITY_AUTO_DISCOVERY:-false}"
 
